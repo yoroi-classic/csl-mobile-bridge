@@ -1,7 +1,7 @@
 {
-  "name": "@emurgo/csl-mobile-bridge",
-  "version": "6.0.0-alpha.2",
-  "description": "React-native bindings for Emurgo's cardano-serialization-lib (Cardano haskell Shelley)",
+  "name": "@emurgo/csl-mobile-bridge-jsi",
+  "version": "1.0.0-alpha.1",
+  "description": "React-native bindings for Emurgo's cardano-serialization-lib",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
