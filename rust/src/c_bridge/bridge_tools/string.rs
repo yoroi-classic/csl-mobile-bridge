@@ -49,7 +49,7 @@ impl IntoOptionalCString for Option<&str> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn charptr_free(ptr: &mut CharPtr) {
+pub unsafe extern "C" fn csl_bridge_charptr_free(ptr: &mut CharPtr) {
   let _ = CString::from_raw(*ptr as *mut c_char);
   *ptr = std::ptr::null_mut();
 }

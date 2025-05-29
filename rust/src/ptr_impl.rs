@@ -21,6 +21,8 @@ use cardano_serialization_lib::ByronAddress;
 use cardano_serialization_lib::Certificate;
 use cardano_serialization_lib::Certificates;
 use cardano_serialization_lib::CertificatesBuilder;
+use cardano_serialization_lib::ChangeConfig;
+use cardano_serialization_lib::Coin;
 use cardano_serialization_lib::Committee;
 use cardano_serialization_lib::CommitteeColdResign;
 use cardano_serialization_lib::CommitteeHotAuth;
@@ -33,20 +35,25 @@ use cardano_serialization_lib::Credentials;
 use cardano_serialization_lib::DNSRecordAorAAAA;
 use cardano_serialization_lib::DNSRecordSRV;
 use cardano_serialization_lib::DRep;
+use cardano_serialization_lib::DRepDeregistration;
+use cardano_serialization_lib::DRepRegistration;
+use cardano_serialization_lib::DRepUpdate;
+use cardano_serialization_lib::DRepVotingThresholds;
 use cardano_serialization_lib::DataCost;
 use cardano_serialization_lib::DataHash;
 use cardano_serialization_lib::DatumSource;
-use cardano_serialization_lib::DrepDeregistration;
-use cardano_serialization_lib::DrepRegistration;
-use cardano_serialization_lib::DrepUpdate;
-use cardano_serialization_lib::DrepVotingThresholds;
 use cardano_serialization_lib::Ed25519KeyHash;
 use cardano_serialization_lib::Ed25519KeyHashes;
 use cardano_serialization_lib::Ed25519Signature;
 use cardano_serialization_lib::EnterpriseAddress;
 use cardano_serialization_lib::ExUnitPrices;
 use cardano_serialization_lib::ExUnits;
+use cardano_serialization_lib::FixedBlock;
 use cardano_serialization_lib::FixedTransaction;
+use cardano_serialization_lib::FixedTransactionBodies;
+use cardano_serialization_lib::FixedTransactionBody;
+use cardano_serialization_lib::FixedTxWitnessesSet;
+use cardano_serialization_lib::FixedVersionedBlock;
 use cardano_serialization_lib::GeneralTransactionMetadata;
 use cardano_serialization_lib::GenesisDelegateHash;
 use cardano_serialization_lib::GenesisHash;
@@ -59,8 +66,6 @@ use cardano_serialization_lib::HardForkInitiationAction;
 use cardano_serialization_lib::Header;
 use cardano_serialization_lib::HeaderBody;
 use cardano_serialization_lib::InfoAction;
-use cardano_serialization_lib::InputWithScriptWitness;
-use cardano_serialization_lib::InputsWithScriptWitness;
 use cardano_serialization_lib::Int;
 use cardano_serialization_lib::Ipv4;
 use cardano_serialization_lib::Ipv6;
@@ -71,6 +76,7 @@ use cardano_serialization_lib::Languages;
 use cardano_serialization_lib::LegacyDaedalusPrivateKey;
 use cardano_serialization_lib::LinearFee;
 use cardano_serialization_lib::MIRToStakeCredentials;
+use cardano_serialization_lib::MalformedAddress;
 use cardano_serialization_lib::MetadataList;
 use cardano_serialization_lib::MetadataMap;
 use cardano_serialization_lib::Mint;
@@ -96,6 +102,7 @@ use cardano_serialization_lib::ParameterChangeAction;
 use cardano_serialization_lib::PlutusData;
 use cardano_serialization_lib::PlutusList;
 use cardano_serialization_lib::PlutusMap;
+use cardano_serialization_lib::PlutusMapValues;
 use cardano_serialization_lib::PlutusScript;
 use cardano_serialization_lib::PlutusScriptSource;
 use cardano_serialization_lib::PlutusScripts;
@@ -103,6 +110,8 @@ use cardano_serialization_lib::PlutusWitness;
 use cardano_serialization_lib::PlutusWitnesses;
 use cardano_serialization_lib::Pointer;
 use cardano_serialization_lib::PointerAddress;
+use cardano_serialization_lib::PolicyID;
+use cardano_serialization_lib::PolicyIDs;
 use cardano_serialization_lib::PoolMetadata;
 use cardano_serialization_lib::PoolMetadataHash;
 use cardano_serialization_lib::PoolParams;
@@ -120,6 +129,7 @@ use cardano_serialization_lib::RedeemerTag;
 use cardano_serialization_lib::Redeemers;
 use cardano_serialization_lib::Relay;
 use cardano_serialization_lib::Relays;
+use cardano_serialization_lib::RequiredSigners;
 use cardano_serialization_lib::RewardAddress;
 use cardano_serialization_lib::RewardAddresses;
 use cardano_serialization_lib::ScriptAll;
@@ -150,9 +160,11 @@ use cardano_serialization_lib::TransactionBuilder;
 use cardano_serialization_lib::TransactionBuilderConfig;
 use cardano_serialization_lib::TransactionBuilderConfigBuilder;
 use cardano_serialization_lib::TransactionHash;
+use cardano_serialization_lib::TransactionIndexes;
 use cardano_serialization_lib::TransactionInput;
 use cardano_serialization_lib::TransactionInputs;
 use cardano_serialization_lib::TransactionMetadatum;
+use cardano_serialization_lib::TransactionMetadatumLabel;
 use cardano_serialization_lib::TransactionMetadatumLabels;
 use cardano_serialization_lib::TransactionOutput;
 use cardano_serialization_lib::TransactionOutputAmountBuilder;
@@ -164,7 +176,6 @@ use cardano_serialization_lib::TransactionWitnessSet;
 use cardano_serialization_lib::TransactionWitnessSets;
 use cardano_serialization_lib::TreasuryWithdrawals;
 use cardano_serialization_lib::TreasuryWithdrawalsAction;
-use cardano_serialization_lib::TxBuilderConstants;
 use cardano_serialization_lib::TxInputsBuilder;
 use cardano_serialization_lib::URL;
 use cardano_serialization_lib::UnitInterval;
@@ -174,6 +185,7 @@ use cardano_serialization_lib::VRFCert;
 use cardano_serialization_lib::VRFKeyHash;
 use cardano_serialization_lib::VRFVKey;
 use cardano_serialization_lib::Value;
+use cardano_serialization_lib::VersionedBlock;
 use cardano_serialization_lib::Vkey;
 use cardano_serialization_lib::Vkeys;
 use cardano_serialization_lib::Vkeywitness;
@@ -212,6 +224,7 @@ impl RPtrRepresentable for ByronAddress {}
 impl RPtrRepresentable for Certificate {}
 impl RPtrRepresentable for Certificates {}
 impl RPtrRepresentable for CertificatesBuilder {}
+impl RPtrRepresentable for ChangeConfig {}
 impl RPtrRepresentable for Committee {}
 impl RPtrRepresentable for CommitteeColdResign {}
 impl RPtrRepresentable for CommitteeHotAuth {}
@@ -224,20 +237,25 @@ impl RPtrRepresentable for Credentials {}
 impl RPtrRepresentable for DNSRecordAorAAAA {}
 impl RPtrRepresentable for DNSRecordSRV {}
 impl RPtrRepresentable for DRep {}
+impl RPtrRepresentable for DRepDeregistration {}
+impl RPtrRepresentable for DRepRegistration {}
+impl RPtrRepresentable for DRepUpdate {}
+impl RPtrRepresentable for DRepVotingThresholds {}
 impl RPtrRepresentable for DataCost {}
 impl RPtrRepresentable for DataHash {}
 impl RPtrRepresentable for DatumSource {}
-impl RPtrRepresentable for DrepDeregistration {}
-impl RPtrRepresentable for DrepRegistration {}
-impl RPtrRepresentable for DrepUpdate {}
-impl RPtrRepresentable for DrepVotingThresholds {}
 impl RPtrRepresentable for Ed25519KeyHash {}
 impl RPtrRepresentable for Ed25519KeyHashes {}
 impl RPtrRepresentable for Ed25519Signature {}
 impl RPtrRepresentable for EnterpriseAddress {}
 impl RPtrRepresentable for ExUnitPrices {}
 impl RPtrRepresentable for ExUnits {}
+impl RPtrRepresentable for FixedBlock {}
 impl RPtrRepresentable for FixedTransaction {}
+impl RPtrRepresentable for FixedTransactionBodies {}
+impl RPtrRepresentable for FixedTransactionBody {}
+impl RPtrRepresentable for FixedTxWitnessesSet {}
+impl RPtrRepresentable for FixedVersionedBlock {}
 impl RPtrRepresentable for GeneralTransactionMetadata {}
 impl RPtrRepresentable for GenesisDelegateHash {}
 impl RPtrRepresentable for GenesisHash {}
@@ -250,8 +268,6 @@ impl RPtrRepresentable for HardForkInitiationAction {}
 impl RPtrRepresentable for Header {}
 impl RPtrRepresentable for HeaderBody {}
 impl RPtrRepresentable for InfoAction {}
-impl RPtrRepresentable for InputWithScriptWitness {}
-impl RPtrRepresentable for InputsWithScriptWitness {}
 impl RPtrRepresentable for Int {}
 impl RPtrRepresentable for Ipv4 {}
 impl RPtrRepresentable for Ipv6 {}
@@ -262,6 +278,7 @@ impl RPtrRepresentable for Languages {}
 impl RPtrRepresentable for LegacyDaedalusPrivateKey {}
 impl RPtrRepresentable for LinearFee {}
 impl RPtrRepresentable for MIRToStakeCredentials {}
+impl RPtrRepresentable for MalformedAddress {}
 impl RPtrRepresentable for MetadataList {}
 impl RPtrRepresentable for MetadataMap {}
 impl RPtrRepresentable for Mint {}
@@ -287,6 +304,7 @@ impl RPtrRepresentable for ParameterChangeAction {}
 impl RPtrRepresentable for PlutusData {}
 impl RPtrRepresentable for PlutusList {}
 impl RPtrRepresentable for PlutusMap {}
+impl RPtrRepresentable for PlutusMapValues {}
 impl RPtrRepresentable for PlutusScript {}
 impl RPtrRepresentable for PlutusScriptSource {}
 impl RPtrRepresentable for PlutusScripts {}
@@ -355,7 +373,6 @@ impl RPtrRepresentable for TransactionWitnessSet {}
 impl RPtrRepresentable for TransactionWitnessSets {}
 impl RPtrRepresentable for TreasuryWithdrawals {}
 impl RPtrRepresentable for TreasuryWithdrawalsAction {}
-impl RPtrRepresentable for TxBuilderConstants {}
 impl RPtrRepresentable for TxInputsBuilder {}
 impl RPtrRepresentable for URL {}
 impl RPtrRepresentable for UnitInterval {}
@@ -365,6 +382,7 @@ impl RPtrRepresentable for VRFCert {}
 impl RPtrRepresentable for VRFKeyHash {}
 impl RPtrRepresentable for VRFVKey {}
 impl RPtrRepresentable for Value {}
+impl RPtrRepresentable for VersionedBlock {}
 impl RPtrRepresentable for Vkey {}
 impl RPtrRepresentable for Vkeys {}
 impl RPtrRepresentable for Vkeywitness {}

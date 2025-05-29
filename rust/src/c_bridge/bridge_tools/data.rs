@@ -49,6 +49,6 @@ impl <T:From<T>> IntoOptionDataPtr for Option<T> where DataPtr: From<T>{
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dataptr_free(data: &mut DataPtr) {
+pub unsafe extern "C" fn csl_bridge_dataptr_free(data: &mut DataPtr) {
   data.free();
 }
