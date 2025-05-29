@@ -13,6 +13,7 @@
     "android",
     "ios",
     "cpp",
+    "rust",
     "*.podspec",
     "*.cmake",
     "!ios/build",
