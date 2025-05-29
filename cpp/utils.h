@@ -10,7 +10,7 @@ extern "C" {
 //the function converts a string from rust to c++ and frees the rust string
 std::string charPtrToString(CharPtr* ptr) {
     std::string str = *ptr;
-    charptr_free(ptr);
+    csl_bridge_charptr_free(ptr);
     return str;
 }
 
@@ -42,7 +42,7 @@ std::string rptrToString(RPtr ptr) {
 //the function converts a data array from rust to base64 string and frees the rust data array
 std::string dataPtrToBase64(DataPtr *ptr) {
     std::string base64Str = byteArrayToBase64(ptr->ptr, ptr->len);
-    dataptr_free(ptr);
+    csl_bridge_dataptr_free(ptr);
     return base64Str;
 }
 
