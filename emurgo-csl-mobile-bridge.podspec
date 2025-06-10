@@ -27,6 +27,7 @@ Pod::Spec.new do |s|
 
   s.compiler_flags  = folly_compiler_flags + ' -DRCT_NEW_ARCH_ENABLED=1 -Wc++17-extensions'
   s.vendored_libraries = [ "$(CONFIGURATION_BUILD_DIR)/libreact_native_haskell_shelley.a" ]
+  s.libraries = "react_native_haskell_shelley"
 
   s.pod_target_xcconfig    = {
       "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(CONFIGURATION_BUILD_DIR)\"",
