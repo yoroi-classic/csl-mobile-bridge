@@ -53,31 +53,31 @@ std::string byteArrayToBase64(const unsigned char* buf, unsigned int bufLen) {
 // Function to Decode Base64 to ByteArray
 std::vector<uint8_t> base64ToByteArray(const std::string& base64) {
     std::vector<uint8_t> ret;
-    ret.reserve(base64.size() * 3 / 4); // Pre-allocate memory
+    ret.reserve(std::max<std::size_t>(1, base64.size() * 3 / 4));
 
     unsigned char char_array_4[4], char_array_3[3];
-    int i = 0, in_ = 0;
+    int i = 0;
+    std::size_t in_ = 0;
 
-    while (base64[in_] != '=' && in_ < base64.size()) {
-        char_array_4[i++] = base64_lookup[base64[in_++]];
+    while (in_ < base64.size() && base64[in_] != '=') {
+        char_array_4[i++] = base64_lookup[static_cast<uint8_t>(base64[in_++])];
         if (i == 4) {
             char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-            char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-            char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-            for (i = 0; i < 3; i++) ret.push_back(char_array_3[i]);
+            char_array_3[1] = ((char_array_4[1] & 0x0F) << 4) + ((char_array_4[2] & 0x3C) >> 2);
+            char_array_3[2] = ((char_array_4[2] & 0x03) << 6) + char_array_4[3];
+            for (i = 0; i < 3; ++i) ret.push_back(char_array_3[i]);
             i = 0;
         }
     }
 
     if (i > 0) {
-        for (int j = i; j < 4; j++) char_array_4[j] = 0;
+        for (int j = i; j < 4; ++j) char_array_4[j] = 0;
 
         char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-        if (i > 1) char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-        if (i > 2) char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+        if (i > 1) char_array_3[1] = ((char_array_4[1] & 0x0F) << 4) + ((char_array_4[2] & 0x3C) >> 2);
+        if (i > 2) char_array_3[2] = ((char_array_4[2] & 0x03) << 6) + char_array_4[3];
 
-        for (int j = 0; j < i - 1; j++) ret.push_back(char_array_3[j]);
+        for (int j = 0; j < i - 1; ++j) ret.push_back(char_array_3[j]);
     }
 
     return ret;
