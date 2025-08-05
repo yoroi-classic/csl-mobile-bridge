@@ -11,23 +11,23 @@
   },
   "dependencies": {
     "blake2b": "^2.1.4",
-    "react": "18.2.0",
-    "react-native": "0.79.2"
+    "react": "18.3.1",
+    "react-native": "0.79.5"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@babel/eslint-parser": "^7.23.9",
-    "@babel/preset-env": "^7.20.0",
-    "@babel/runtime": "^7.20.0",
-    "@react-native/babel-preset": "^0.79.2",
-    "@react-native/metro-config": "^0.79.2",
-    "@react-native/typescript-config": "^0.79.2",
-    "babel-plugin-module-resolver": "^5.0.0",
-    "eslint-plugin-formatjs": "latest",
-    "eslint-plugin-ft-flow": "latest",
-    "eslint-plugin-react-prefer-function-component": "latest",
-    "eslint-plugin-simple-import-sort": "latest",
-    "pod-install": "^0.1.0"
+    "@babel/core": "^7.28.0",
+    "@babel/eslint-parser": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/runtime": "^7.28.2",
+    "@react-native/babel-preset": "^0.79.5",
+    "@react-native/metro-config": "^0.79.5",
+    "@react-native/typescript-config": "^0.79.5",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "eslint-plugin-formatjs": "^5.4.0",
+    "eslint-plugin-ft-flow": "^3.0.11",
+    "eslint-plugin-react-prefer-function-component": "^4.0.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "pod-install": "^0.1.39"
   },
   "engines": {
     "node": ">=18"
