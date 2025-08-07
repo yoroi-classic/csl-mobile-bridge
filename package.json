@@ -2,14 +2,16 @@
   "name": "@emurgo/csl-mobile-bridge-jsi",
   "version": "1.0.0-alpha.6",
   "description": "React-native bindings for Emurgo's cardano-serialization-lib",
-  "main": "lib/commonjs/index",
-  "module": "lib/module/index",
-  "types": "lib/typescript/src/index.d.ts",
-  "react-native": "src/index",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/commonjs/src/index.d.ts",
   "source": "src/index",
   "files": [
     "src",
     "lib",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
     "android",
     "ios",
     "cpp",
@@ -23,9 +25,6 @@
     "!android/gradlew.bat",
     "!android/local.properties",
     "!rust/target",
-    "!**/__tests__",
-    "!**/__fixtures__",
-    "!**/__mocks__",
     "!**/.*"
   ],
   "scripts": {
@@ -79,7 +78,7 @@
     "prettier": "^2.8.8",
     "react": "18.3.1",
     "react-native": "0.73.11",
-    "react-native-builder-bob": "^0.20.4",
+    "react-native-builder-bob": "^0.40.13",
     "release-it": "^15.11.0",
     "turbo": "^1.13.4",
     "typescript": "^5.9.2"
@@ -154,21 +153,19 @@
     "source": "src",
     "output": "lib",
     "targets": [
-      "commonjs",
-      "module",
       [
-        "typescript",
+        "module",
         {
-          "project": "tsconfig.build.json"
+          "esm": true
         }
       ],
       [
         "commonjs",
         {
-          "configFile": true,
-          "copyFlow": true
+          "esm": true
         }
-      ]
+      ],
+      "typescript"
     ]
   },
   "codegenConfig": {
@@ -178,5 +175,19 @@
   },
   "dependencies": {
     "base-64": "^1.0.0"
+  },
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": {
+        "types": "./lib/typescript/module/src/index.d.ts",
+        "default": "./lib/module/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/src/index.d.ts",
+        "default": "./lib/commonjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   }
 }
