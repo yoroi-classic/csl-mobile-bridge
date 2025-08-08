@@ -31,12 +31,20 @@ target_include_directories(native_module PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../../rust/include
 )
 
-# Link the native module with React Native core libraries
+# Find the Rust library
+find_library(
+    RUST_LIB
+    NAMES react_native_haskell_shelley
+    HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../android/build/rustJniLibs/android/${ANDROID_ABI}
+)
+
+# Link the native module with React Native core libraries and the Rust library
 target_link_libraries(native_module
     ReactAndroid::jsi
     ReactAndroid::fbjni
     react_nativemodule_core
     ${JNI_LIBRARIES}
+    ${RUST_LIB}
 )
 
 # Install rule for Android build

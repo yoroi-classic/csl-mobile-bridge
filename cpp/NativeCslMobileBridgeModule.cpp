@@ -7,131 +7,110 @@ using namespace std;
 
 namespace cslmobilebridge {
 
-class BigNumHostObject : public HostObject {
+class BigNumNativeState : public NativeState {
 public:
-  BigNumHostObject(RPtr bigNumPtr) : bigNumPtr_(bigNumPtr) {}
+  BigNumNativeState(RPtr bigNumPtr) : bigNumPtr_(bigNumPtr) {}
 
-  ~BigNumHostObject() {
+  ~BigNumNativeState() {
     csl_bridge_rptr_free(&bigNumPtr_);
   }
 
-  static Value create(Runtime& runtime, const RPtr& bigNumPtr) {
-    auto hostObject = make_shared<BigNumHostObject>(bigNumPtr);
-    return Object::createFromHostObject(runtime, hostObject);
-  }
-
-  static void registerHostObject(Runtime& runtime, const RPtr& bigNumPtr) {
-    auto object = create(runtime, bigNumPtr);
-    runtime.global().setProperty(runtime, "BigNum", move(object));
-  }
-
-  Value get(Runtime& runtime, const PropNameID& name) override {
-    auto methodName = name.utf8(runtime);
-    
-    if (methodName == "to_str") {
-      return Function::createFromHostFunction(
-        runtime,
-        name,
-        0,
-        [this](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
-          CharPtr result;
-          CharPtr error;
-          if (!csl_bridge_big_num_to_str(bigNumPtr_, &result, &error)) {
-            throw JSError(runtime, string(error));
-          }
-          auto jsString = String::createFromUtf8(runtime, string(result));
-          csl_bridge_charptr_free(&result);
-          return jsString;
-        }
-      );
-    }
-    else if (methodName == "checked_add") {
-      return Function::createFromHostFunction(
-        runtime,
-        name,
-        1,
-        [this](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
-          if (!arguments[0].isObject()) {
-            throw JSError(runtime, "BigNum.checked_add: Argument must be a BigNum");
-          }
-          
-          auto otherHostObject = arguments[0].asObject(runtime).getHostObject<BigNumHostObject>(runtime);
-          RPtr result;
-          CharPtr error;
-          if (!csl_bridge_big_num_checked_add(bigNumPtr_, otherHostObject->bigNumPtr_, &result, &error)) {
-            throw JSError(runtime, string(error));
-          }
-          return create(runtime, result);
-        }
-      );
-    }
-    else if (methodName == "checked_sub") {
-      return Function::createFromHostFunction(
-        runtime,
-        name,
-        1,
-        [this](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
-          if (!arguments[0].isObject()) {
-            throw JSError(runtime, "BigNum.checked_sub: Argument must be a BigNum");
-          }
-          
-          auto otherHostObject = arguments[0].asObject(runtime).getHostObject<BigNumHostObject>(runtime);
-          RPtr result;
-          CharPtr error;
-          if (!csl_bridge_big_num_checked_sub(bigNumPtr_, otherHostObject->bigNumPtr_, &result, &error)) {
-            throw JSError(runtime, string(error));
-          }
-          return create(runtime, result);
-        }
-      );
-    }
-    else if (methodName == "clamped_sub") {
-      return Function::createFromHostFunction(
-        runtime,
-        name,
-        1,
-        [this](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
-          if (!arguments[0].isObject()) {
-            throw JSError(runtime, "BigNum.clamped_sub: Argument must be a BigNum");
-          }
-          
-          auto otherHostObject = arguments[0].asObject(runtime).getHostObject<BigNumHostObject>(runtime);
-          RPtr result;
-          CharPtr error;
-          if (!csl_bridge_big_num_clamped_sub(bigNumPtr_, otherHostObject->bigNumPtr_, &result, &error)) {
-            throw JSError(runtime, string(error));
-          }
-          return create(runtime, result);
-        }
-      );
-    }
-    else if (methodName == "compare") {
-      return Function::createFromHostFunction(
-        runtime,
-        name,
-        1,
-        [this](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
-          if (!arguments[0].isObject()) {
-            throw JSError(runtime, "BigNum.compare: Argument must be a BigNum");
-          }
-          
-          auto otherHostObject = arguments[0].asObject(runtime).getHostObject<BigNumHostObject>(runtime);
-          int64_t result;
-          CharPtr error;
-          if (!csl_bridge_big_num_compare(bigNumPtr_, otherHostObject->bigNumPtr_, &result, &error)) {
-            throw JSError(runtime, string(error));
-          }
-          return Value((int)result);
-        }
-      );
-    }
-    
-    return Value::undefined();
-  }
+  RPtr getBigNumPtr() const { return bigNumPtr_; }
 
 private:
   RPtr bigNumPtr_;
 };
+
+static Object createBigNumObject(Runtime& runtime, const RPtr& bigNumPtr) {
+  Object obj(runtime);
+  auto nativeState = std::make_shared<BigNumNativeState>(bigNumPtr);
+  obj.setNativeState(runtime, nativeState);
+  return obj;
+}
+
+static BigNumNativeState& getBigNumNativeState(Runtime& runtime, const Object& obj) {
+  if (!obj.hasNativeState<BigNumNativeState>(runtime)) {
+    throw JSError(runtime, "Object is not a BigNum");
+  }
+  auto nativeState = obj.getNativeState<BigNumNativeState>(runtime);
+  return *nativeState;
+}
+
+static Value bigNumToStr(Runtime& runtime, const Object& thisObj) {
+  auto& nativeState = getBigNumNativeState(runtime, thisObj);
+  CharPtr result;
+  CharPtr error;
+  if (!csl_bridge_big_num_to_str(nativeState.getBigNumPtr(), &result, &error)) {
+    throw JSError(runtime, string(error));
+  }
+  auto jsString = String::createFromUtf8(runtime, string(result));
+  csl_bridge_charptr_free(&result);
+  return jsString;
+}
+
+static Value bigNumCheckedAdd(Runtime& runtime, const Object& thisObj, const Value& other) {
+  if (!other.isObject()) {
+    throw JSError(runtime, "BigNum.checked_add: Argument must be a BigNum");
+  }
+  
+  auto& nativeState = getBigNumNativeState(runtime, thisObj);
+  auto& otherNativeState = getBigNumNativeState(runtime, other.asObject(runtime));
+  
+  RPtr result;
+  CharPtr error;
+  if (!csl_bridge_big_num_checked_add(nativeState.getBigNumPtr(), otherNativeState.getBigNumPtr(), &result, &error)) {
+    throw JSError(runtime, string(error));
+  }
+  return createBigNumObject(runtime, result);
+}
+
+static Value bigNumCheckedSub(Runtime& runtime, const Object& thisObj, const Value& other) {
+  if (!other.isObject()) {
+    throw JSError(runtime, "BigNum.checked_sub: Argument must be a BigNum");
+  }
+  
+  auto& nativeState = getBigNumNativeState(runtime, thisObj);
+  auto& otherNativeState = getBigNumNativeState(runtime, other.asObject(runtime));
+  
+  RPtr result;
+  CharPtr error;
+  if (!csl_bridge_big_num_checked_sub(nativeState.getBigNumPtr(), otherNativeState.getBigNumPtr(), &result, &error)) {
+    throw JSError(runtime, string(error));
+  }
+  return createBigNumObject(runtime, result);
+}
+
+static Value bigNumClampedSub(Runtime& runtime, const Object& thisObj, const Value& other) {
+  if (!other.isObject()) {
+    throw JSError(runtime, "BigNum.clamped_sub: Argument must be a BigNum");
+  }
+  
+  auto& nativeState = getBigNumNativeState(runtime, thisObj);
+  auto& otherNativeState = getBigNumNativeState(runtime, other.asObject(runtime));
+  
+  RPtr result;
+  CharPtr error;
+  if (!csl_bridge_big_num_clamped_sub(nativeState.getBigNumPtr(), otherNativeState.getBigNumPtr(), &result, &error)) {
+    throw JSError(runtime, string(error));
+  }
+  return createBigNumObject(runtime, result);
+}
+
+static Value bigNumCompare(Runtime& runtime, const Object& thisObj, const Value& other) {
+  if (!other.isObject()) {
+    throw JSError(runtime, "BigNum.compare: Argument must be a BigNum");
+  }
+  
+  auto& nativeState = getBigNumNativeState(runtime, thisObj);
+  auto& otherNativeState = getBigNumNativeState(runtime, other.asObject(runtime));
+  
+  int64_t result;
+  CharPtr error;
+  if (!csl_bridge_big_num_compare(nativeState.getBigNumPtr(), otherNativeState.getBigNumPtr(), &result, &error)) {
+    throw JSError(runtime, string(error));
+  }
+  return Value((int)result);
+}
 
 void installCslMobileBridge(Runtime& runtime) {
   // Register BigNum constructor
@@ -145,7 +124,7 @@ void installCslMobileBridge(Runtime& runtime) {
       }
       
       if (!arguments[0].isString()) {
-        throw JSError(runtime, "BigNum.from_str requires a string argument");
+        throw JSError(runtime, "BigNum constructor requires a string argument");
       }
       
       string str = arguments[0].getString(runtime).utf8(runtime);
@@ -154,9 +133,106 @@ void installCslMobileBridge(Runtime& runtime) {
       if (!csl_bridge_big_num_from_str(str.c_str(), &result, &error)) {
         throw JSError(runtime, string(error));
       }
-      return BigNumHostObject::create(runtime, result);
+      return createBigNumObject(runtime, result);
     }
   );
+  
+  // Add prototype methods
+  auto prototype = Object(runtime);
+  
+  prototype.setProperty(
+    runtime,
+    "to_str",
+    Function::createFromHostFunction(
+      runtime,
+      PropNameID::forAscii(runtime, "to_str"),
+      0,
+      [](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
+        if (!thisValue.isObject()) {
+          throw JSError(runtime, "BigNum.to_str must be called on a BigNum object");
+        }
+        return bigNumToStr(runtime, thisValue.asObject(runtime));
+      }
+    )
+  );
+  
+  prototype.setProperty(
+    runtime,
+    "checked_add",
+    Function::createFromHostFunction(
+      runtime,
+      PropNameID::forAscii(runtime, "checked_add"),
+      1,
+      [](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
+        if (!thisValue.isObject()) {
+          throw JSError(runtime, "BigNum.checked_add must be called on a BigNum object");
+        }
+        if (count < 1) {
+          throw JSError(runtime, "BigNum.checked_add requires one argument");
+        }
+        return bigNumCheckedAdd(runtime, thisValue.asObject(runtime), arguments[0]);
+      }
+    )
+  );
+  
+  prototype.setProperty(
+    runtime,
+    "checked_sub",
+    Function::createFromHostFunction(
+      runtime,
+      PropNameID::forAscii(runtime, "checked_sub"),
+      1,
+      [](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
+        if (!thisValue.isObject()) {
+          throw JSError(runtime, "BigNum.checked_sub must be called on a BigNum object");
+        }
+        if (count < 1) {
+          throw JSError(runtime, "BigNum.checked_sub requires one argument");
+        }
+        return bigNumCheckedSub(runtime, thisValue.asObject(runtime), arguments[0]);
+      }
+    )
+  );
+  
+  prototype.setProperty(
+    runtime,
+    "clamped_sub",
+    Function::createFromHostFunction(
+      runtime,
+      PropNameID::forAscii(runtime, "clamped_sub"),
+      1,
+      [](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
+        if (!thisValue.isObject()) {
+          throw JSError(runtime, "BigNum.clamped_sub must be called on a BigNum object");
+        }
+        if (count < 1) {
+          throw JSError(runtime, "BigNum.clamped_sub requires one argument");
+        }
+        return bigNumClampedSub(runtime, thisValue.asObject(runtime), arguments[0]);
+      }
+    )
+  );
+  
+  prototype.setProperty(
+    runtime,
+    "compare",
+    Function::createFromHostFunction(
+      runtime,
+      PropNameID::forAscii(runtime, "compare"),
+      1,
+      [](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
+        if (!thisValue.isObject()) {
+          throw JSError(runtime, "BigNum.compare must be called on a BigNum object");
+        }
+        if (count < 1) {
+          throw JSError(runtime, "BigNum.compare requires one argument");
+        }
+        return bigNumCompare(runtime, thisValue.asObject(runtime), arguments[0]);
+      }
+    )
+  );
+  
+  bigNumConstructor.setProperty(runtime, "prototype", prototype);
   
   // Add static from_str method
   auto fromStr = Function::createFromHostFunction(
@@ -164,7 +240,7 @@ void installCslMobileBridge(Runtime& runtime) {
     PropNameID::forAscii(runtime, "from_str"),
     1,
     [](Runtime& runtime, const Value& thisValue, const Value* arguments, size_t count) -> Value {
-      if (count == 0) {
+      if (count == 0 || !arguments[0].isString()) {
         throw JSError(runtime, "BigNum.from_str requires a string argument");
       }
       
@@ -174,7 +250,7 @@ void installCslMobileBridge(Runtime& runtime) {
       if (!csl_bridge_big_num_from_str(str.c_str(), &result, &error)) {
         throw JSError(runtime, string(error));
       }
-      return BigNumHostObject::create(runtime, result);
+      return createBigNumObject(runtime, result);
     }
   );
   
