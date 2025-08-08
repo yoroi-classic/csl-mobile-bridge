@@ -1,53 +1,52 @@
-import type {TurboModule} from 'react-native';
-import {TurboModuleRegistry} from 'react-native';
+declare global {
+  interface BigNumHostObject {
+    to_str(): string;
+    checked_add(other: BigNumHostObject): BigNumHostObject;
+    checked_sub(other: BigNumHostObject): BigNumHostObject;
+    clamped_sub(other: BigNumHostObject): BigNumHostObject;
+    compare(other: BigNumHostObject): number;
+  }
 
-export interface Spec extends TurboModule {
-  readonly getConstants: () => {};
-  bigNumFromStr(str: string): Promise<string>;
-  bigNumToStr(ptr: string): Promise<string>;
-  bigNumCheckedAdd(a: string, b: string): Promise<string>;
-  bigNumCheckedSub(a: string, b: string): Promise<string>;
-  bigNumClampedSub(a: string, b: string): Promise<string>;
-  bigNumCompare(a: string, b: string): Promise<number>;
+  interface BigNumConstructor {
+    new (ptr: string): BigNumHostObject;
+    from_str(str: string): BigNumHostObject;
+  }
+
+  var BigNum: BigNumConstructor;
 }
 
-const CslMobileBridge = TurboModuleRegistry.get<Spec>('CslMobileBridge');
-
 export class BigNum {
-  private ptr: string;
+  private hostObject: BigNumHostObject;
 
-  private constructor(ptr: string) {
-    this.ptr = ptr;
+  private constructor(hostObject: BigNumHostObject) {
+    this.hostObject = hostObject;
   }
 
-  static async from_str(str: string): Promise<BigNum> {
-    if (!CslMobileBridge) {
-      throw new Error('CslMobileBridge module not available');
-    }
-    const ptr = await CslMobileBridge.bigNumFromStr(str);
-    return new BigNum(ptr);
+  static from_str(str: string): BigNum {
+    const hostObject = globalThis.BigNum.from_str(str);
+    return new BigNum(hostObject);
   }
 
-  async to_str(): Promise<string> {
-    return CslMobileBridge!.bigNumToStr(this.ptr);
+  to_str(): string {
+    return this.hostObject.to_str();
   }
 
-  async checked_add(other: BigNum): Promise<BigNum> {
-    const ptr = await CslMobileBridge!.bigNumCheckedAdd(this.ptr, other.ptr);
-    return new BigNum(ptr);
+  checked_add(other: BigNum): BigNum {
+    const result = this.hostObject.checked_add(other.hostObject);
+    return new BigNum(result);
   }
 
-  async checked_sub(other: BigNum): Promise<BigNum> {
-    const ptr = await CslMobileBridge!.bigNumCheckedSub(this.ptr, other.ptr);
-    return new BigNum(ptr);
+  checked_sub(other: BigNum): BigNum {
+    const result = this.hostObject.checked_sub(other.hostObject);
+    return new BigNum(result);
   }
 
-  async clamped_sub(other: BigNum): Promise<BigNum> {
-    const ptr = await CslMobileBridge!.bigNumClampedSub(this.ptr, other.ptr);
-    return new BigNum(ptr);
+  clamped_sub(other: BigNum): BigNum {
+    const result = this.hostObject.clamped_sub(other.hostObject);
+    return new BigNum(result);
   }
 
-  async compare(other: BigNum): Promise<number> {
-    return CslMobileBridge!.bigNumCompare(this.ptr, other.ptr);
+  compare(other: BigNum): number {
+    return this.hostObject.compare(other.hostObject);
   }
 }
