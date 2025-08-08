@@ -63,7 +63,6 @@
     "@evilmartians/lefthook": "^1.12.2",
     "@react-native/eslint-config": "^0.80.2",
     "@release-it/conventional-changelog": "^10.0.1",
-    "@types/base-64": "^1.0.2",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.9",
     "@types/react-native": "0.73.0",
@@ -172,9 +171,6 @@
     "name": "RNCslMobileBridgeSpec",
     "type": "modules",
     "jsSrcsDir": "src"
-  },
-  "dependencies": {
-    "base-64": "^1.0.0"
   },
   "exports": {
     ".": {
