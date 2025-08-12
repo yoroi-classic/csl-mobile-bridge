@@ -58,7 +58,9 @@ export class BigNumImpl implements BigNum {
   }
 
   static from_bytes(bytes: Uint8Array): BigNum {
-    return BigNumImpl.fromNative(CslMobileBridge.bigNumFromBytes(Array.from(bytes)));
+    return BigNumImpl.fromNative(
+      CslMobileBridge.bigNumFromBytes(Array.from(bytes))
+    );
   }
 
   static fromNative(nativeObj: NativeBigNum): BigNumImpl {
@@ -129,5 +131,5 @@ export class BigNumImpl implements BigNum {
   }
 }
 
-export const BigNum = (BigNumImpl as unknown) as BigNumConstructor;
+export const BigNum = BigNumImpl as unknown as BigNumConstructor;
 export default BigNum;
