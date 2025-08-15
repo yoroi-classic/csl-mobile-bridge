@@ -1,12 +1,12 @@
 import { Text, View, StyleSheet } from 'react-native';
-import { multiply } from '@emurgo/csl-mobile-bridge';
+import { BigNum } from '@emurgo/csl-mobile-bridge';
 
-const result = multiply(3, 7);
+const result = BigNum.from_str('12345678901234567890');
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Result: {result}</Text>
+      <Text>Result: {result.to_str()}</Text>
     </View>
   );
 }
