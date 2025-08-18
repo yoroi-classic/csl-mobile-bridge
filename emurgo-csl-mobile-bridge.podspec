@@ -24,6 +24,14 @@ Pod::Spec.new do |s|
   # Keep C++ & Rust sources for CMake
   s.preserve_paths = "cpp", "rust"
 
+  # Make cpp headers available to Objective-C++
+  s.xcconfig = {
+    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp/**'
+  }
+  s.pod_target_xcconfig = {
+    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp/**'
+  }
+
   s.script_phase = {
     :name => "Build C++ & Rust bridge via CMake",
     :execution_position => :before_compile,

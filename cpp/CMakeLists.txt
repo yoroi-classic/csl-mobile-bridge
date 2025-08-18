@@ -74,7 +74,11 @@ function(detect_react_native_root)
         foreach(rn_path ${RN_SEARCH_PATHS})
             if(EXISTS "${rn_path}/ReactCommon/jsi/jsi/jsi.h")
                 set(RN_ROOT "${rn_path}" PARENT_SCOPE)
-                message(STATUS "React Native root detected: ${rn_path}")
+                message(STATUS "React Native root detected (new layout): ${rn_path}")
+                return()
+            elseif(EXISTS "${rn_path}/ReactCommon/jsi/jsi.h")
+                set(RN_ROOT "${rn_path}" PARENT_SCOPE)
+                message(STATUS "React Native root detected (old layout): ${rn_path}")
                 return()
             endif()
         endforeach()
@@ -90,9 +94,21 @@ function(add_react_native_includes target)
         "${RN_ROOT}/React"
         "${RN_ROOT}/React/Base"
         "${RN_ROOT}/ReactCommon"
-        "${RN_ROOT}/ReactCommon/jsi"
         "${RN_ROOT}/ReactCommon/yoga"
     )
+    if(EXISTS "${RN_ROOT}/ReactCommon/jsi/jsi/jsi.h")
+        target_include_directories(${target} PRIVATE
+            "${RN_ROOT}/ReactCommon/jsi"
+        )
+        message(STATUS "Using RN JSI include path: ${RN_ROOT}/ReactCommon/jsi")
+    elseif(EXISTS "${RN_ROOT}/ReactCommon/jsi/jsi.h")
+        target_include_directories(${target} PRIVATE
+            "${RN_ROOT}/ReactCommon"
+        )
+        message(STATUS "Using RN JSI include path: ${RN_ROOT}/ReactCommon")
+    else()
+        message(FATAL_ERROR "Could not locate jsi/jsi.h under ${RN_ROOT}/ReactCommon")
+    endif()
 endfunction()
 
 # =========================================================
