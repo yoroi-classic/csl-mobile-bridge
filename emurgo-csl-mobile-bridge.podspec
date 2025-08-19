@@ -24,13 +24,9 @@ Pod::Spec.new do |s|
   # Keep C++ & Rust sources for CMake
   s.preserve_paths = "cpp", "rust"
 
-  # Make cpp headers available to Objective-C++
-  s.xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp/**'
-  }
-  s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp/**'
-  }
+  # Expose all current and future generated headers in cpp/
+  s.public_header_files = "cpp/**/*.h"
+  s.header_mappings_dir = "cpp"
 
   s.script_phase = {
     :name => "Build C++ & Rust bridge via CMake",
@@ -39,7 +35,8 @@ Pod::Spec.new do |s|
       set -e
       set -x
 
-      BUILD_DIR="${PODS_TARGET_SRCROOT}/build/${PLATFORM_NAME}-${ARCHS}"
+      ARCH=$(echo $ARCHS | cut -d' ' -f1)
+      BUILD_DIR="${PODS_TARGET_SRCROOT}/build/${PLATFORM_NAME}-${ARCH}"
       mkdir -p "$BUILD_DIR"
 
       if [ "$PLATFORM_NAME" = "iphonesimulator" ]; then
@@ -48,7 +45,6 @@ Pod::Spec.new do |s|
         SYSROOT="iphoneos"
       fi
 
-      ARCH=$(echo $ARCHS | cut -d' ' -f1)
       echo "Building C++ & Rust for PLATFORM=$PLATFORM_NAME SYSROOT=$SYSROOT ARCH=$ARCH"
 
       cmake -S "${PODS_TARGET_SRCROOT}/cpp" -B "$BUILD_DIR" \
