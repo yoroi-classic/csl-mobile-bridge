@@ -1,33 +1,50 @@
 {
   "name": "@emurgo/csl-mobile-bridge-example",
-  "version": "0.0.1",
-  "private": true,
+  "main": "expo-router/entry",
+  "version": "1.0.0",
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "start": "react-native start",
-    "build:android": "react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
-    "build:ios": "react-native build-ios --mode Debug"
+    "start": "expo start",
+    "reset-project": "node ./scripts/reset-project.js",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "expo lint"
   },
   "dependencies": {
+    "@emurgo/csl-mobile-bridge": "*",
+    "@expo/vector-icons": "^14.1.0",
+    "@react-navigation/bottom-tabs": "^7.3.10",
+    "@react-navigation/elements": "^2.3.8",
+    "@react-navigation/native": "^7.1.6",
+    "expo": "~53.0.20",
+    "expo-blur": "~14.1.5",
+    "expo-constants": "~17.1.7",
+    "expo-font": "~13.3.2",
+    "expo-haptics": "~14.1.4",
+    "expo-image": "~2.4.0",
+    "expo-linking": "~7.1.7",
+    "expo-router": "~5.1.4",
+    "expo-splash-screen": "~0.30.10",
+    "expo-status-bar": "~2.2.3",
+    "expo-symbols": "~0.4.5",
+    "expo-system-ui": "~5.0.10",
+    "expo-web-browser": "~14.2.0",
     "react": "19.0.0",
-    "react-native": "0.79.2"
+    "react-dom": "19.0.0",
+    "react-native": "0.79.5",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-web": "~0.20.0",
+    "react-native-webview": "13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@babel/preset-env": "^7.25.3",
-    "@babel/runtime": "^7.25.0",
-    "@react-native-community/cli": "18.0.0",
-    "@react-native-community/cli-platform-android": "18.0.0",
-    "@react-native-community/cli-platform-ios": "18.0.0",
-    "@react-native/babel-preset": "0.79.2",
-    "@react-native/metro-config": "0.79.2",
-    "@react-native/typescript-config": "0.79.2",
-    "@types/react": "^19.0.0",
-    "react-native-builder-bob": "^0.40.13",
-    "react-native-monorepo-config": "^0.1.9"
+    "@types/react": "~19.0.10",
+    "eslint": "^9.25.0",
+    "eslint-config-expo": "~9.2.0",
+    "typescript": "~5.8.3"
   },
-  "engines": {
-    "node": ">=18"
-  }
+  "private": true
 }

@@ -1,17 +1,35 @@
->DISCLAIMER: the code contained in this repo is experimental and still in WIP status.
+# @emurgo/csl-mobile-bridge
 
-# cls-mobile-bridge
+React Native bindings for EMURGO's cardano-serialization-lib
 
-https://www.npmjs.com/package/@emurgo/csl-mobile-bridge
+## Installation
 
-## Getting started
 
-`$ npm install @emurgo/csl-mobile-bridge --save`
+```sh
+npm install @emurgo/csl-mobile-bridge
+```
 
-### Mostly automatic installation
-
-`$ react-native link @emurgo/csl-mobile-bridge`
 
 ## Usage
 
-See examples in [`App.js`](example/App.js).
+
+```js
+import { BigNum } from '@emurgo/csl-mobile-bridge';
+
+// ...
+
+const result = BigNum.from_str("345678901234567890");
+```
+
+
+## Contributing
+
+See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.
+
+## License
+
+MIT
+
+---
+
+Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)

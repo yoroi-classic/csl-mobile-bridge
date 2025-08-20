@@ -1,6 +1,7 @@
 require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
 
 Pod::Spec.new do |s|
   s.name         = "emurgo-csl-mobile-bridge"
@@ -10,52 +11,28 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => "11.0" }
+  s.platforms    = { :ios => "13.0" }
+  s.source       = { :git => "https://github.com/emurgo/csl-mobile-bridge.git", :tag => "#{s.version}" }
 
-  s.source       = {
-    :git => "https://github.com/emurgo/csl-mobile-bridge.git",
-    :tag => "#{s.version}"
-  }
+  s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{hpp,cpp,c,h}"
+  s.requires_arc = true
 
-  # Only Objective-C / Swift bridging files
-  s.source_files = "ios/**/*.{h,m,mm}"
-  s.private_header_files = "ios/**/*.h"
-
-  # Keep C++ & Rust sources for CMake
-  s.preserve_paths = "cpp", "rust"
-
-  # Expose all current and future generated headers in cpp/
-  s.public_header_files = "cpp/**/*.h"
-  s.header_mappings_dir = "cpp"
+  s.module_name = 'EmurgoCslMobileBridge'
 
   s.script_phase = {
-    :name => "Build C++ & Rust bridge via CMake",
-    :execution_position => :before_compile,
-    :script => <<-SCRIPT
-      set -e
-      set -x
+    :name => "Build Rust Binary",
+    :script => 'bash "${PODS_TARGET_SRCROOT}/ios/build.sh"',
+    :execution_position => :before_compile
+  }
 
-      ARCH=$(echo $ARCHS | cut -d' ' -f1)
-      BUILD_DIR="${PODS_TARGET_SRCROOT}/build/${PLATFORM_NAME}-${ARCH}"
-      mkdir -p "$BUILD_DIR"
+  s.compiler_flags  = folly_compiler_flags + ' -DRCT_NEW_ARCH_ENABLED=1 -Wc++17-extensions'
+  s.vendored_libraries = [ "$(CONFIGURATION_BUILD_DIR)/libreact_native_haskell_shelley.a" ]
+  s.libraries = "react_native_haskell_shelley"
 
-      if [ "$PLATFORM_NAME" = "iphonesimulator" ]; then
-        SYSROOT="iphonesimulator"
-      else
-        SYSROOT="iphoneos"
-      fi
-
-      echo "Building C++ & Rust for PLATFORM=$PLATFORM_NAME SYSROOT=$SYSROOT ARCH=$ARCH"
-
-      cmake -S "${PODS_TARGET_SRCROOT}/cpp" -B "$BUILD_DIR" \
-        -DCMAKE_SYSTEM_NAME=iOS \
-        -DCMAKE_OSX_SYSROOT="$SYSROOT" \
-        -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET="$IPHONEOS_DEPLOYMENT_TARGET" \
-        -DCMAKE_BUILD_TYPE=Release
-
-      cmake --build "$BUILD_DIR" --config Release --verbose
-    SCRIPT
+  s.pod_target_xcconfig    = {
+      "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(CONFIGURATION_BUILD_DIR)\"",
+      "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+      "ENABLE_BITCODE" => "NO",
   }
 
   if respond_to?(:install_modules_dependencies, true)
@@ -70,4 +47,5 @@ Pod::Spec.new do |s|
     s.dependency "React-jsi"
     s.dependency "ReactCommon/turbomodule/core"
   end
+  s.preserve_paths = "rust/**/*"
 end
