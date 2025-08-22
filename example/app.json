@@ -1,23 +1,24 @@
 {
   "expo": {
-    "name": "@emurgo/csl-mobile-bridge-example",
-    "slug": "@emurgo/csl-mobile-bridge-example",
+    "name": "csl-mobile-bridge-example",
+    "slug": "csl-mobile-bridge-example",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "@emurgo/csl-mobile-bridge-example",
+    "scheme": "csl-mobile-bridge-example",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.-emurgo-csl-mobile-bridge-example"
+      "bundleIdentifier": "com.anonymous.cslmobilebridgeexample"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.cslmobilebridgeexample"
     },
     "web": {
       "bundler": "metro",

@@ -1,5 +1,5 @@
 {
-  "name": "@emurgo/csl-mobile-bridge-example",
+  "name": "csl-mobile-bridge-example",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
