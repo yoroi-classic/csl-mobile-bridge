@@ -153,11 +153,14 @@
     ]
   },
   "codegenConfig": {
-    "name": "CslMobileBridgeSpec",
+    "name": "CslMobileBridge",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.emurgo.cslmobilebridge"
+    },
+    "ios": {
+      "prefix": "Csl"
     }
   },
   "create-react-native-library": {

@@ -17,7 +17,7 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{hpp,cpp,c,h}"
   s.requires_arc = true
 
-  s.module_name = 'EmurgoCslMobileBridge'
+  s.module_name = 'CslMobileBridge'
 
   s.script_phase = {
     :name => "Build Rust Binary",

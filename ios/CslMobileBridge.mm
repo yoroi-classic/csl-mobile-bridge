@@ -9,7 +9,7 @@
 
 @implementation CslMobileBridge
 
-RCT_EXPORT_MODULE()
+RCT_EXPORT_MODULE(CslMobileBridge)
 
 /**
  * Install JSI bindings for the CSL Mobile Bridge module

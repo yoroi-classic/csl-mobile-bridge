@@ -9,27 +9,27 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4BF48FBA58E94829E059D20D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597343A6A851DFAC437DCA44 /* ExpoModulesProvider.swift */; };
-		662000505A31D1A59951BAD2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BBCE7B3D4B07E7D6F1EA6658 /* PrivacyInfo.xcprivacy */; };
+		8EEA61553071F32938A17660 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA375578E8DF3CDA54C2CAE /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		DE1697F06C89CAFB84F8853E /* libPods-emurgocslmobilebridgeexample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AE4ED2FCDF9B638405C0594D /* libPods-emurgocslmobilebridgeexample.a */; };
+		CDEF9E49BD2ED9ACAB0E7BC6 /* libPods-emurgocslmobilebridgeexample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FE845FD300AF8EF73BF73BDC /* libPods-emurgocslmobilebridgeexample.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		F26605193788C30C527679C4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC247747CBDEBF26EAD16B5D /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* emurgocslmobilebridgeexample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = emurgocslmobilebridgeexample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = emurgocslmobilebridgeexample/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = emurgocslmobilebridgeexample/Info.plist; sourceTree = "<group>"; };
-		3B5211C8688F8C5815F6CB1D /* Pods-emurgocslmobilebridgeexample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-emurgocslmobilebridgeexample.release.xcconfig"; path = "Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample.release.xcconfig"; sourceTree = "<group>"; };
-		597343A6A851DFAC437DCA44 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-emurgocslmobilebridgeexample/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		13ECD3A1CD4A28ACC004F03D /* Pods-emurgocslmobilebridgeexample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-emurgocslmobilebridgeexample.release.xcconfig"; path = "Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample.release.xcconfig"; sourceTree = "<group>"; };
+		8EA375578E8DF3CDA54C2CAE /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-emurgocslmobilebridgeexample/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = emurgocslmobilebridgeexample/SplashScreen.storyboard; sourceTree = "<group>"; };
-		AE4ED2FCDF9B638405C0594D /* libPods-emurgocslmobilebridgeexample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-emurgocslmobilebridgeexample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BBCE7B3D4B07E7D6F1EA6658 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = emurgocslmobilebridgeexample/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		DE36FC71DD09C80C685B40B6 /* Pods-emurgocslmobilebridgeexample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-emurgocslmobilebridgeexample.debug.xcconfig"; path = "Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample.debug.xcconfig"; sourceTree = "<group>"; };
+		D3B5D3620897ED62D52823F5 /* Pods-emurgocslmobilebridgeexample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-emurgocslmobilebridgeexample.debug.xcconfig"; path = "Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample.debug.xcconfig"; sourceTree = "<group>"; };
+		EC247747CBDEBF26EAD16B5D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = emurgocslmobilebridgeexample/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = emurgocslmobilebridgeexample/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* emurgocslmobilebridgeexample-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "emurgocslmobilebridgeexample-Bridging-Header.h"; path = "emurgocslmobilebridgeexample/emurgocslmobilebridgeexample-Bridging-Header.h"; sourceTree = "<group>"; };
+		FE845FD300AF8EF73BF73BDC /* libPods-emurgocslmobilebridgeexample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-emurgocslmobilebridgeexample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,21 +37,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DE1697F06C89CAFB84F8853E /* libPods-emurgocslmobilebridgeexample.a in Frameworks */,
+				CDEF9E49BD2ED9ACAB0E7BC6 /* libPods-emurgocslmobilebridgeexample.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		12E567F25E3186F7FA5CDE91 /* Pods */ = {
+		00DA45C3F3A902622F68E868 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				DE36FC71DD09C80C685B40B6 /* Pods-emurgocslmobilebridgeexample.debug.xcconfig */,
-				3B5211C8688F8C5815F6CB1D /* Pods-emurgocslmobilebridgeexample.release.xcconfig */,
+				D3B5D3620897ED62D52823F5 /* Pods-emurgocslmobilebridgeexample.debug.xcconfig */,
+				13ECD3A1CD4A28ACC004F03D /* Pods-emurgocslmobilebridgeexample.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		0996903FFA333817DC4A17FE /* emurgocslmobilebridgeexample */ = {
+			isa = PBXGroup;
+			children = (
+				8EA375578E8DF3CDA54C2CAE /* ExpoModulesProvider.swift */,
+			);
+			name = emurgocslmobilebridgeexample;
 			sourceTree = "<group>";
 		};
 		13B07FAE1A68108700A75B9A /* emurgocslmobilebridgeexample */ = {
@@ -63,7 +71,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				BBCE7B3D4B07E7D6F1EA6658 /* PrivacyInfo.xcprivacy */,
+				EC247747CBDEBF26EAD16B5D /* PrivacyInfo.xcprivacy */,
 			);
 			name = emurgocslmobilebridgeexample;
 			sourceTree = "<group>";
@@ -72,17 +80,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				AE4ED2FCDF9B638405C0594D /* libPods-emurgocslmobilebridgeexample.a */,
+				FE845FD300AF8EF73BF73BDC /* libPods-emurgocslmobilebridgeexample.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		533560E43049B4A913C3B6FA /* emurgocslmobilebridgeexample */ = {
-			isa = PBXGroup;
-			children = (
-				597343A6A851DFAC437DCA44 /* ExpoModulesProvider.swift */,
-			);
-			name = emurgocslmobilebridgeexample;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -99,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				12E567F25E3186F7FA5CDE91 /* Pods */,
-				DE7D2D39E70F715FA72F066C /* ExpoModulesProviders */,
+				00DA45C3F3A902622F68E868 /* Pods */,
+				D621AD7E452C6235F76B1424 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -124,10 +124,10 @@
 			path = emurgocslmobilebridgeexample/Supporting;
 			sourceTree = "<group>";
 		};
-		DE7D2D39E70F715FA72F066C /* ExpoModulesProviders */ = {
+		D621AD7E452C6235F76B1424 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				533560E43049B4A913C3B6FA /* emurgocslmobilebridgeexample */,
+				0996903FFA333817DC4A17FE /* emurgocslmobilebridgeexample */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "emurgocslmobilebridgeexample" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				2AADF7C6AF2BEC6F044953B8 /* [Expo] Configure project */,
+				B7FC387FA796E0E2007428B1 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				78EFFE0B3B79B3CD4C78BAD5 /* [CP] Embed Pods Frameworks */,
+				C10B157092D1F77B28756EE6 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				662000505A31D1A59951BAD2 /* PrivacyInfo.xcprivacy in Resources */,
+				F26605193788C30C527679C4 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,43 +240,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		2AADF7C6AF2BEC6F044953B8 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-emurgocslmobilebridgeexample/expo-configure-project.sh\"\n";
-		};
-		78EFFE0B3B79B3CD4C78BAD5 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -313,6 +276,43 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		B7FC387FA796E0E2007428B1 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-emurgocslmobilebridgeexample/expo-configure-project.sh\"\n";
+		};
+		C10B157092D1F77B28756EE6 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-emurgocslmobilebridgeexample/Pods-emurgocslmobilebridgeexample-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -321,7 +321,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				4BF48FBA58E94829E059D20D /* ExpoModulesProvider.swift in Sources */,
+				8EEA61553071F32938A17660 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,7 +330,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DE36FC71DD09C80C685B40B6 /* Pods-emurgocslmobilebridgeexample.debug.xcconfig */;
+			baseConfigurationReference = D3B5D3620897ED62D52823F5 /* Pods-emurgocslmobilebridgeexample.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -366,7 +366,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3B5211C8688F8C5815F6CB1D /* Pods-emurgocslmobilebridgeexample.release.xcconfig */;
+			baseConfigurationReference = 13ECD3A1CD4A28ACC004F03D /* Pods-emurgocslmobilebridgeexample.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
