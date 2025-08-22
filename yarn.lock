@@ -1836,44 +1836,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emurgo/csl-mobile-bridge-example@workspace:example":
-  version: 0.0.0-use.local
-  resolution: "@emurgo/csl-mobile-bridge-example@workspace:example"
-  dependencies:
-    "@babel/core": ^7.25.2
-    "@expo/vector-icons": ^14.1.0
-    "@react-navigation/bottom-tabs": ^7.3.10
-    "@react-navigation/elements": ^2.3.8
-    "@react-navigation/native": ^7.1.6
-    "@types/react": ~19.0.10
-    eslint: ^9.25.0
-    eslint-config-expo: ~9.2.0
-    expo: ~53.0.20
-    expo-blur: ~14.1.5
-    expo-constants: ~17.1.7
-    expo-font: ~13.3.2
-    expo-haptics: ~14.1.4
-    expo-image: ~2.4.0
-    expo-linking: ~7.1.7
-    expo-router: ~5.1.4
-    expo-splash-screen: ~0.30.10
-    expo-status-bar: ~2.2.3
-    expo-symbols: ~0.4.5
-    expo-system-ui: ~5.0.10
-    expo-web-browser: ~14.2.0
-    react: 19.0.0
-    react-dom: 19.0.0
-    react-native: 0.79.5
-    react-native-gesture-handler: ~2.24.0
-    react-native-reanimated: ~3.17.4
-    react-native-safe-area-context: 5.4.0
-    react-native-screens: ~4.11.1
-    react-native-web: ~0.20.0
-    react-native-webview: 13.13.5
-    typescript: ~5.8.3
-  languageName: unknown
-  linkType: soft
-
 "@emurgo/csl-mobile-bridge@workspace:.":
   version: 0.0.0-use.local
   resolution: "@emurgo/csl-mobile-bridge@workspace:."
@@ -6171,6 +6133,44 @@ __metadata:
   checksum: 0283879f55e7c16fdceacc181f87a0a65c53bc16ffe1d58b9d19a6277adcd71900d02bb2c4843dd55e78c51e30e89b0fec618a7f170ebcc95b33182c28f05fd6
   languageName: node
   linkType: hard
+
+"csl-mobile-bridge-example@workspace:example":
+  version: 0.0.0-use.local
+  resolution: "csl-mobile-bridge-example@workspace:example"
+  dependencies:
+    "@babel/core": ^7.25.2
+    "@expo/vector-icons": ^14.1.0
+    "@react-navigation/bottom-tabs": ^7.3.10
+    "@react-navigation/elements": ^2.3.8
+    "@react-navigation/native": ^7.1.6
+    "@types/react": ~19.0.10
+    eslint: ^9.25.0
+    eslint-config-expo: ~9.2.0
+    expo: ~53.0.20
+    expo-blur: ~14.1.5
+    expo-constants: ~17.1.7
+    expo-font: ~13.3.2
+    expo-haptics: ~14.1.4
+    expo-image: ~2.4.0
+    expo-linking: ~7.1.7
+    expo-router: ~5.1.4
+    expo-splash-screen: ~0.30.10
+    expo-status-bar: ~2.2.3
+    expo-symbols: ~0.4.5
+    expo-system-ui: ~5.0.10
+    expo-web-browser: ~14.2.0
+    react: 19.0.0
+    react-dom: 19.0.0
+    react-native: 0.79.5
+    react-native-gesture-handler: ~2.24.0
+    react-native-reanimated: ~3.17.4
+    react-native-safe-area-context: 5.4.0
+    react-native-screens: ~4.11.1
+    react-native-web: ~0.20.0
+    react-native-webview: 13.13.5
+    typescript: ~5.8.3
+  languageName: unknown
+  linkType: soft
 
 "css-in-js-utils@npm:^3.1.0":
   version: 3.1.0

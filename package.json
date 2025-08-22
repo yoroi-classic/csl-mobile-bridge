@@ -35,7 +35,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @emurgo/csl-mobile-bridge-example",
+    "example": "yarn workspace csl-mobile-bridge-example",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
