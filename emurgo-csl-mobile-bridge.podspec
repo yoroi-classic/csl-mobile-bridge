@@ -11,13 +11,13 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => "13.0" }
-  s.source       = { :git => "https://github.com/emurgo/csl-mobile-bridge.git", :tag => "#{s.version}" }
+  s.platforms    = { :ios => "11.0" }
+  s.source       = { :git => "https://github.com/Emurgo/csl-mobile-bridge.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{hpp,cpp,c,h}"
   s.requires_arc = true
 
-  s.module_name = 'CslMobileBridge'
+  s.module_name = 'EmurgoCslMobileBridge'
 
   s.script_phase = {
     :name => "Build Rust Binary",
