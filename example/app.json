@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "csl-mobile-bridge-example",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.cslmobilebridgeexample"
@@ -38,7 +37,8 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "newArchEnabled": true
     }
   }
 }

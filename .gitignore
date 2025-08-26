@@ -43,8 +43,8 @@ android.iml
 
 # Expo
 #
-example/ios/
-example/android/
+example/ios
+example/android
 
 # Ruby
 example/vendor/

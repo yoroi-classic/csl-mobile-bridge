@@ -1,92 +1,38 @@
-def DEFAULT_COMPILE_SDK_VERSION = 30
-def DEFAULT_BUILD_TOOLS_VERSION = '30.0.3'
-def DEFAULT_MIN_SDK_VERSION = 21
-def DEFAULT_TARGET_SDK_VERSION = 31
-def DEFAULT_NDK_API_LEVEL = 24
-
-def safeExtGet(prop, fallback) {
-    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
-}
-
-apply plugin: 'com.android.library'
-apply plugin: 'maven-publish'
-apply plugin: 'org.mozilla.rust-android-gradle.rust-android'
-
-def REACT_NATIVE_VERSION = new File(['node', '--print',"JSON.parse(require('fs').readFileSync(require.resolve('react-native/package.json'), 'utf-8')).version"].execute(null, rootDir).text.trim())
-
 buildscript {
+  ext.getExtOrDefault = {name ->
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['CslMobileBridge_' + name]
+  }
+
   repositories {
     google()
     mavenCentral()
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
   }
 
   dependencies {
-    classpath 'org.mozilla.rust-android-gradle:plugin:0.9.6'
-    classpath "com.android.tools.build:gradle:7.2.2"
+    classpath "com.android.tools.build:gradle:8.7.2"
+    // noinspection DifferentKotlinGradleVersion
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
   }
 }
 
-allprojects {
-    // https://github.com/facebook/react-native/issues/35210
-    configurations.all {
-        resolutionStrategy {
-            force "com.facebook.react:react-native:" + REACT_NATIVE_VERSION
-        }
-    }
-}
-
-def isNewArchitectureEnabled() {
-  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
-}
 
 apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
 
-if (isNewArchitectureEnabled()) {
-  apply plugin: "com.facebook.react"
-}
-
-def getExtOrDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["CslMobileBridge_" + name]
-}
+apply plugin: "com.facebook.react"
 
 def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["CslMobileBridge_" + name]).toInteger()
 }
 
-def supportsNamespace() {
-  def parsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
-  def major = parsed[0].toInteger()
-  def minor = parsed[1].toInteger()
-
-  // Namespace support was added in 7.3.0
-  return (major == 7 && minor >= 3) || major >= 8
-}
-
 android {
-  if (supportsNamespace()) {
-    namespace "com.emurgo.cslmobilebridge"
+  namespace "com.emurgo.cslmobilebridge"
 
-    sourceSets {
-      main {
-        manifest.srcFile "src/main/AndroidManifestNew.xml"
-      }
-    }
-  }
-
-  compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
-  buildToolsVersion safeExtGet('buildToolsVersion', DEFAULT_BUILD_TOOLS_VERSION)
-
-  buildFeatures {
-    prefab=true
-  }
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
-    minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
-    targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
-    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
   }
 
   buildFeatures {
@@ -110,43 +56,44 @@ android {
 
   sourceSets {
     main {
-      if (isNewArchitectureEnabled()) {
-          java.srcDirs += [
-            // This is needed to build Kotlin project with NewArch enabled
-            //"${project.buildDir}/generated/source/codegen/java"
-          ]
-      }
-      //jniLibs.srcDirs += ["${project.buildDir}/rustJniLibs/android"]
+      java.srcDirs += [
+        "generated/java",
+        "generated/jni"
+      ]
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "../cpp/CMakeLists.txt"
     }
   }
 }
 
-cargo {
-    profile = 'release'
-    module = '../rust'
-    libname = 'react_native_haskell_shelley'
-    targets = ['arm', 'arm64', 'x86', 'x86_64']
-    apiLevel = safeExtGet('ndkApiLevel', DEFAULT_NDK_API_LEVEL)
-    prebuiltToolchains = true
+task buildRust(type: Exec) {
+  workingDir '../rust'
+  commandLine 'cargo', 'build', '--target', 'aarch64-linux-android', '--release'
+  commandLine 'cargo', 'build', '--target', 'armv7-linux-androideabi', '--release'
+  commandLine 'cargo', 'build', '--target', 'i686-linux-android', '--release'
+  commandLine 'cargo', 'build', '--target', 'x86_64-linux-android', '--release'
 }
 
-tasks.whenTaskAdded { task ->
-    if ((task.name == 'javaPreCompileDebug' || task.name == 'javaPreCompileRelease')) {
-        task.dependsOn 'cargoBuild'
-    }
-}
-
-//https://github.com/mozilla/rust-android-gradle/issues/118
-tasks.matching { it.name.matches(/merge.*JniLibFolders/) }.configureEach {
-    it.inputs.dir(new File(buildDir, "rustJniLibs/android"))
-    it.dependsOn("cargoBuild")
-}
+preBuild.dependsOn buildRust
 
 repositories {
   mavenCentral()
   google()
 }
 
+def kotlin_version = getExtOrDefault("kotlinVersion")
+
 dependencies {
-  implementation 'com.facebook.react:react-android'
+  implementation "com.facebook.react:react-android"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+}
+
+react {
+  jsRootDir = file("../src/")
+  libraryName = "CslMobileBridge"
+  codegenJavaPackageName = "com.emurgo.cslmobilebridge"
 }
