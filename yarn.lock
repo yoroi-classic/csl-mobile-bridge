@@ -1938,7 +1938,7 @@ __metadata:
   resolution: "@emurgo/csl-mobile-bridge-example@workspace:example"
   dependencies:
     "@babel/core": ^7.25.2
-    "@emurgo/csl-mobile-bridge-jsi": "workspace:^"
+    "@emurgo/csl-mobile-bridge-jsi": "file:.."
     "@expo/vector-icons": ^14.1.0
     "@react-navigation/bottom-tabs": ^7.3.10
     "@react-navigation/elements": ^2.3.8
@@ -1972,7 +1972,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@emurgo/csl-mobile-bridge-jsi@workspace:., @emurgo/csl-mobile-bridge-jsi@workspace:^":
+"@emurgo/csl-mobile-bridge-jsi@file:..::locator=%40emurgo%2Fcsl-mobile-bridge-example%40workspace%3Aexample":
+  version: 1.0.0-alpha.6
+  resolution: "@emurgo/csl-mobile-bridge-jsi@file:..#..::hash=623f43&locator=%40emurgo%2Fcsl-mobile-bridge-example%40workspace%3Aexample"
+  dependencies:
+    base-64: ^1.0.0
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 2908bfe8395862cda3258c89d2793caf53019af6504834774badcc3dabc9572fd05dfe4a87f171c33ade45607884090ba86d3397af9afdea488f5f9f5a29eeee
+  languageName: node
+  linkType: hard
+
+"@emurgo/csl-mobile-bridge-jsi@workspace:.":
   version: 0.0.0-use.local
   resolution: "@emurgo/csl-mobile-bridge-jsi@workspace:."
   dependencies:
@@ -2322,6 +2334,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@expo/json-file@npm:^10.0.4":
+  version: 10.0.4
+  resolution: "@expo/json-file@npm:10.0.4"
+  dependencies:
+    "@babel/code-frame": ~7.10.4
+    json5: ^2.2.3
+  checksum: 9ae7bd14eb767e361bb60a08528c512e039c924dd13334ba4fffb0187e10c65c25f114e54a26e3e18dc635bcc64e331290d2a3e6fbd57d8f77fb09955cb7a7bf
+  languageName: node
+  linkType: hard
+
 "@expo/json-file@npm:^9.1.5, @expo/json-file@npm:~9.1.5":
   version: 9.1.5
   resolution: "@expo/json-file@npm:9.1.5"
@@ -2369,26 +2391,26 @@ __metadata:
   linkType: hard
 
 "@expo/osascript@npm:^2.2.5":
-  version: 2.2.5
-  resolution: "@expo/osascript@npm:2.2.5"
+  version: 2.3.4
+  resolution: "@expo/osascript@npm:2.3.4"
   dependencies:
     "@expo/spawn-async": ^1.7.2
     exec-async: ^2.2.0
-  checksum: 1025a18f02a934326f494fa84f64201a6887324fb4406099792c6434a75f3366f2ffcfe669ebd32451dfaa027c7ee83b5ba8ac53a0a8d31bbab1887a15c2e588
+  checksum: ede2ef8898cfe7f029e8e3cc27e7af3f492c4a17ecf3bae2faea2e784bafc27f1d43f3b9472269293425e324f3d2f42329a70b7c2cd6abd9623d56b82e22258d
   languageName: node
   linkType: hard
 
 "@expo/package-manager@npm:^1.8.6":
-  version: 1.8.6
-  resolution: "@expo/package-manager@npm:1.8.6"
+  version: 1.9.4
+  resolution: "@expo/package-manager@npm:1.9.4"
   dependencies:
-    "@expo/json-file": ^9.1.5
+    "@expo/json-file": ^10.0.4
     "@expo/spawn-async": ^1.7.2
     chalk: ^4.0.0
     npm-package-arg: ^11.0.0
     ora: ^3.4.0
     resolve-workspace-root: ^2.0.0
-  checksum: b2311cd739d80d934415bd1e1389b89ce6363dbc29b4efa086efc5226de25093d42e5b6839426b4c9b182ab5939620ff481ca5f15bd0b7195cad47e971cc4448
+  checksum: 39587cdce70202e23590cb3779bdaaf21ddaddea4cbd64193b4d012104089b57324438c6a66d9545948d5f0be04a6f0f9cb1c3452fc52473a7d6f3015a5ba658
   languageName: node
   linkType: hard
 
@@ -2422,9 +2444,9 @@ __metadata:
   linkType: hard
 
 "@expo/schema-utils@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "@expo/schema-utils@npm:0.1.0"
-  checksum: 763d853476227d5ab2c997373644c910dd4a462fb29379d23a1bbb4b0fb15e7e592130062f3b0d942b9127e57930d9161cf5cdabf9484ceee5c525beb6b1f37a
+  version: 0.1.4
+  resolution: "@expo/schema-utils@npm:0.1.4"
+  checksum: 6951e70119046235f9ef3b8cff32e216f44ca8c95bb21c56808509aa904eba033fad081167edebc3fc6f528b0aa9524bf0bdf3af1dbc191c190d5be1b6a96e07
   languageName: node
   linkType: hard
 
@@ -6763,9 +6785,9 @@ __metadata:
   linkType: hard
 
 "dayjs@npm:^1.8.15":
-  version: 1.11.13
-  resolution: "dayjs@npm:1.11.13"
-  checksum: f388db88a6aa93956c1f6121644e783391c7b738b73dbc54485578736565c8931bdfba4bb94e9b1535c6e509c97d5deb918bbe1ae6b34358d994de735055cca9
+  version: 1.11.15
+  resolution: "dayjs@npm:1.11.15"
+  checksum: e7d9a0eac598b6a9c835d2f4ce11ffeeb3904a836c7eda611331ae6cdfe8bc69cc177dc7efa72bb2fec83e02a632480ed1cb1c3db39afea0d93557f2ab4fe2c0
   languageName: node
   linkType: hard
 
@@ -7161,9 +7183,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.204":
-  version: 1.5.209
-  resolution: "electron-to-chromium@npm:1.5.209"
-  checksum: 8c9ae3a019057b8f7c88ec7ac4dfd2fb2fa4b7daf2a788585510fbae5e8f9f6efafd3a57b13215bf65fc6cb0d976ea34f01a03f9f3979c42f16ad991b8f05911
+  version: 1.5.211
+  resolution: "electron-to-chromium@npm:1.5.211"
+  checksum: 8e385c9680dd00c047eac92fba68f3fd8fc778369b3b074804183df63024c59e25bac0e5e4e0f3eba5f9b1e9c741dc159b12facd9127104aff545f135ca964f6
   languageName: node
   linkType: hard
 
@@ -8637,9 +8659,9 @@ __metadata:
   linkType: hard
 
 "flow-parser@npm:0.*":
-  version: 0.279.0
-  resolution: "flow-parser@npm:0.279.0"
-  checksum: 1aaad7cac067cda2be86862a45815a0f1330f630654bb1310fede0c47b8b3404d0e76e6cee095d825e99ddcc87ef21a3f0255a786e560ba797087cd700cc66f8
+  version: 0.280.0
+  resolution: "flow-parser@npm:0.280.0"
+  checksum: da3fa52838075e0fc584d68a84669a4612459a62bc7269277020ea3cdd7045dcfbeebe46510d8dfe32c7ddd6796749ae383250229709e10e13386c8df6936934
   languageName: node
   linkType: hard
 
@@ -12706,8 +12728,8 @@ __metadata:
   linkType: hard
 
 "node-gyp@npm:latest":
-  version: 11.4.1
-  resolution: "node-gyp@npm:11.4.1"
+  version: 11.4.2
+  resolution: "node-gyp@npm:11.4.2"
   dependencies:
     env-paths: ^2.2.0
     exponential-backoff: ^3.1.1
@@ -12721,7 +12743,7 @@ __metadata:
     which: ^5.0.0
   bin:
     node-gyp: bin/node-gyp.js
-  checksum: 5a9be6e8c3f1e64268e7b26431296ed81c34b08e845158640577617b64eafc1404800665799bc4d9980d13ffebb583e2b453e5e726e3d56916cd77c707cc6996
+  checksum: d8041cee7ec60c86fb2961d77c12a2d083a481fb28b08e6d9583153186c0e7766044dc30bdb1f3ac01ddc5763b83caeed3d1ea35787ec4ffd8cc4aeedfc34f2b
   languageName: node
   linkType: hard
 
