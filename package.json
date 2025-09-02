@@ -175,8 +175,5 @@
     "name": "RNCslMobileBridgeSpec",
     "type": "modules",
     "jsSrcsDir": "src"
-  },
-  "dependencies": {
-    "base-64": "^1.0.0"
   }
 }

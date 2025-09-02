@@ -37,9 +37,10 @@ export default function Index() {
       // Conversions
       const hex = bn1.to_hex();
       results.push(`hex: ${hex}`);
-      
-      const bytes = bn1.to_bytes();
-      results.push(`bytes length: ${bytes.length}`);
+
+      // From bytes
+      const fromBytes = BigNum.from_bytes(bn1.to_bytes());
+      results.push(`from_bytes: ${fromBytes.to_str()}`);
 
       // From hex
       const fromHex = BigNum.from_hex(hex);
