@@ -76,21 +76,29 @@ android {
     }
   }
 
+  externalNativeBuild {
+    cmake { path "../CMakeLists.txt" }
+  }
+
   compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
   buildToolsVersion safeExtGet('buildToolsVersion', DEFAULT_BUILD_TOOLS_VERSION)
 
   buildFeatures {
-    prefab=true
+    prefab = true
+    buildConfig = true
   }
 
   defaultConfig {
     minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
     targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
-  }
 
-  buildFeatures {
-    buildConfig true
+    externalNativeBuild {
+      cmake {
+        arguments "-DANDROID_STL=c++_shared",
+                  "-DREACT_ANDROID_DIR=${rootDir}/../node_modules/react-native/ReactAndroid"
+      }
+    }
   }
 
   buildTypes {
@@ -111,10 +119,10 @@ android {
   sourceSets {
     main {
       if (isNewArchitectureEnabled()) {
-          java.srcDirs += [
-            // This is needed to build Kotlin project with NewArch enabled
-            //"${project.buildDir}/generated/source/codegen/java"
-          ]
+        java.srcDirs += [
+          // This is needed to build Kotlin project with NewArch enabled
+          //"${project.buildDir}/generated/source/codegen/java"
+        ]
       }
       //jniLibs.srcDirs += ["${project.buildDir}/rustJniLibs/android"]
     }
@@ -149,4 +157,5 @@ repositories {
 
 dependencies {
   implementation 'com.facebook.react:react-android'
+  implementation 'com.facebook.fbjni:fbjni:0.6.0'
 }
