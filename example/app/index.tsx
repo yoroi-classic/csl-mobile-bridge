@@ -8,32 +8,32 @@ export default function Index() {
   useEffect(() => {
     try {
       const results: string[] = [];
-      
+
       // Basic creation
       const bn1 = BigNum.from_str("12345678901234");
       results.push(`from_str: ${bn1.to_str()}`);
-      
+
       // Static methods
       const zero = BigNum.zero();
       const one = BigNum.one();
       results.push(`zero: ${zero.to_str()}`);
       results.push(`one: ${one.to_str()}`);
-      
+
       // Arithmetic operations
       const bn2 = BigNum.from_str("1000000000000000000");
       const sum = bn1.checked_add(bn2);
       results.push(`12345678901234 + 1000000000000000000 = ${sum.to_str()}`);
-      
+
       const product = bn1.checked_mul(BigNum.from_str("2"));
       results.push(`12345678901234 * 2 = ${product.to_str()}`);
-      
+
       // Comparison
       const isLess = bn1.less_than(product);
       results.push(`bn1 < product: ${isLess}`);
-      
+
       const isZero = zero.is_zero();
       results.push(`zero.is_zero(): ${isZero}`);
-      
+
       // Conversions
       const hex = bn1.to_hex();
       results.push(`hex: ${hex}`);
