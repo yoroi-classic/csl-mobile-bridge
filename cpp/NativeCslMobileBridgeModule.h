@@ -39,3 +39,5 @@ public:
 };
 
 } // namespace cslmobilebridge
+
+using NativeCslMobileBridgeModule = cslmobilebridge::NativeCslMobileBridgeModule;
