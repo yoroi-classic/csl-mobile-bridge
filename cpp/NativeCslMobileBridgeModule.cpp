@@ -10,7 +10,7 @@
 using namespace facebook;
 
 extern "C" {
-#include "react_native_haskell_shelley.h" // RPtr, CharPtr, DataPtr + csl_bridge_* + free-функции
+#include "react_native_haskell_shelley.h"
 }
 
 namespace cslmobilebridge {

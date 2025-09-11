@@ -8,7 +8,7 @@
 
 #include <jsi/jsi.h>
 #include <memory>
-#include <ReactCommon/CallInvoker.h> // for facebook::react::CallInvoker
+#include <ReactCommon/CallInvoker.h>
 
 namespace cslmobilebridge {
 
