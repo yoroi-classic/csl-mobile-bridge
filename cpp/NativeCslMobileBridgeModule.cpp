@@ -4914,15 +4914,23 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
 
   // to_bech32(): String
   proto.setProperty(rt, "to_bech32",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAddressState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
-          throw jsi::JSError(rt, "to_bech32(prefix) requires string");
-        std::string prefix = args[0].asString(rt).utf8(rt);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
-          return csl_bridge_address_to_bech32_with_prefix(st->get(), prefix.c_str(), out, err);
-        });
+        if (count == 0) {
+          return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+            return csl_bridge_address_to_bech32(st->get(), out, err);
+          });
+        } else if (count == 1) {
+          if (count < 1 || !args[0].isString())
+            throw jsi::JSError(rt, "to_bech32(arg0) requires string");
+          std::string arg0 = args[0].asString(rt).utf8(rt);
+          return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+            return csl_bridge_address_to_bech32_with_prefix(st->get(), arg0.c_str(), out, err);
+          });
+        } else {
+            throw jsi::JSError(rt, "Invalid number of arguments for to_bech32. Expected 0 or 1 arguments.");
+        }
       }
     )
   );
@@ -4937,18 +4945,6 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
         }
         return jsi::Value(static_cast<double>(res));
-      }
-    )
-  );
-
-  // to_bech32(): string
-  proto.setProperty(rt, "to_bech32",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 0,
-      [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto st = getThisAddressState(rt, thisVal);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
-          return csl_bridge_address_to_bech32(st->get(), out, err);
-        });
       }
     )
   );
@@ -28393,8 +28389,8 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 9,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject())
-          throw jsi::JSError(rt, "Ed25519KeyHash.new(operator_arg) requires Ed25519KeyHash");
-        auto operator_arg = getEd25519KeyHashState(rt, args[0].asObject(rt), "operator_arg");
+          throw jsi::JSError(rt, "Ed25519KeyHash.new(operator_) requires Ed25519KeyHash");
+        auto operator_ = getEd25519KeyHashState(rt, args[0].asObject(rt), "operator_");
         if (count < 2 || !args[1].isObject())
           throw jsi::JSError(rt, "VRFKeyHash.new(vrf_keyhash) requires VRFKeyHash");
         auto vrf_keyhash = getVRFKeyHashState(rt, args[1].asObject(rt), "vrf_keyhash");
@@ -28420,7 +28416,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "PoolMetadata.new(pool_metadata) requires PoolMetadata");
         auto pool_metadata = getPoolMetadataState(rt, args[8].asObject(rt), "pool_metadata");
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_params_new_with_pool_metadata(operator_arg->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), pool_metadata->get(), out, err);
+          return csl_bridge_pool_params_new_with_pool_metadata(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), pool_metadata->get(), out, err);
         });
       }
     )
@@ -48629,27 +48625,34 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
 
   // hash_script_data(): ScriptDataHash
   exports.setProperty(rt, "hash_script_data",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 3,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 0,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
-          throw jsi::JSError(rt, "hash_script_data(redeemers) requires Redeemers");
-        auto redeemers = getRedeemersState(rt, args[0].asObject(rt), "redeemers");
-        if (count < 2 || !args[1].isObject())
-          throw jsi::JSError(rt, "hash_script_data(cost_models) requires Costmdls");
-        auto cost_models = getCostmdlsState(rt, args[1].asObject(rt), "cost_models");
-        if (count < 3 || args[2].isNull() || args[2].isUndefined()) {
-          // Call csl_bridge_hash_script_data without datums
+        if (count == 2) {
+          if (count < 1 || !args[0].isObject())
+            throw jsi::JSError(rt, "Redeemers.hash_script_data(arg0) requires Redeemers");
+          auto arg0 = getRedeemersState(rt, args[0].asObject(rt), "arg0");
+          if (count < 2 || !args[1].isObject())
+            throw jsi::JSError(rt, "Costmdls.hash_script_data(arg1) requires Costmdls");
+          auto arg1 = getCostmdlsState(rt, args[1].asObject(rt), "arg1");
           return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_hash_script_data(redeemers->get(), cost_models->get(), out, err);
+            return csl_bridge_hash_script_data(arg0->get(), arg1->get(), out, err);
           });
+        } else if (count == 3) {
+          if (count < 1 || !args[0].isObject())
+            throw jsi::JSError(rt, "Redeemers.hash_script_data(arg0) requires Redeemers");
+          auto arg0 = getRedeemersState(rt, args[0].asObject(rt), "arg0");
+          if (count < 2 || !args[1].isObject())
+            throw jsi::JSError(rt, "Costmdls.hash_script_data(arg1) requires Costmdls");
+          auto arg1 = getCostmdlsState(rt, args[1].asObject(rt), "arg1");
+          if (count < 3 || !args[2].isObject())
+            throw jsi::JSError(rt, "PlutusList.hash_script_data(arg2) requires PlutusList");
+          auto arg2 = getPlutusListState(rt, args[2].asObject(rt), "arg2");
+          return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_hash_script_data_with_datums(arg0->get(), arg1->get(), arg2->get(), out, err);
+          });
+        } else {
+            throw jsi::JSError(rt, "Invalid number of arguments for hash_script_data. Expected 0 or 1 arguments.");
         }
-        if (!args[2].isObject())
-          throw jsi::JSError(rt, "hash_script_data(datums) requires PlutusList");
-        auto datums = getPlutusListState(rt, args[2].asObject(rt), "datums");
-        // Call csl_bridge_hash_script_data_with_datums with datums
-        return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_hash_script_data_with_datums(redeemers->get(), cost_models->get(), datums->get(), out, err);
-        });
       }
     )
   );
