@@ -4917,19 +4917,20 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAddressState(rt, thisVal);
-if (count == 0) {
+        if (count == 0) {
           return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
             return csl_bridge_address_to_bech32(st->get(), out, err);
           });
-} else if (count == 1) {
-          if (count < 1 || !args[0].isString())
+        } else if (count == 1) {
+          if (count < 1 || !args[0].isString()) {
             throw jsi::JSError(rt, "to_bech32(arg0) requires string");
+          }
           std::string arg0 = args[0].asString(rt).utf8(rt);
           return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
             return csl_bridge_address_to_bech32_with_prefix(st->get(), arg0.c_str(), out, err);
           });
-} else {
-            throw jsi::JSError(rt, "Invalid number of arguments for to_bech32. Expected 0 or 1 arguments.");
+        } else {
+          throw jsi::JSError(rt, "Invalid number of arguments for to_bech32. Expected 0 or 1 arguments.");
         }
       }
     )
@@ -4969,18 +4970,21 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(data) requires number[]");
+        }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
         std::vector<uint8_t> data; data.reserve(__n_data);
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
@@ -4994,8 +4998,9 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_json(json.c_str(), out, err);
@@ -5008,8 +5013,9 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_hex(hex_str.c_str(), out, err);
@@ -5022,8 +5028,9 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_bech32(bech_str.c_str(), out, err);
@@ -5161,18 +5168,21 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
@@ -5186,8 +5196,9 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_from_hex(hex_str.c_str(), out, err);
@@ -5200,8 +5211,9 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_from_json(json.c_str(), out, err);
@@ -5214,11 +5226,13 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected URL for anchor_url");
+        }
         auto anchor_url = getURLState(rt, args[0].asObject(rt), "anchor_url");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AnchorDataHash for anchor_data_hash");
+        }
         auto anchor_data_hash = getAnchorDataHashState(rt, args[1].asObject(rt), "anchor_data_hash");
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_new(anchor_url->get(), anchor_data_hash->get(), out, err);
@@ -5293,8 +5307,9 @@ static jsi::Object getOrCreateAnchorDataHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAnchorDataHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -5335,18 +5350,21 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -5360,8 +5378,9 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_from_bech32(bech_str.c_str(), out, err);
@@ -5374,8 +5393,9 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_from_hex(hex.c_str(), out, err);
@@ -5501,18 +5521,21 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
@@ -5526,8 +5549,9 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_from_hex(hex_str.c_str(), out, err);
@@ -5540,8 +5564,9 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_from_json(json.c_str(), out, err);
@@ -5554,18 +5579,21 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(name) requires number[]");
+        }
         auto __arr_name = args[0].asObject(rt).asArray(rt);
         size_t __n_name = __arr_name.length(rt);
         std::vector<uint8_t> name; name.reserve(__n_name);
         for (size_t __i=0; __i<__n_name; ++__i) {
           auto __v = __arr_name.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           name.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
@@ -5679,8 +5707,9 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAssetNamesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_get(st->get(), index, out, err);
@@ -5694,8 +5723,9 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAssetNamesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for elem");
+        }
         auto elem = getAssetNameState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_asset_names_add(st->get(), elem->get(), &err.ptr)) {
@@ -5726,18 +5756,21 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
@@ -5751,8 +5784,9 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_from_hex(hex_str.c_str(), out, err);
@@ -5765,8 +5799,9 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_from_json(json.c_str(), out, err);
@@ -5890,11 +5925,13 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAssetsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for key");
+        }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for value");
+        }
         auto value = getBigNumState(rt, args[1].asObject(rt), "value");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_insert(st->get(), key->get(), value->get(), out, err);
@@ -5908,8 +5945,9 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAssetsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for key");
+        }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_get(st->get(), key->get(), out, err);
@@ -5950,18 +5988,21 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
@@ -5975,8 +6016,9 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_from_hex(hex_str.c_str(), out, err);
@@ -5989,8 +6031,9 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_from_json(json.c_str(), out, err);
@@ -6112,8 +6155,9 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_metadata"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GeneralTransactionMetadata for metadata");
+        }
         auto metadata = getGeneralTransactionMetadataState(rt, args[0].asObject(rt), "metadata");
         ScopedCharPtr err;
         if (!csl_bridge_auxiliary_data_set_metadata(st->get(), metadata->get(), &err.ptr)) {
@@ -6141,8 +6185,9 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_native_scripts"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScripts for native_scripts");
+        }
         auto native_scripts = getNativeScriptsState(rt, args[0].asObject(rt), "native_scripts");
         ScopedCharPtr err;
         if (!csl_bridge_auxiliary_data_set_native_scripts(st->get(), native_scripts->get(), &err.ptr)) {
@@ -6170,8 +6215,9 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_plutus_scripts"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScripts for plutus_scripts");
+        }
         auto plutus_scripts = getPlutusScriptsState(rt, args[0].asObject(rt), "plutus_scripts");
         ScopedCharPtr err;
         if (!csl_bridge_auxiliary_data_set_plutus_scripts(st->get(), plutus_scripts->get(), &err.ptr)) {
@@ -6201,8 +6247,9 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_prefer_alonzo_format"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "set_prefer_alonzo_format(prefer) requires bool");
+        }
         bool prefer = args[0].asBool();
         ScopedCharPtr err;
         if (!csl_bridge_auxiliary_data_set_prefer_alonzo_format(st->get(), prefer, &err.ptr)) {
@@ -6233,18 +6280,21 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
@@ -6258,8 +6308,9 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_from_hex(hex_str.c_str(), out, err);
@@ -6272,8 +6323,9 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_from_json(json.c_str(), out, err);
@@ -6359,8 +6411,9 @@ static jsi::Object getOrCreateAuxiliaryDataHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -6401,18 +6454,21 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -6426,8 +6482,9 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_from_bech32(bech_str.c_str(), out, err);
@@ -6440,8 +6497,9 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_from_hex(hex.c_str(), out, err);
@@ -6518,11 +6576,13 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataSetState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "insert(tx_index) requires number");
+        }
         auto tx_index = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AuxiliaryData for data");
+        }
         auto data = getAuxiliaryDataState(rt, args[1].asObject(rt), "data");
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_set_insert(st->get(), tx_index, data->get(), out, err);
@@ -6536,8 +6596,9 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataSetState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(tx_index) requires number");
+        }
         auto tx_index = static_cast<uint32_t>(args[0].asNumber());
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_set_get(st->get(), tx_index, out, err);
@@ -6704,14 +6765,17 @@ static jsi::Object makeBaseAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(network) requires number");
+        }
         auto network = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for payment");
+        }
         auto payment = getCredentialState(rt, args[1].asObject(rt), "payment");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake");
+        }
         auto stake = getCredentialState(rt, args[2].asObject(rt), "stake");
         return callCslBaseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_new(network, payment->get(), stake->get(), out, err);
@@ -6724,8 +6788,9 @@ static jsi::Object makeBaseAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for addr");
+        }
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslBaseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_from_address(addr->get(), out, err);
@@ -6874,8 +6939,9 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigIntState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigInt for other");
+        }
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_add(st->get(), other->get(), out, err);
@@ -6889,8 +6955,9 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sub"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigIntState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigInt for other");
+        }
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_sub(st->get(), other->get(), out, err);
@@ -6904,8 +6971,9 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "mul"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigIntState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigInt for other");
+        }
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_mul(st->get(), other->get(), out, err);
@@ -6919,8 +6987,9 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "pow"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigIntState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "pow(exp) requires number");
+        }
         auto exp = static_cast<uint32_t>(args[0].asNumber());
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_pow(st->get(), exp, out, err);
@@ -6958,8 +7027,9 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "div_ceil"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigIntState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigInt for other");
+        }
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_div_ceil(st->get(), other->get(), out, err);
@@ -6973,8 +7043,9 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "div_floor"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigIntState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigInt for other");
+        }
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_div_floor(st->get(), other->get(), out, err);
@@ -7003,18 +7074,21 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
@@ -7028,8 +7102,9 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_hex(hex_str.c_str(), out, err);
@@ -7042,8 +7117,9 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_json(json.c_str(), out, err);
@@ -7056,8 +7132,9 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_str",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_str"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_str(text) requires string");
+        }
         std::string text = args[0].asString(rt).utf8(rt);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_str(text.c_str(), out, err);
@@ -7204,8 +7281,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "div_floor"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for other");
+        }
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_div_floor(st->get(), other->get(), out, err);
@@ -7219,8 +7297,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "checked_mul"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for other");
+        }
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_checked_mul(st->get(), other->get(), out, err);
@@ -7234,8 +7313,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "checked_add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for other");
+        }
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_checked_add(st->get(), other->get(), out, err);
@@ -7249,8 +7329,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "checked_sub"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for other");
+        }
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_checked_sub(st->get(), other->get(), out, err);
@@ -7264,8 +7345,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "clamped_sub"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for other");
+        }
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_clamped_sub(st->get(), other->get(), out, err);
@@ -7279,8 +7361,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "compare"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for rhs_value");
+        }
         auto rhs_value = getBigNumState(rt, args[0].asObject(rt), "rhs_value");
         int64_t res{}; ScopedCharPtr err;
         if (!csl_bridge_big_num_compare(st->get(), rhs_value->get(), &res, &err.ptr)) {
@@ -7296,8 +7379,9 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "less_than"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBigNumState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for rhs_value");
+        }
         auto rhs_value = getBigNumState(rt, args[0].asObject(rt), "rhs_value");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_big_num_less_than(st->get(), rhs_value->get(), &res, &err.ptr)) {
@@ -7328,18 +7412,21 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
@@ -7353,8 +7440,9 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_hex(hex_str.c_str(), out, err);
@@ -7367,8 +7455,9 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_json(json.c_str(), out, err);
@@ -7381,8 +7470,9 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_str",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_str"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_str(string) requires string");
+        }
         std::string string = args[0].asString(rt).utf8(rt);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_str(string.c_str(), out, err);
@@ -7428,11 +7518,13 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "max",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "max"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for a");
+        }
         auto a = getBigNumState(rt, args[0].asObject(rt), "a");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for b");
+        }
         auto b = getBigNumState(rt, args[1].asObject(rt), "b");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_max(a->get(), b->get(), out, err);
@@ -7495,8 +7587,9 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "derive"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "derive(index) requires number");
+        }
         auto index = static_cast<uint32_t>(args[0].asNumber());
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_derive(st->get(), index, out, err);
@@ -7609,18 +7702,21 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_128_xprv",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_128_xprv"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_128_xprv(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_128_xprv.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_128_xprv.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -7645,18 +7741,21 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -7670,8 +7769,9 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech32_str) requires string");
+        }
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_bech32(bech32_str.c_str(), out, err);
@@ -7684,32 +7784,38 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bip39_entropy",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bip39_entropy"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bip39_entropy(entropy) requires number[]");
+        }
         auto __arr_entropy = args[0].asObject(rt).asArray(rt);
         size_t __n_entropy = __arr_entropy.length(rt);
         std::vector<uint8_t> entropy; entropy.reserve(__n_entropy);
         for (size_t __i=0; __i<__n_entropy; ++__i) {
           auto __v = __arr_entropy.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: byte out of range 0..255");
+          }
           entropy.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt))
+        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bip39_entropy(password) requires number[]");
+        }
         auto __arr_password = args[1].asObject(rt).asArray(rt);
         size_t __n_password = __arr_password.length(rt);
         std::vector<uint8_t> password; password.reserve(__n_password);
         for (size_t __i=0; __i<__n_password; ++__i) {
           auto __v = __arr_password.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: byte out of range 0..255");
+          }
           password.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -7723,8 +7829,9 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_hex(hex_str.c_str(), out, err);
@@ -7787,8 +7894,9 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "derive"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBip32PublicKeyState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "derive(index) requires number");
+        }
         auto index = static_cast<uint32_t>(args[0].asNumber());
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_derive(st->get(), index, out, err);
@@ -7877,18 +7985,21 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -7902,8 +8013,9 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech32_str) requires string");
+        }
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_from_bech32(bech32_str.c_str(), out, err);
@@ -7916,8 +8028,9 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_from_hex(hex_str.c_str(), out, err);
@@ -8091,18 +8204,21 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
@@ -8116,8 +8232,9 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_from_hex(hex_str.c_str(), out, err);
@@ -8130,8 +8247,9 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_from_json(json.c_str(), out, err);
@@ -8144,20 +8262,25 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 5,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Header for header");
+        }
         auto header = getHeaderState(rt, args[0].asObject(rt), "header");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBodies for transaction_bodies");
+        }
         auto transaction_bodies = getTransactionBodiesState(rt, args[1].asObject(rt), "transaction_bodies");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionWitnessSets for transaction_witness_sets");
+        }
         auto transaction_witness_sets = getTransactionWitnessSetsState(rt, args[2].asObject(rt), "transaction_witness_sets");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected AuxiliaryDataSet for auxiliary_data_set");
+        }
         auto auxiliary_data_set = getAuxiliaryDataSetState(rt, args[3].asObject(rt), "auxiliary_data_set");
-        if (count < 5 || !args[4].isString())
+        if (count < 5 || !args[4].isString()) {
           throw jsi::JSError(rt, "new(invalid_transactions) requires string");
+        }
         std::string invalid_transactions = args[4].asString(rt).utf8(rt);
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_new(header->get(), transaction_bodies->get(), transaction_witness_sets->get(), auxiliary_data_set->get(), invalid_transactions.c_str(), out, err);
@@ -8232,8 +8355,9 @@ static jsi::Object getOrCreateBlockHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBlockHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -8274,18 +8398,21 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -8299,8 +8426,9 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_from_bech32(bech_str.c_str(), out, err);
@@ -8313,8 +8441,9 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_from_hex(hex.c_str(), out, err);
@@ -8476,18 +8605,21 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
@@ -8501,8 +8633,9 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_from_hex(hex_str.c_str(), out, err);
@@ -8515,8 +8648,9 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_from_json(json.c_str(), out, err);
@@ -8529,38 +8663,46 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for vkey");
+        }
         auto vkey = getVkeyState(rt, args[0].asObject(rt), "vkey");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519Signature for signature");
+        }
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
-        if (count < 3 || !args[2].isObject() || !args[2].asObject(rt).isArray(rt))
+        if (count < 3 || !args[2].isObject() || !args[2].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(chain_code) requires number[]");
+        }
         auto __arr_chain_code = args[2].asObject(rt).asArray(rt);
         size_t __n_chain_code = __arr_chain_code.length(rt);
         std::vector<uint8_t> chain_code; chain_code.reserve(__n_chain_code);
         for (size_t __i=0; __i<__n_chain_code; ++__i) {
           auto __v = __arr_chain_code.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           chain_code.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 4 || !args[3].isObject() || !args[3].asObject(rt).isArray(rt))
+        if (count < 4 || !args[3].isObject() || !args[3].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(attributes) requires number[]");
+        }
         auto __arr_attributes = args[3].asObject(rt).asArray(rt);
         size_t __n_attributes = __arr_attributes.length(rt);
         std::vector<uint8_t> attributes; attributes.reserve(__n_attributes);
         for (size_t __i=0; __i<__n_attributes; ++__i) {
           auto __v = __arr_attributes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           attributes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
@@ -8674,8 +8816,9 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBootstrapWitnessesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_get(st->get(), index, out, err);
@@ -8689,8 +8832,9 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBootstrapWitnessesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BootstrapWitness for witness");
+        }
         auto witness = getBootstrapWitnessState(rt, args[0].asObject(rt), "witness");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_bootstrap_witnesses_add(st->get(), witness->get(), &res, &err.ptr)) {
@@ -8721,18 +8865,21 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
@@ -8746,8 +8893,9 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_from_hex(hex_str.c_str(), out, err);
@@ -8760,8 +8908,9 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_from_json(json.c_str(), out, err);
@@ -8940,18 +9089,21 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
@@ -8965,8 +9117,9 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_base58",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_base58"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_base58(s) requires string");
+        }
         std::string s = args[0].asString(rt).utf8(rt);
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_from_base58(s.c_str(), out, err);
@@ -8979,11 +9132,13 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "icarus_from_key",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "icarus_from_key"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Bip32PublicKey for key");
+        }
         auto key = getBip32PublicKeyState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "icarus_from_key(protocol_magic) requires number");
+        }
         auto protocol_magic = static_cast<uint32_t>(args[1].asNumber());
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_icarus_from_key(key->get(), protocol_magic, out, err);
@@ -8996,8 +9151,9 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "is_valid",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "is_valid"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "is_valid(s) requires string");
+        }
         std::string s = args[0].asString(rt).utf8(rt);
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_byron_address_is_valid(s.c_str(), &res, &err.ptr)) {
@@ -9012,8 +9168,9 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for addr");
+        }
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_from_address(addr->get(), out, err);
@@ -9383,18 +9540,21 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
@@ -9408,8 +9568,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_from_hex(hex_str.c_str(), out, err);
@@ -9422,8 +9583,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_from_json(json.c_str(), out, err);
@@ -9436,8 +9598,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_registration",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_registration"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeRegistration for stake_registration");
+        }
         auto stake_registration = getStakeRegistrationState(rt, args[0].asObject(rt), "stake_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_registration(stake_registration->get(), out, err);
@@ -9450,8 +9613,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_reg_cert",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_reg_cert"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeRegistration for stake_registration");
+        }
         auto stake_registration = getStakeRegistrationState(rt, args[0].asObject(rt), "stake_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_reg_cert(stake_registration->get(), out, err);
@@ -9464,8 +9628,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_deregistration",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_deregistration"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeDeregistration for stake_deregistration");
+        }
         auto stake_deregistration = getStakeDeregistrationState(rt, args[0].asObject(rt), "stake_deregistration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_deregistration(stake_deregistration->get(), out, err);
@@ -9478,8 +9643,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_unreg_cert",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_unreg_cert"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeDeregistration for stake_deregistration");
+        }
         auto stake_deregistration = getStakeDeregistrationState(rt, args[0].asObject(rt), "stake_deregistration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_unreg_cert(stake_deregistration->get(), out, err);
@@ -9492,8 +9658,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeDelegation for stake_delegation");
+        }
         auto stake_delegation = getStakeDelegationState(rt, args[0].asObject(rt), "stake_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_delegation(stake_delegation->get(), out, err);
@@ -9506,8 +9673,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_pool_registration",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_pool_registration"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PoolRegistration for pool_registration");
+        }
         auto pool_registration = getPoolRegistrationState(rt, args[0].asObject(rt), "pool_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_pool_registration(pool_registration->get(), out, err);
@@ -9520,8 +9688,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_pool_retirement",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_pool_retirement"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PoolRetirement for pool_retirement");
+        }
         auto pool_retirement = getPoolRetirementState(rt, args[0].asObject(rt), "pool_retirement");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_pool_retirement(pool_retirement->get(), out, err);
@@ -9534,8 +9703,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_genesis_key_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_genesis_key_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GenesisKeyDelegation for genesis_key_delegation");
+        }
         auto genesis_key_delegation = getGenesisKeyDelegationState(rt, args[0].asObject(rt), "genesis_key_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_genesis_key_delegation(genesis_key_delegation->get(), out, err);
@@ -9548,8 +9718,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_move_instantaneous_rewards_cert",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_move_instantaneous_rewards_cert"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MoveInstantaneousRewardsCert for move_instantaneous_rewards_cert");
+        }
         auto move_instantaneous_rewards_cert = getMoveInstantaneousRewardsCertState(rt, args[0].asObject(rt), "move_instantaneous_rewards_cert");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_move_instantaneous_rewards_cert(move_instantaneous_rewards_cert->get(), out, err);
@@ -9562,8 +9733,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_committee_hot_auth",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_committee_hot_auth"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected CommitteeHotAuth for committee_hot_auth");
+        }
         auto committee_hot_auth = getCommitteeHotAuthState(rt, args[0].asObject(rt), "committee_hot_auth");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_committee_hot_auth(committee_hot_auth->get(), out, err);
@@ -9576,8 +9748,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_committee_cold_resign",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_committee_cold_resign"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected CommitteeColdResign for committee_cold_resign");
+        }
         auto committee_cold_resign = getCommitteeColdResignState(rt, args[0].asObject(rt), "committee_cold_resign");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_committee_cold_resign(committee_cold_resign->get(), out, err);
@@ -9590,8 +9763,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_drep_deregistration",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_drep_deregistration"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DRepDeregistration for drep_deregistration");
+        }
         auto drep_deregistration = getDRepDeregistrationState(rt, args[0].asObject(rt), "drep_deregistration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_drep_deregistration(drep_deregistration->get(), out, err);
@@ -9604,8 +9778,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_drep_registration",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_drep_registration"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DRepRegistration for drep_registration");
+        }
         auto drep_registration = getDRepRegistrationState(rt, args[0].asObject(rt), "drep_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_drep_registration(drep_registration->get(), out, err);
@@ -9618,8 +9793,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_drep_update",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_drep_update"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DRepUpdate for drep_update");
+        }
         auto drep_update = getDRepUpdateState(rt, args[0].asObject(rt), "drep_update");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_drep_update(drep_update->get(), out, err);
@@ -9632,8 +9808,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_and_vote_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_and_vote_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeAndVoteDelegation for stake_and_vote_delegation");
+        }
         auto stake_and_vote_delegation = getStakeAndVoteDelegationState(rt, args[0].asObject(rt), "stake_and_vote_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_and_vote_delegation(stake_and_vote_delegation->get(), out, err);
@@ -9646,8 +9823,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_registration_and_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_registration_and_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeRegistrationAndDelegation for stake_registration_and_delegation");
+        }
         auto stake_registration_and_delegation = getStakeRegistrationAndDelegationState(rt, args[0].asObject(rt), "stake_registration_and_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_registration_and_delegation(stake_registration_and_delegation->get(), out, err);
@@ -9660,8 +9838,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_vote_registration_and_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_vote_registration_and_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected StakeVoteRegistrationAndDelegation for stake_vote_registration_and_delegation");
+        }
         auto stake_vote_registration_and_delegation = getStakeVoteRegistrationAndDelegationState(rt, args[0].asObject(rt), "stake_vote_registration_and_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_vote_registration_and_delegation(stake_vote_registration_and_delegation->get(), out, err);
@@ -9674,8 +9853,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_vote_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_vote_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VoteDelegation for vote_delegation");
+        }
         auto vote_delegation = getVoteDelegationState(rt, args[0].asObject(rt), "vote_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_vote_delegation(vote_delegation->get(), out, err);
@@ -9688,8 +9868,9 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_vote_registration_and_delegation",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_vote_registration_and_delegation"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VoteRegistrationAndDelegation for vote_registration_and_delegation");
+        }
         auto vote_registration_and_delegation = getVoteRegistrationAndDelegationState(rt, args[0].asObject(rt), "vote_registration_and_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_vote_registration_and_delegation(vote_registration_and_delegation->get(), out, err);
@@ -9802,8 +9983,9 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_get(st->get(), index, out, err);
@@ -9817,8 +9999,9 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Certificate for elem");
+        }
         auto elem = getCertificateState(rt, args[0].asObject(rt), "elem");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_certificates_add(st->get(), elem->get(), &res, &err.ptr)) {
@@ -9849,18 +10032,21 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
@@ -9874,8 +10060,9 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_from_hex(hex_str.c_str(), out, err);
@@ -9888,8 +10075,9 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_from_json(json.c_str(), out, err);
@@ -9963,8 +10151,9 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Certificate for cert");
+        }
         auto cert = getCertificateState(rt, args[0].asObject(rt), "cert");
         ScopedCharPtr err;
         if (!csl_bridge_certificates_builder_add(st->get(), cert->get(), &err.ptr)) {
@@ -9980,11 +10169,13 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_plutus_witness"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Certificate for cert");
+        }
         auto cert = getCertificateState(rt, args[0].asObject(rt), "cert");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[1].asObject(rt), "witness");
         ScopedCharPtr err;
         if (!csl_bridge_certificates_builder_add_with_plutus_witness(st->get(), cert->get(), witness->get(), &err.ptr)) {
@@ -10000,11 +10191,13 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_native_script"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Certificate for cert");
+        }
         auto cert = getCertificateState(rt, args[0].asObject(rt), "cert");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScriptSource for native_script_source");
+        }
         auto native_script_source = getNativeScriptSourceState(rt, args[1].asObject(rt), "native_script_source");
         ScopedCharPtr err;
         if (!csl_bridge_certificates_builder_add_with_native_script(st->get(), cert->get(), native_script_source->get(), &err.ptr)) {
@@ -10056,11 +10249,13 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_certificates_refund"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pool_deposit");
+        }
         auto pool_deposit = getBigNumState(rt, args[0].asObject(rt), "pool_deposit");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
+        }
         auto key_deposit = getBigNumState(rt, args[1].asObject(rt), "key_deposit");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_builder_get_certificates_refund(st->get(), pool_deposit->get(), key_deposit->get(), out, err);
@@ -10074,11 +10269,13 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_certificates_deposit"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pool_deposit");
+        }
         auto pool_deposit = getBigNumState(rt, args[0].asObject(rt), "pool_deposit");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
+        }
         auto key_deposit = getBigNumState(rt, args[1].asObject(rt), "key_deposit");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_builder_get_certificates_deposit(st->get(), pool_deposit->get(), key_deposit->get(), out, err);
@@ -10194,8 +10391,9 @@ static jsi::Object getOrCreateChangeConfigProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "change_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisChangeConfigState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_change_address(st->get(), address->get(), out, err);
@@ -10209,8 +10407,9 @@ static jsi::Object getOrCreateChangeConfigProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "change_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisChangeConfigState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected OutputDatum for plutus_data");
+        }
         auto plutus_data = getOutputDatumState(rt, args[0].asObject(rt), "plutus_data");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_change_plutus_data(st->get(), plutus_data->get(), out, err);
@@ -10224,8 +10423,9 @@ static jsi::Object getOrCreateChangeConfigProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "change_script_ref"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisChangeConfigState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptRef for script_ref");
+        }
         auto script_ref = getScriptRefState(rt, args[0].asObject(rt), "script_ref");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_change_script_ref(st->get(), script_ref->get(), out, err);
@@ -10254,8 +10454,9 @@ static jsi::Object makeChangeConfigExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_new(address->get(), out, err);
@@ -10378,11 +10579,13 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_member"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCommitteeState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for committee_cold_credential");
+        }
         auto committee_cold_credential = getCredentialState(rt, args[0].asObject(rt), "committee_cold_credential");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "add_member(epoch) requires number");
+        }
         auto epoch = static_cast<uint32_t>(args[1].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_committee_add_member(st->get(), committee_cold_credential->get(), epoch, &err.ptr)) {
@@ -10398,8 +10601,9 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_member_epoch"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCommitteeState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for committee_cold_credential");
+        }
         auto committee_cold_credential = getCredentialState(rt, args[0].asObject(rt), "committee_cold_credential");
         int64_t res{}; ScopedCharPtr err;
         if (!csl_bridge_committee_get_member_epoch(st->get(), committee_cold_credential->get(), &res, &err.ptr)) {
@@ -10430,18 +10634,21 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
@@ -10455,8 +10662,9 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_from_hex(hex_str.c_str(), out, err);
@@ -10469,8 +10677,9 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_from_json(json.c_str(), out, err);
@@ -10483,8 +10692,9 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for quorum_threshold");
+        }
         auto quorum_threshold = getUnitIntervalState(rt, args[0].asObject(rt), "quorum_threshold");
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_new(quorum_threshold->get(), out, err);
@@ -10636,18 +10846,21 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
@@ -10661,8 +10874,9 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_from_hex(hex_str.c_str(), out, err);
@@ -10675,8 +10889,9 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_from_json(json.c_str(), out, err);
@@ -10689,8 +10904,9 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for committee_cold_credential");
+        }
         auto committee_cold_credential = getCredentialState(rt, args[0].asObject(rt), "committee_cold_credential");
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_new(committee_cold_credential->get(), out, err);
@@ -10703,11 +10919,13 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_anchor",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_anchor"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for committee_cold_credential");
+        }
         auto committee_cold_credential = getCredentialState(rt, args[0].asObject(rt), "committee_cold_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_new_with_anchor(committee_cold_credential->get(), anchor->get(), out, err);
@@ -10859,18 +11077,21 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
@@ -10884,8 +11105,9 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_from_hex(hex_str.c_str(), out, err);
@@ -10898,8 +11120,9 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_from_json(json.c_str(), out, err);
@@ -10912,11 +11135,13 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for committee_cold_credential");
+        }
         auto committee_cold_credential = getCredentialState(rt, args[0].asObject(rt), "committee_cold_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for committee_hot_credential");
+        }
         auto committee_hot_credential = getCredentialState(rt, args[1].asObject(rt), "committee_hot_credential");
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_new(committee_cold_credential->get(), committee_hot_credential->get(), out, err);
@@ -11054,18 +11279,21 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
@@ -11079,8 +11307,9 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_from_hex(hex_str.c_str(), out, err);
@@ -11093,8 +11322,9 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_from_json(json.c_str(), out, err);
@@ -11107,8 +11337,9 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[0].asObject(rt), "anchor");
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_new(anchor->get(), out, err);
@@ -11121,11 +11352,13 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_script_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_script_hash"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[0].asObject(rt), "anchor");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for script_hash");
+        }
         auto script_hash = getScriptHashState(rt, args[1].asObject(rt), "script_hash");
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_new_with_script_hash(anchor->get(), script_hash->get(), out, err);
@@ -11251,18 +11484,21 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
@@ -11276,8 +11512,9 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_from_hex(hex_str.c_str(), out, err);
@@ -11290,11 +11527,13 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for alternative");
+        }
         auto alternative = getBigNumState(rt, args[0].asObject(rt), "alternative");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusList for data");
+        }
         auto data = getPlutusListState(rt, args[1].asObject(rt), "data");
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_new(alternative->get(), data->get(), out, err);
@@ -11393,11 +11632,13 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCostModelState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set(operation) requires number");
+        }
         auto operation = static_cast<size_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Int for cost");
+        }
         auto cost = getIntState(rt, args[1].asObject(rt), "cost");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_set(st->get(), operation, cost->get(), out, err);
@@ -11411,8 +11652,9 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCostModelState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(operation) requires number");
+        }
         auto operation = static_cast<size_t>(args[0].asNumber());
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_get(st->get(), operation, out, err);
@@ -11455,18 +11697,21 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
@@ -11480,8 +11725,9 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_from_hex(hex_str.c_str(), out, err);
@@ -11494,8 +11740,9 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_from_json(json.c_str(), out, err);
@@ -11619,11 +11866,13 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCostmdlsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Language for key");
+        }
         auto key = getLanguageState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected CostModel for value");
+        }
         auto value = getCostModelState(rt, args[1].asObject(rt), "value");
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_insert(st->get(), key->get(), value->get(), out, err);
@@ -11637,8 +11886,9 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCostmdlsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Language for key");
+        }
         auto key = getLanguageState(rt, args[0].asObject(rt), "key");
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_get(st->get(), key->get(), out, err);
@@ -11664,8 +11914,9 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "retain_language_versions"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCostmdlsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Languages for languages");
+        }
         auto languages = getLanguagesState(rt, args[0].asObject(rt), "languages");
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_retain_language_versions(st->get(), languages->get(), out, err);
@@ -11694,18 +11945,21 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
@@ -11719,8 +11973,9 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_from_hex(hex_str.c_str(), out, err);
@@ -11733,8 +11988,9 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_from_json(json.c_str(), out, err);
@@ -11911,8 +12167,9 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_keyhash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_keyhash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for hash");
+        }
         auto hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "hash");
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_keyhash(hash->get(), out, err);
@@ -11925,8 +12182,9 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_scripthash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_scripthash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for hash");
+        }
         auto hash = getScriptHashState(rt, args[0].asObject(rt), "hash");
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_scripthash(hash->get(), out, err);
@@ -11939,18 +12197,21 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
@@ -11964,8 +12225,9 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_hex(hex_str.c_str(), out, err);
@@ -11978,8 +12240,9 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_json(json.c_str(), out, err);
@@ -12092,8 +12355,9 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCredentialsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_get(st->get(), index, out, err);
@@ -12107,8 +12371,9 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCredentialsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for credential");
+        }
         auto credential = getCredentialState(rt, args[0].asObject(rt), "credential");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_credentials_add(st->get(), credential->get(), &res, &err.ptr)) {
@@ -12139,18 +12404,21 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
@@ -12164,8 +12432,9 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_from_hex(hex_str.c_str(), out, err);
@@ -12178,8 +12447,9 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_from_json(json.c_str(), out, err);
@@ -12316,18 +12586,21 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
@@ -12341,8 +12614,9 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_from_hex(hex_str.c_str(), out, err);
@@ -12355,8 +12629,9 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_from_json(json.c_str(), out, err);
@@ -12369,8 +12644,9 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "new(dns_name) requires string");
+        }
         std::string dns_name = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_new(dns_name.c_str(), out, err);
@@ -12496,18 +12772,21 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
@@ -12521,8 +12800,9 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_from_hex(hex_str.c_str(), out, err);
@@ -12535,8 +12815,9 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_from_json(json.c_str(), out, err);
@@ -12549,8 +12830,9 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "new(dns_name) requires string");
+        }
         std::string dns_name = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_new(dns_name.c_str(), out, err);
@@ -12687,8 +12969,9 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "to_bech32(cip_129_format) requires bool");
+        }
         bool cip_129_format = args[0].asBool();
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_bech32(st->get(), cip_129_format, out, err);
@@ -12717,18 +13000,21 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
@@ -12742,8 +13028,9 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_hex(hex_str.c_str(), out, err);
@@ -12756,8 +13043,9 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_json(json.c_str(), out, err);
@@ -12770,8 +13058,9 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_key_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_key_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for key_hash");
+        }
         auto key_hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "key_hash");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_key_hash(key_hash->get(), out, err);
@@ -12784,8 +13073,9 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_script_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_script_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for script_hash");
+        }
         auto script_hash = getScriptHashState(rt, args[0].asObject(rt), "script_hash");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_script_hash(script_hash->get(), out, err);
@@ -12820,8 +13110,9 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_from_credential",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_credential"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for cred");
+        }
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_from_credential(cred->get(), out, err);
@@ -12834,8 +13125,9 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech32_str) requires string");
+        }
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_bech32(bech32_str.c_str(), out, err);
@@ -12987,18 +13279,21 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
@@ -13012,8 +13307,9 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_from_hex(hex_str.c_str(), out, err);
@@ -13026,8 +13322,9 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_from_json(json.c_str(), out, err);
@@ -13040,11 +13337,13 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for voting_credential");
+        }
         auto voting_credential = getCredentialState(rt, args[0].asObject(rt), "voting_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_new(voting_credential->get(), coin->get(), out, err);
@@ -13208,18 +13507,21 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
@@ -13233,8 +13535,9 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_from_hex(hex_str.c_str(), out, err);
@@ -13247,8 +13550,9 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_from_json(json.c_str(), out, err);
@@ -13261,11 +13565,13 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for voting_credential");
+        }
         auto voting_credential = getCredentialState(rt, args[0].asObject(rt), "voting_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_new(voting_credential->get(), coin->get(), out, err);
@@ -13278,14 +13584,17 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_anchor",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_anchor"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for voting_credential");
+        }
         auto voting_credential = getCredentialState(rt, args[0].asObject(rt), "voting_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[2].asObject(rt), "anchor");
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_new_with_anchor(voting_credential->get(), coin->get(), anchor->get(), out, err);
@@ -13437,18 +13746,21 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
@@ -13462,8 +13774,9 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_from_hex(hex_str.c_str(), out, err);
@@ -13476,8 +13789,9 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_from_json(json.c_str(), out, err);
@@ -13490,8 +13804,9 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for voting_credential");
+        }
         auto voting_credential = getCredentialState(rt, args[0].asObject(rt), "voting_credential");
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_new(voting_credential->get(), out, err);
@@ -13504,11 +13819,13 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_anchor",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_anchor"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for voting_credential");
+        }
         auto voting_credential = getCredentialState(rt, args[0].asObject(rt), "voting_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_new_with_anchor(voting_credential->get(), anchor->get(), out, err);
@@ -13607,8 +13924,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_motion_no_confidence"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for motion_no_confidence");
+        }
         auto motion_no_confidence = getUnitIntervalState(rt, args[0].asObject(rt), "motion_no_confidence");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_motion_no_confidence(st->get(), motion_no_confidence->get(), &err.ptr)) {
@@ -13624,8 +13942,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_committee_normal"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for committee_normal");
+        }
         auto committee_normal = getUnitIntervalState(rt, args[0].asObject(rt), "committee_normal");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_committee_normal(st->get(), committee_normal->get(), &err.ptr)) {
@@ -13641,8 +13960,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_committee_no_confidence"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for committee_no_confidence");
+        }
         auto committee_no_confidence = getUnitIntervalState(rt, args[0].asObject(rt), "committee_no_confidence");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_committee_no_confidence(st->get(), committee_no_confidence->get(), &err.ptr)) {
@@ -13658,8 +13978,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_update_constitution"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for update_constitution");
+        }
         auto update_constitution = getUnitIntervalState(rt, args[0].asObject(rt), "update_constitution");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_update_constitution(st->get(), update_constitution->get(), &err.ptr)) {
@@ -13675,8 +13996,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_hard_fork_initiation"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for hard_fork_initiation");
+        }
         auto hard_fork_initiation = getUnitIntervalState(rt, args[0].asObject(rt), "hard_fork_initiation");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_hard_fork_initiation(st->get(), hard_fork_initiation->get(), &err.ptr)) {
@@ -13692,8 +14014,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pp_network_group"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_network_group");
+        }
         auto pp_network_group = getUnitIntervalState(rt, args[0].asObject(rt), "pp_network_group");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_pp_network_group(st->get(), pp_network_group->get(), &err.ptr)) {
@@ -13709,8 +14032,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pp_economic_group"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_economic_group");
+        }
         auto pp_economic_group = getUnitIntervalState(rt, args[0].asObject(rt), "pp_economic_group");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_pp_economic_group(st->get(), pp_economic_group->get(), &err.ptr)) {
@@ -13726,8 +14050,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pp_technical_group"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_technical_group");
+        }
         auto pp_technical_group = getUnitIntervalState(rt, args[0].asObject(rt), "pp_technical_group");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_pp_technical_group(st->get(), pp_technical_group->get(), &err.ptr)) {
@@ -13743,8 +14068,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pp_governance_group"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_governance_group");
+        }
         auto pp_governance_group = getUnitIntervalState(rt, args[0].asObject(rt), "pp_governance_group");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_pp_governance_group(st->get(), pp_governance_group->get(), &err.ptr)) {
@@ -13760,8 +14086,9 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_treasury_withdrawal"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for treasury_withdrawal");
+        }
         auto treasury_withdrawal = getUnitIntervalState(rt, args[0].asObject(rt), "treasury_withdrawal");
         ScopedCharPtr err;
         if (!csl_bridge_d_rep_voting_thresholds_set_treasury_withdrawal(st->get(), treasury_withdrawal->get(), &err.ptr)) {
@@ -13912,18 +14239,21 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
@@ -13937,8 +14267,9 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_from_hex(hex_str.c_str(), out, err);
@@ -13951,8 +14282,9 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_from_json(json.c_str(), out, err);
@@ -13965,35 +14297,45 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 10,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for motion_no_confidence");
+        }
         auto motion_no_confidence = getUnitIntervalState(rt, args[0].asObject(rt), "motion_no_confidence");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for committee_normal");
+        }
         auto committee_normal = getUnitIntervalState(rt, args[1].asObject(rt), "committee_normal");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for committee_no_confidence");
+        }
         auto committee_no_confidence = getUnitIntervalState(rt, args[2].asObject(rt), "committee_no_confidence");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for update_constitution");
+        }
         auto update_constitution = getUnitIntervalState(rt, args[3].asObject(rt), "update_constitution");
-        if (count < 5 || !args[4].isObject())
+        if (count < 5 || !args[4].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for hard_fork_initiation");
+        }
         auto hard_fork_initiation = getUnitIntervalState(rt, args[4].asObject(rt), "hard_fork_initiation");
-        if (count < 6 || !args[5].isObject())
+        if (count < 6 || !args[5].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_network_group");
+        }
         auto pp_network_group = getUnitIntervalState(rt, args[5].asObject(rt), "pp_network_group");
-        if (count < 7 || !args[6].isObject())
+        if (count < 7 || !args[6].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_economic_group");
+        }
         auto pp_economic_group = getUnitIntervalState(rt, args[6].asObject(rt), "pp_economic_group");
-        if (count < 8 || !args[7].isObject())
+        if (count < 8 || !args[7].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_technical_group");
+        }
         auto pp_technical_group = getUnitIntervalState(rt, args[7].asObject(rt), "pp_technical_group");
-        if (count < 9 || !args[8].isObject())
+        if (count < 9 || !args[8].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pp_governance_group");
+        }
         auto pp_governance_group = getUnitIntervalState(rt, args[8].asObject(rt), "pp_governance_group");
-        if (count < 10 || !args[9].isObject())
+        if (count < 10 || !args[9].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for treasury_withdrawal");
+        }
         auto treasury_withdrawal = getUnitIntervalState(rt, args[9].asObject(rt), "treasury_withdrawal");
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_new(motion_no_confidence->get(), committee_normal->get(), committee_no_confidence->get(), update_constitution->get(), hard_fork_initiation->get(), pp_network_group->get(), pp_economic_group->get(), pp_technical_group->get(), pp_governance_group->get(), treasury_withdrawal->get(), out, err);
@@ -14083,8 +14425,9 @@ static jsi::Object makeDataCostExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_coins_per_byte",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_coins_per_byte"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coins_per_byte");
+        }
         auto coins_per_byte = getBigNumState(rt, args[0].asObject(rt), "coins_per_byte");
         return callCslDataCost(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_cost_new_coins_per_byte(coins_per_byte->get(), out, err);
@@ -14159,8 +14502,9 @@ static jsi::Object getOrCreateDataHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisDataHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -14201,18 +14545,21 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -14226,8 +14573,9 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_from_bech32(bech_str.c_str(), out, err);
@@ -14240,8 +14588,9 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_from_hex(hex.c_str(), out, err);
@@ -14319,8 +14668,9 @@ static jsi::Object makeDatumSourceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for datum");
+        }
         auto datum = getPlutusDataState(rt, args[0].asObject(rt), "datum");
         return callCslDatumSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_datum_source_new(datum->get(), out, err);
@@ -14333,8 +14683,9 @@ static jsi::Object makeDatumSourceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_ref_input",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_ref_input"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[0].asObject(rt), "input");
         return callCslDatumSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_datum_source_new_ref_input(input->get(), out, err);
@@ -14409,8 +14760,9 @@ static jsi::Object getOrCreateEd25519KeyHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisEd25519KeyHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -14451,18 +14803,21 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -14476,8 +14831,9 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_from_bech32(bech_str.c_str(), out, err);
@@ -14490,8 +14846,9 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_from_hex(hex.c_str(), out, err);
@@ -14604,8 +14961,9 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_get(st->get(), index, out, err);
@@ -14619,8 +14977,9 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for keyhash");
+        }
         auto keyhash = getEd25519KeyHashState(rt, args[0].asObject(rt), "keyhash");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_ed25519_key_hashes_add(st->get(), keyhash->get(), &res, &err.ptr)) {
@@ -14636,8 +14995,9 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "contains"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for elem");
+        }
         auto elem = getEd25519KeyHashState(rt, args[0].asObject(rt), "elem");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_ed25519_key_hashes_contains(st->get(), elem->get(), &res, &err.ptr)) {
@@ -14680,18 +15040,21 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
@@ -14705,8 +15068,9 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_from_hex(hex_str.c_str(), out, err);
@@ -14719,8 +15083,9 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_from_json(json.c_str(), out, err);
@@ -14845,8 +15210,9 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech32_str) requires string");
+        }
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_from_bech32(bech32_str.c_str(), out, err);
@@ -14859,8 +15225,9 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(input) requires string");
+        }
         std::string input = args[0].asString(rt).utf8(rt);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_from_hex(input.c_str(), out, err);
@@ -14873,18 +15240,21 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
@@ -15001,11 +15371,13 @@ static jsi::Object makeEnterpriseAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(network) requires number");
+        }
         auto network = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for payment");
+        }
         auto payment = getCredentialState(rt, args[1].asObject(rt), "payment");
         return callCslEnterpriseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_enterprise_address_new(network, payment->get(), out, err);
@@ -15018,8 +15390,9 @@ static jsi::Object makeEnterpriseAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for addr");
+        }
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslEnterpriseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_enterprise_address_from_address(addr->get(), out, err);
@@ -15157,18 +15530,21 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
@@ -15182,8 +15558,9 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_from_hex(hex_str.c_str(), out, err);
@@ -15196,8 +15573,9 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_from_json(json.c_str(), out, err);
@@ -15210,11 +15588,13 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for mem_price");
+        }
         auto mem_price = getUnitIntervalState(rt, args[0].asObject(rt), "mem_price");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for step_price");
+        }
         auto step_price = getUnitIntervalState(rt, args[1].asObject(rt), "step_price");
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_new(mem_price->get(), step_price->get(), out, err);
@@ -15352,18 +15732,21 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
@@ -15377,8 +15760,9 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_from_hex(hex_str.c_str(), out, err);
@@ -15391,8 +15775,9 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_from_json(json.c_str(), out, err);
@@ -15405,11 +15790,13 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for mem");
+        }
         auto mem = getBigNumState(rt, args[0].asObject(rt), "mem");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for steps");
+        }
         auto steps = getBigNumState(rt, args[1].asObject(rt), "steps");
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_new(mem->get(), steps->get(), out, err);
@@ -15559,18 +15946,21 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
@@ -15584,8 +15974,9 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_from_hex(hex_str.c_str(), out, err);
@@ -15696,18 +16087,21 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_body"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "set_body(raw_body) requires number[]");
+        }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
         std::vector<uint8_t> raw_body; raw_body.reserve(__n_raw_body);
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "set_body.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "set_body.from_bytes: byte out of range 0..255");
+          }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         ScopedCharPtr err;
@@ -15724,18 +16118,21 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_witness_set"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires number[]");
+        }
         auto __arr_raw_witness_set = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_witness_set = __arr_raw_witness_set.length(rt);
         std::vector<uint8_t> raw_witness_set; raw_witness_set.reserve(__n_raw_witness_set);
         for (size_t __i=0; __i<__n_raw_witness_set; ++__i) {
           auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "set_witness_set.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "set_witness_set.from_bytes: byte out of range 0..255");
+          }
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         ScopedCharPtr err;
@@ -15776,8 +16173,9 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_is_valid"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "set_is_valid(valid) requires bool");
+        }
         bool valid = args[0].asBool();
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_set_is_valid(st->get(), valid, &err.ptr)) {
@@ -15807,18 +16205,21 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_auxiliary_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires number[]");
+        }
         auto __arr_raw_auxiliary_data = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
         std::vector<uint8_t> raw_auxiliary_data; raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
         for (size_t __i=0; __i<__n_raw_auxiliary_data; ++__i) {
           auto __v = __arr_raw_auxiliary_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "set_auxiliary_data.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "set_auxiliary_data.from_bytes: byte out of range 0..255");
+          }
           raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         ScopedCharPtr err;
@@ -15871,8 +16272,9 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_vkey_witness"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkeywitness for vkey_witness");
+        }
         auto vkey_witness = getVkeywitnessState(rt, args[0].asObject(rt), "vkey_witness");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_add_vkey_witness(st->get(), vkey_witness->get(), &err.ptr)) {
@@ -15888,8 +16290,9 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_bootstrap_witness"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BootstrapWitness for bootstrap_witness");
+        }
         auto bootstrap_witness = getBootstrapWitnessState(rt, args[0].asObject(rt), "bootstrap_witness");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_add_bootstrap_witness(st->get(), bootstrap_witness->get(), &err.ptr)) {
@@ -15905,8 +16308,9 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign_and_add_vkey_signature"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PrivateKey for private_key");
+        }
         auto private_key = getPrivateKeyState(rt, args[0].asObject(rt), "private_key");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_sign_and_add_vkey_signature(st->get(), private_key->get(), &err.ptr)) {
@@ -15922,11 +16326,13 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign_and_add_icarus_bootstrap_signature"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ByronAddress for addr");
+        }
         auto addr = getByronAddressState(rt, args[0].asObject(rt), "addr");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Bip32PrivateKey for private_key");
+        }
         auto private_key = getBip32PrivateKeyState(rt, args[1].asObject(rt), "private_key");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_sign_and_add_icarus_bootstrap_signature(st->get(), addr->get(), private_key->get(), &err.ptr)) {
@@ -15942,11 +16348,13 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign_and_add_daedalus_bootstrap_signature"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ByronAddress for addr");
+        }
         auto addr = getByronAddressState(rt, args[0].asObject(rt), "addr");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected LegacyDaedalusPrivateKey for private_key");
+        }
         auto private_key = getLegacyDaedalusPrivateKeyState(rt, args[1].asObject(rt), "private_key");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_sign_and_add_daedalus_bootstrap_signature(st->get(), addr->get(), private_key->get(), &err.ptr)) {
@@ -15977,18 +16385,21 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
@@ -16002,8 +16413,9 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_from_hex(hex_str.c_str(), out, err);
@@ -16016,36 +16428,43 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(raw_body) requires number[]");
+        }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
         std::vector<uint8_t> raw_body; raw_body.reserve(__n_raw_body);
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt))
+        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(raw_witness_set) requires number[]");
+        }
         auto __arr_raw_witness_set = args[1].asObject(rt).asArray(rt);
         size_t __n_raw_witness_set = __arr_raw_witness_set.length(rt);
         std::vector<uint8_t> raw_witness_set; raw_witness_set.reserve(__n_raw_witness_set);
         for (size_t __i=0; __i<__n_raw_witness_set; ++__i) {
           auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 3 || !args[2].isBool())
+        if (count < 3 || !args[2].isBool()) {
           throw jsi::JSError(rt, "new(is_valid) requires bool");
+        }
         bool is_valid = args[2].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_new(raw_body.data(), static_cast<uintptr_t>(raw_body.size()), raw_witness_set.data(), static_cast<uintptr_t>(raw_witness_set.size()), is_valid, out, err);
@@ -16058,50 +16477,60 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_auxiliary",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_auxiliary"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_with_auxiliary(raw_body) requires number[]");
+        }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
         std::vector<uint8_t> raw_body; raw_body.reserve(__n_raw_body);
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: byte out of range 0..255");
+          }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt))
+        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires number[]");
+        }
         auto __arr_raw_witness_set = args[1].asObject(rt).asArray(rt);
         size_t __n_raw_witness_set = __arr_raw_witness_set.length(rt);
         std::vector<uint8_t> raw_witness_set; raw_witness_set.reserve(__n_raw_witness_set);
         for (size_t __i=0; __i<__n_raw_witness_set; ++__i) {
           auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: byte out of range 0..255");
+          }
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 3 || !args[2].isObject() || !args[2].asObject(rt).isArray(rt))
+        if (count < 3 || !args[2].isObject() || !args[2].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires number[]");
+        }
         auto __arr_raw_auxiliary_data = args[2].asObject(rt).asArray(rt);
         size_t __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
         std::vector<uint8_t> raw_auxiliary_data; raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
         for (size_t __i=0; __i<__n_raw_auxiliary_data; ++__i) {
           auto __v = __arr_raw_auxiliary_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: byte out of range 0..255");
+          }
           raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 4 || !args[3].isBool())
+        if (count < 4 || !args[3].isBool()) {
           throw jsi::JSError(rt, "new_with_auxiliary(is_valid) requires bool");
+        }
         bool is_valid = args[3].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_new_with_auxiliary(raw_body.data(), static_cast<uintptr_t>(raw_body.size()), raw_witness_set.data(), static_cast<uintptr_t>(raw_witness_set.size()), raw_auxiliary_data.data(), static_cast<uintptr_t>(raw_auxiliary_data.size()), is_valid, out, err);
@@ -16114,18 +16543,21 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_from_body_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_body_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires number[]");
+        }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
         std::vector<uint8_t> raw_body; raw_body.reserve(__n_raw_body);
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_from_body_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_from_body_bytes.from_bytes: byte out of range 0..255");
+          }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
@@ -16203,8 +16635,9 @@ static jsi::Object getOrCreateFixedTransactionBodiesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionBodiesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_bodies_get(st->get(), index, out, err);
@@ -16218,8 +16651,9 @@ static jsi::Object getOrCreateFixedTransactionBodiesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionBodiesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected FixedTransactionBody for elem");
+        }
         auto elem = getFixedTransactionBodyState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_bodies_add(st->get(), elem->get(), &err.ptr)) {
@@ -16250,18 +16684,21 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
@@ -16275,8 +16712,9 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_bodies_from_hex(hex_str.c_str(), out, err);
@@ -16401,18 +16839,21 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
@@ -16426,8 +16867,9 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_from_hex(hex_str.c_str(), out, err);
@@ -16502,8 +16944,9 @@ static jsi::Object getOrCreateFixedTxWitnessesSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_vkey_witness"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTxWitnessesSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkeywitness for vkey_witness");
+        }
         auto vkey_witness = getVkeywitnessState(rt, args[0].asObject(rt), "vkey_witness");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_tx_witnesses_set_add_vkey_witness(st->get(), vkey_witness->get(), &err.ptr)) {
@@ -16519,8 +16962,9 @@ static jsi::Object getOrCreateFixedTxWitnessesSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_bootstrap_witness"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTxWitnessesSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BootstrapWitness for bootstrap_witness");
+        }
         auto bootstrap_witness = getBootstrapWitnessState(rt, args[0].asObject(rt), "bootstrap_witness");
         ScopedCharPtr err;
         if (!csl_bridge_fixed_tx_witnesses_set_add_bootstrap_witness(st->get(), bootstrap_witness->get(), &err.ptr)) {
@@ -16563,18 +17007,21 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(data) requires number[]");
+        }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
         std::vector<uint8_t> data; data.reserve(__n_data);
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedTxWitnessesSet(rt, [&](RPtr* out, CharPtr* err) {
@@ -16679,18 +17126,21 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
@@ -16704,8 +17154,9 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_versioned_block_from_hex(hex_str.c_str(), out, err);
@@ -16818,11 +17269,13 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGeneralTransactionMetadataState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key");
+        }
         auto key = getBigNumState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
+        }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_insert(st->get(), key->get(), value->get(), out, err);
@@ -16836,8 +17289,9 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGeneralTransactionMetadataState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key");
+        }
         auto key = getBigNumState(rt, args[0].asObject(rt), "key");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_get(st->get(), key->get(), out, err);
@@ -16878,18 +17332,21 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
@@ -16903,8 +17360,9 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_from_hex(hex_str.c_str(), out, err);
@@ -16917,8 +17375,9 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_from_json(json.c_str(), out, err);
@@ -17004,8 +17463,9 @@ static jsi::Object getOrCreateGenesisDelegateHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGenesisDelegateHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -17046,18 +17506,21 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -17071,8 +17534,9 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_from_bech32(bech_str.c_str(), out, err);
@@ -17085,8 +17549,9 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_from_hex(hex.c_str(), out, err);
@@ -17161,8 +17626,9 @@ static jsi::Object getOrCreateGenesisHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGenesisHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -17203,18 +17669,21 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -17228,8 +17697,9 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_from_bech32(bech_str.c_str(), out, err);
@@ -17242,8 +17712,9 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_from_hex(hex.c_str(), out, err);
@@ -17356,8 +17827,9 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGenesisHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_get(st->get(), index, out, err);
@@ -17371,8 +17843,9 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGenesisHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GenesisHash for elem");
+        }
         auto elem = getGenesisHashState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_genesis_hashes_add(st->get(), elem->get(), &err.ptr)) {
@@ -17403,18 +17876,21 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
@@ -17428,8 +17904,9 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_from_hex(hex_str.c_str(), out, err);
@@ -17442,8 +17919,9 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_from_json(json.c_str(), out, err);
@@ -17604,18 +18082,21 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -17629,8 +18110,9 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_from_hex(hex_str.c_str(), out, err);
@@ -17643,8 +18125,9 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_from_json(json.c_str(), out, err);
@@ -17657,14 +18140,17 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GenesisHash for genesishash");
+        }
         auto genesishash = getGenesisHashState(rt, args[0].asObject(rt), "genesishash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected GenesisDelegateHash for genesis_delegate_hash");
+        }
         auto genesis_delegate_hash = getGenesisDelegateHashState(rt, args[1].asObject(rt), "genesis_delegate_hash");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected VRFKeyHash for vrf_keyhash");
+        }
         auto vrf_keyhash = getVRFKeyHashState(rt, args[2].asObject(rt), "vrf_keyhash");
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_new(genesishash->get(), genesis_delegate_hash->get(), vrf_keyhash->get(), out, err);
@@ -17876,18 +18362,21 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -17901,8 +18390,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_from_hex(hex_str.c_str(), out, err);
@@ -17915,8 +18405,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_from_json(json.c_str(), out, err);
@@ -17929,8 +18420,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_parameter_change_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_parameter_change_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ParameterChangeAction for parameter_change_action");
+        }
         auto parameter_change_action = getParameterChangeActionState(rt, args[0].asObject(rt), "parameter_change_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_parameter_change_action(parameter_change_action->get(), out, err);
@@ -17943,8 +18435,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_hard_fork_initiation_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_hard_fork_initiation_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected HardForkInitiationAction for hard_fork_initiation_action");
+        }
         auto hard_fork_initiation_action = getHardForkInitiationActionState(rt, args[0].asObject(rt), "hard_fork_initiation_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_hard_fork_initiation_action(hard_fork_initiation_action->get(), out, err);
@@ -17957,8 +18450,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_treasury_withdrawals_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_treasury_withdrawals_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TreasuryWithdrawalsAction for treasury_withdrawals_action");
+        }
         auto treasury_withdrawals_action = getTreasuryWithdrawalsActionState(rt, args[0].asObject(rt), "treasury_withdrawals_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_treasury_withdrawals_action(treasury_withdrawals_action->get(), out, err);
@@ -17971,8 +18465,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_no_confidence_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_no_confidence_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NoConfidenceAction for no_confidence_action");
+        }
         auto no_confidence_action = getNoConfidenceActionState(rt, args[0].asObject(rt), "no_confidence_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_no_confidence_action(no_confidence_action->get(), out, err);
@@ -17985,8 +18480,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_new_committee_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_new_committee_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UpdateCommitteeAction for new_committee_action");
+        }
         auto new_committee_action = getUpdateCommitteeActionState(rt, args[0].asObject(rt), "new_committee_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_new_committee_action(new_committee_action->get(), out, err);
@@ -17999,8 +18495,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_new_constitution_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_new_constitution_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NewConstitutionAction for new_constitution_action");
+        }
         auto new_constitution_action = getNewConstitutionActionState(rt, args[0].asObject(rt), "new_constitution_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_new_constitution_action(new_constitution_action->get(), out, err);
@@ -18013,8 +18510,9 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_info_action",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_info_action"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected InfoAction for info_action");
+        }
         auto info_action = getInfoActionState(rt, args[0].asObject(rt), "info_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_info_action(info_action->get(), out, err);
@@ -18154,18 +18652,21 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
@@ -18179,8 +18680,9 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_from_hex(hex_str.c_str(), out, err);
@@ -18193,8 +18695,9 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_from_json(json.c_str(), out, err);
@@ -18207,11 +18710,13 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionHash for transaction_id");
+        }
         auto transaction_id = getTransactionHashState(rt, args[0].asObject(rt), "transaction_id");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(index) requires number");
+        }
         auto index = static_cast<uint32_t>(args[1].asNumber());
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_new(transaction_id->get(), index, out, err);
@@ -18286,8 +18791,9 @@ static jsi::Object getOrCreateGovernanceActionIdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGovernanceActionIdsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for governance_action_id");
+        }
         auto governance_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "governance_action_id");
         ScopedCharPtr err;
         if (!csl_bridge_governance_action_ids_add(st->get(), governance_action_id->get(), &err.ptr)) {
@@ -18303,8 +18809,9 @@ static jsi::Object getOrCreateGovernanceActionIdsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisGovernanceActionIdsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_ids_get(st->get(), index, out, err);
@@ -18347,8 +18854,9 @@ static jsi::Object makeGovernanceActionIdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_ids_from_json(json.c_str(), out, err);
@@ -18497,18 +19005,21 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -18522,8 +19033,9 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_from_hex(hex_str.c_str(), out, err);
@@ -18536,8 +19048,9 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_from_json(json.c_str(), out, err);
@@ -18550,8 +19063,9 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
         auto protocol_version = getProtocolVersionState(rt, args[0].asObject(rt), "protocol_version");
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_new(protocol_version->get(), out, err);
@@ -18564,11 +19078,13 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_action_id",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_action_id"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
         auto protocol_version = getProtocolVersionState(rt, args[1].asObject(rt), "protocol_version");
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_new_with_action_id(gov_action_id->get(), protocol_version->get(), out, err);
@@ -18706,18 +19222,21 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
@@ -18731,8 +19250,9 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_from_hex(hex_str.c_str(), out, err);
@@ -18745,8 +19265,9 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_from_json(json.c_str(), out, err);
@@ -18759,11 +19280,13 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected HeaderBody for header_body");
+        }
         auto header_body = getHeaderBodyState(rt, args[0].asObject(rt), "header_body");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected KESSignature for body_signature");
+        }
         auto body_signature = getKESSignatureState(rt, args[1].asObject(rt), "body_signature");
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_new(header_body->get(), body_signature->get(), out, err);
@@ -19067,18 +19590,21 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
@@ -19092,8 +19618,9 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_from_hex(hex_str.c_str(), out, err);
@@ -19106,8 +19633,9 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_from_json(json.c_str(), out, err);
@@ -19120,35 +19648,45 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 10,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(block_number) requires number");
+        }
         auto block_number = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(slot) requires number");
+        }
         auto slot = static_cast<uint32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+        }
         auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        }
         auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
-        if (count < 5 || !args[4].isObject())
+        if (count < 5 || !args[4].isObject()) {
           throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+        }
         auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
-        if (count < 6 || !args[5].isObject())
+        if (count < 6 || !args[5].isObject()) {
           throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+        }
         auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
-        if (count < 7 || !args[6].isNumber())
+        if (count < 7 || !args[6].isNumber()) {
           throw jsi::JSError(rt, "new(block_body_size) requires number");
+        }
         auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
-        if (count < 8 || !args[7].isObject())
+        if (count < 8 || !args[7].isObject()) {
           throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+        }
         auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
-        if (count < 9 || !args[8].isObject())
+        if (count < 9 || !args[8].isObject()) {
           throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+        }
         auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
-        if (count < 10 || !args[9].isObject())
+        if (count < 10 || !args[9].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
         auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
@@ -19161,35 +19699,45 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_headerbody",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 10,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
+        }
         auto block_number = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for slot");
+        }
         auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+        }
         auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        }
         auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
-        if (count < 5 || !args[4].isObject())
+        if (count < 5 || !args[4].isObject()) {
           throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+        }
         auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
-        if (count < 6 || !args[5].isObject())
+        if (count < 6 || !args[5].isObject()) {
           throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+        }
         auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
-        if (count < 7 || !args[6].isNumber())
+        if (count < 7 || !args[6].isNumber()) {
           throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
+        }
         auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
-        if (count < 8 || !args[7].isObject())
+        if (count < 8 || !args[7].isObject()) {
           throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+        }
         auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
-        if (count < 9 || !args[8].isObject())
+        if (count < 9 || !args[8].isObject()) {
           throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+        }
         auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
-        if (count < 10 || !args[9].isObject())
+        if (count < 10 || !args[9].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
         auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
@@ -19471,18 +20019,21 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
@@ -19496,8 +20047,9 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_hex(hex_str.c_str(), out, err);
@@ -19510,8 +20062,9 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_json(json.c_str(), out, err);
@@ -19524,8 +20077,9 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for x");
+        }
         auto x = getBigNumState(rt, args[0].asObject(rt), "x");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_new(x->get(), out, err);
@@ -19538,8 +20092,9 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_negative",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_negative"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for x");
+        }
         auto x = getBigNumState(rt, args[0].asObject(rt), "x");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_new_negative(x->get(), out, err);
@@ -19552,8 +20107,9 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_i32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_i32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new_i32(x) requires number");
+        }
         auto x = static_cast<int32_t>(args[0].asNumber());
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_new_i32(x, out, err);
@@ -19566,8 +20122,9 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_str",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_str"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_str(string) requires string");
+        }
         std::string string = args[0].asString(rt).utf8(rt);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_str(string.c_str(), out, err);
@@ -19693,18 +20250,21 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
@@ -19718,8 +20278,9 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_from_hex(hex_str.c_str(), out, err);
@@ -19732,8 +20293,9 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_from_json(json.c_str(), out, err);
@@ -19746,18 +20308,21 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(data) requires number[]");
+        }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
         std::vector<uint8_t> data; data.reserve(__n_data);
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
@@ -19884,18 +20449,21 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
@@ -19909,8 +20477,9 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_from_hex(hex_str.c_str(), out, err);
@@ -19923,8 +20492,9 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_from_json(json.c_str(), out, err);
@@ -19937,18 +20507,21 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(data) requires number[]");
+        }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
         std::vector<uint8_t> data; data.reserve(__n_data);
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
@@ -20039,18 +20612,21 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslKESSignature(rt, [&](RPtr* out, CharPtr* err) {
@@ -20126,8 +20702,9 @@ static jsi::Object getOrCreateKESVKeyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisKESVKeyState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -20168,18 +20745,21 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -20193,8 +20773,9 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_from_bech32(bech_str.c_str(), out, err);
@@ -20207,8 +20788,9 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_from_hex(hex.c_str(), out, err);
@@ -20336,18 +20918,21 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
@@ -20361,8 +20946,9 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_from_hex(hex_str.c_str(), out, err);
@@ -20375,8 +20961,9 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_from_json(json.c_str(), out, err);
@@ -20486,8 +21073,9 @@ static jsi::Object getOrCreateLanguagesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisLanguagesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_languages_get(st->get(), index, out, err);
@@ -20501,8 +21089,9 @@ static jsi::Object getOrCreateLanguagesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisLanguagesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Language for elem");
+        }
         auto elem = getLanguageState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_languages_add(st->get(), elem->get(), &err.ptr)) {
@@ -20644,18 +21233,21 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslLegacyDaedalusPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -20758,11 +21350,13 @@ static jsi::Object makeLinearFeeExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coefficient");
+        }
         auto coefficient = getBigNumState(rt, args[0].asObject(rt), "coefficient");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for constant");
+        }
         auto constant = getBigNumState(rt, args[1].asObject(rt), "constant");
         return callCslLinearFee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_linear_fee_new(coefficient->get(), constant->get(), out, err);
@@ -20875,11 +21469,13 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMIRToStakeCredentialsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for cred");
+        }
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Int for delta");
+        }
         auto delta = getIntState(rt, args[1].asObject(rt), "delta");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_insert(st->get(), cred->get(), delta->get(), out, err);
@@ -20893,8 +21489,9 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMIRToStakeCredentialsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for cred");
+        }
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_get(st->get(), cred->get(), out, err);
@@ -20935,18 +21532,21 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
@@ -20960,8 +21560,9 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_from_hex(hex_str.c_str(), out, err);
@@ -20974,8 +21575,9 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_from_json(json.c_str(), out, err);
@@ -21088,8 +21690,9 @@ static jsi::Object makeMalformedAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for addr");
+        }
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslMalformedAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_malformed_address_from_address(addr->get(), out, err);
@@ -21190,8 +21793,9 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataListState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_get(st->get(), index, out, err);
@@ -21205,8 +21809,9 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataListState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for elem");
+        }
         auto elem = getTransactionMetadatumState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_metadata_list_add(st->get(), elem->get(), &err.ptr)) {
@@ -21237,18 +21842,21 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
@@ -21262,8 +21870,9 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_from_hex(hex_str.c_str(), out, err);
@@ -21375,11 +21984,13 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for key");
+        }
         auto key = getTransactionMetadatumState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
+        }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_insert(st->get(), key->get(), value->get(), out, err);
@@ -21393,11 +22004,13 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert_str"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "insert_str(key) requires string");
+        }
         std::string key = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
+        }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_insert_str(st->get(), key.c_str(), value->get(), out, err);
@@ -21411,11 +22024,13 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert_i32"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "insert_i32(key) requires number");
+        }
         auto key = static_cast<int32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
+        }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_insert_i32(st->get(), key, value->get(), out, err);
@@ -21429,8 +22044,9 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for key");
+        }
         auto key = getTransactionMetadatumState(rt, args[0].asObject(rt), "key");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_get(st->get(), key->get(), out, err);
@@ -21444,8 +22060,9 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_str"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "get_str(key) requires string");
+        }
         std::string key = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_get_str(st->get(), key.c_str(), out, err);
@@ -21459,8 +22076,9 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_i32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get_i32(key) requires number");
+        }
         auto key = static_cast<int32_t>(args[0].asNumber());
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_get_i32(st->get(), key, out, err);
@@ -21474,8 +22092,9 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "has"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMetadataMapState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for key");
+        }
         auto key = getTransactionMetadatumState(rt, args[0].asObject(rt), "key");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_metadata_map_has(st->get(), key->get(), &res, &err.ptr)) {
@@ -21518,18 +22137,21 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
@@ -21543,8 +22165,9 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_from_hex(hex_str.c_str(), out, err);
@@ -21668,11 +22291,13 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for key");
+        }
         auto key = getScriptHashState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected MintAssets for value");
+        }
         auto value = getMintAssetsState(rt, args[1].asObject(rt), "value");
         return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_insert(st->get(), key->get(), value->get(), out, err);
@@ -21686,8 +22311,9 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for key");
+        }
         auto key = getScriptHashState(rt, args[0].asObject(rt), "key");
         return callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_get(st->get(), key->get(), out, err);
@@ -21752,18 +22378,21 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
@@ -21777,8 +22406,9 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_from_hex(hex_str.c_str(), out, err);
@@ -21791,8 +22421,9 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_from_json(json.c_str(), out, err);
@@ -21816,11 +22447,13 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_from_entry",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_entry"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for key");
+        }
         auto key = getScriptHashState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected MintAssets for value");
+        }
         auto value = getMintAssetsState(rt, args[1].asObject(rt), "value");
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_new_from_entry(key->get(), value->get(), out, err);
@@ -21897,11 +22530,13 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintAssetsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for key");
+        }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Int for value");
+        }
         auto value = getIntState(rt, args[1].asObject(rt), "value");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_assets_insert(st->get(), key->get(), value->get(), out, err);
@@ -21915,8 +22550,9 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintAssetsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for key");
+        }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_assets_get(st->get(), key->get(), out, err);
@@ -21968,11 +22604,13 @@ static jsi::Object makeMintAssetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_from_entry",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_entry"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for key");
+        }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Int for value");
+        }
         auto value = getIntState(rt, args[1].asObject(rt), "value");
         return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_assets_new_from_entry(key->get(), value->get(), out, err);
@@ -22035,14 +22673,17 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_asset"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MintWitness for mint");
+        }
         auto mint = getMintWitnessState(rt, args[0].asObject(rt), "mint");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Int for amount");
+        }
         auto amount = getIntState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_mint_builder_add_asset(st->get(), mint->get(), asset_name->get(), amount->get(), &err.ptr)) {
@@ -22058,14 +22699,17 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_asset"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MintWitness for mint");
+        }
         auto mint = getMintWitnessState(rt, args[0].asObject(rt), "mint");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Int for amount");
+        }
         auto amount = getIntState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_mint_builder_set_asset(st->get(), mint->get(), asset_name->get(), amount->get(), &err.ptr)) {
@@ -22260,8 +22904,9 @@ static jsi::Object makeMintWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_native_script",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_native_script"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScriptSource for native_script");
+        }
         auto native_script = getNativeScriptSourceState(rt, args[0].asObject(rt), "native_script");
         return callCslMintWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_witness_new_native_script(native_script->get(), out, err);
@@ -22274,11 +22919,13 @@ static jsi::Object makeMintWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_plutus_script",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_plutus_script"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScriptSource for plutus_script");
+        }
         auto plutus_script = getPlutusScriptSourceState(rt, args[0].asObject(rt), "plutus_script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemer for redeemer");
+        }
         auto redeemer = getRedeemerState(rt, args[1].asObject(rt), "redeemer");
         return callCslMintWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_witness_new_plutus_script(plutus_script->get(), redeemer->get(), out, err);
@@ -22353,8 +23000,9 @@ static jsi::Object getOrCreateMintsAssetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintsAssetsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MintAssets for mint_assets");
+        }
         auto mint_assets = getMintAssetsState(rt, args[0].asObject(rt), "mint_assets");
         ScopedCharPtr err;
         if (!csl_bridge_mints_assets_add(st->get(), mint_assets->get(), &err.ptr)) {
@@ -22370,8 +23018,9 @@ static jsi::Object getOrCreateMintsAssetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintsAssetsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mints_assets_get(st->get(), index, out, err);
@@ -22414,8 +23063,9 @@ static jsi::Object makeMintsAssetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mints_assets_from_json(json.c_str(), out, err);
@@ -22592,18 +23242,21 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
@@ -22617,8 +23270,9 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_from_hex(hex_str.c_str(), out, err);
@@ -22631,8 +23285,9 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_from_json(json.c_str(), out, err);
@@ -22645,11 +23300,13 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_to_other_pot",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_to_other_pot"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new_to_other_pot(pot) requires number");
+        }
         auto pot = static_cast<int32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for amount");
+        }
         auto amount = getBigNumState(rt, args[1].asObject(rt), "amount");
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_new_to_other_pot(pot, amount->get(), out, err);
@@ -22662,11 +23319,13 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_to_stake_creds",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_to_stake_creds"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new_to_stake_creds(pot) requires number");
+        }
         auto pot = static_cast<int32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected MIRToStakeCredentials for amounts");
+        }
         auto amounts = getMIRToStakeCredentialsState(rt, args[1].asObject(rt), "amounts");
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_new_to_stake_creds(pot, amounts->get(), out, err);
@@ -22792,18 +23451,21 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
@@ -22817,8 +23479,9 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_from_hex(hex_str.c_str(), out, err);
@@ -22831,8 +23494,9 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_from_json(json.c_str(), out, err);
@@ -22845,8 +23509,9 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MoveInstantaneousReward for move_instantaneous_reward");
+        }
         auto move_instantaneous_reward = getMoveInstantaneousRewardState(rt, args[0].asObject(rt), "move_instantaneous_reward");
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_new(move_instantaneous_reward->get(), out, err);
@@ -22959,11 +23624,13 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMultiAssetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_id");
+        }
         auto policy_id = getScriptHashState(rt, args[0].asObject(rt), "policy_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Assets for assets");
+        }
         auto assets = getAssetsState(rt, args[1].asObject(rt), "assets");
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_insert(st->get(), policy_id->get(), assets->get(), out, err);
@@ -22977,8 +23644,9 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMultiAssetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_id");
+        }
         auto policy_id = getScriptHashState(rt, args[0].asObject(rt), "policy_id");
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_get(st->get(), policy_id->get(), out, err);
@@ -22992,14 +23660,17 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_asset"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMultiAssetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_id");
+        }
         auto policy_id = getScriptHashState(rt, args[0].asObject(rt), "policy_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for value");
+        }
         auto value = getBigNumState(rt, args[2].asObject(rt), "value");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_set_asset(st->get(), policy_id->get(), asset_name->get(), value->get(), out, err);
@@ -23013,11 +23684,13 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_asset"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMultiAssetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_id");
+        }
         auto policy_id = getScriptHashState(rt, args[0].asObject(rt), "policy_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_get_asset(st->get(), policy_id->get(), asset_name->get(), out, err);
@@ -23043,8 +23716,9 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sub"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMultiAssetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MultiAsset for rhs_ma");
+        }
         auto rhs_ma = getMultiAssetState(rt, args[0].asObject(rt), "rhs_ma");
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_sub(st->get(), rhs_ma->get(), out, err);
@@ -23073,18 +23747,21 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
@@ -23098,8 +23775,9 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_from_hex(hex_str.c_str(), out, err);
@@ -23112,8 +23790,9 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_from_json(json.c_str(), out, err);
@@ -23250,18 +23929,21 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
@@ -23275,8 +23957,9 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_from_hex(hex_str.c_str(), out, err);
@@ -23289,8 +23972,9 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_from_json(json.c_str(), out, err);
@@ -23303,8 +23987,9 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DNSRecordSRV for dns_name");
+        }
         auto dns_name = getDNSRecordSRVState(rt, args[0].asObject(rt), "dns_name");
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_new(dns_name->get(), out, err);
@@ -23528,18 +24213,21 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -23553,8 +24241,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_from_hex(hex_str.c_str(), out, err);
@@ -23567,8 +24256,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_from_json(json.c_str(), out, err);
@@ -23581,8 +24271,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_script_pubkey",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_script_pubkey"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptPubkey for script_pubkey");
+        }
         auto script_pubkey = getScriptPubkeyState(rt, args[0].asObject(rt), "script_pubkey");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_pubkey(script_pubkey->get(), out, err);
@@ -23595,8 +24286,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_script_all",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_script_all"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptAll for script_all");
+        }
         auto script_all = getScriptAllState(rt, args[0].asObject(rt), "script_all");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_all(script_all->get(), out, err);
@@ -23609,8 +24301,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_script_any",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_script_any"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptAny for script_any");
+        }
         auto script_any = getScriptAnyState(rt, args[0].asObject(rt), "script_any");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_any(script_any->get(), out, err);
@@ -23623,8 +24316,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_script_n_of_k",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_script_n_of_k"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptNOfK for script_n_of_k");
+        }
         auto script_n_of_k = getScriptNOfKState(rt, args[0].asObject(rt), "script_n_of_k");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_n_of_k(script_n_of_k->get(), out, err);
@@ -23637,8 +24331,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_timelock_start",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_timelock_start"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TimelockStart for timelock_start");
+        }
         auto timelock_start = getTimelockStartState(rt, args[0].asObject(rt), "timelock_start");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_timelock_start(timelock_start->get(), out, err);
@@ -23651,8 +24346,9 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_timelock_expiry",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_timelock_expiry"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TimelockExpiry for timelock_expiry");
+        }
         auto timelock_expiry = getTimelockExpiryState(rt, args[0].asObject(rt), "timelock_expiry");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_timelock_expiry(timelock_expiry->get(), out, err);
@@ -23715,8 +24411,9 @@ static jsi::Object getOrCreateNativeScriptSourceProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_required_signers"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisNativeScriptSourceState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHashes for key_hashes");
+        }
         auto key_hashes = getEd25519KeyHashesState(rt, args[0].asObject(rt), "key_hashes");
         ScopedCharPtr err;
         if (!csl_bridge_native_script_source_set_required_signers(st->get(), key_hashes->get(), &err.ptr)) {
@@ -23761,8 +24458,9 @@ static jsi::Object makeNativeScriptSourceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for script");
+        }
         auto script = getNativeScriptState(rt, args[0].asObject(rt), "script");
         return callCslNativeScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_source_new(script->get(), out, err);
@@ -23775,14 +24473,17 @@ static jsi::Object makeNativeScriptSourceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_ref_input",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_ref_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for script_hash");
+        }
         auto script_hash = getScriptHashState(rt, args[0].asObject(rt), "script_hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isNumber())
+        if (count < 3 || !args[2].isNumber()) {
           throw jsi::JSError(rt, "new_ref_input(script_size) requires number");
+        }
         auto script_size = static_cast<size_t>(args[2].asNumber());
         return callCslNativeScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_source_new_ref_input(script_hash->get(), input->get(), script_size, out, err);
@@ -23859,8 +24560,9 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisNativeScriptsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_get(st->get(), index, out, err);
@@ -23874,8 +24576,9 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisNativeScriptsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for elem");
+        }
         auto elem = getNativeScriptState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_native_scripts_add(st->get(), elem->get(), &err.ptr)) {
@@ -23953,18 +24656,21 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
@@ -23978,8 +24684,9 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_from_hex(hex_str.c_str(), out, err);
@@ -23992,8 +24699,9 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_from_json(json.c_str(), out, err);
@@ -24121,18 +24829,21 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
@@ -24146,8 +24857,9 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_from_hex(hex_str.c_str(), out, err);
@@ -24160,8 +24872,9 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_from_json(json.c_str(), out, err);
@@ -24289,11 +25002,13 @@ static jsi::Object makeNetworkInfoExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(network_id) requires number");
+        }
         auto network_id = static_cast<int32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(protocol_magic) requires number");
+        }
         auto protocol_magic = static_cast<uint32_t>(args[1].asNumber());
         return callCslNetworkInfo(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_info_new(network_id, protocol_magic, out, err);
@@ -24478,18 +25193,21 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -24503,8 +25221,9 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_from_hex(hex_str.c_str(), out, err);
@@ -24517,8 +25236,9 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_from_json(json.c_str(), out, err);
@@ -24531,8 +25251,9 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Constitution for constitution");
+        }
         auto constitution = getConstitutionState(rt, args[0].asObject(rt), "constitution");
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_new(constitution->get(), out, err);
@@ -24545,11 +25266,13 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_action_id",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_action_id"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Constitution for constitution");
+        }
         auto constitution = getConstitutionState(rt, args[1].asObject(rt), "constitution");
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_new_with_action_id(gov_action_id->get(), constitution->get(), out, err);
@@ -24675,18 +25398,21 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -24700,8 +25426,9 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_from_hex(hex_str.c_str(), out, err);
@@ -24714,8 +25441,9 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_from_json(json.c_str(), out, err);
@@ -24739,8 +25467,9 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_action_id",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_action_id"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_new_with_action_id(gov_action_id->get(), out, err);
@@ -24866,18 +25595,21 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
@@ -24891,8 +25623,9 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_from_hex(hex_str.c_str(), out, err);
@@ -24905,8 +25638,9 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_from_json(json.c_str(), out, err);
@@ -24930,18 +25664,21 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_from_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_from_hash(hash) requires number[]");
+        }
         auto __arr_hash = args[0].asObject(rt).asArray(rt);
         size_t __n_hash = __arr_hash.length(rt);
         std::vector<uint8_t> hash; hash.reserve(__n_hash);
         for (size_t __i=0; __i<__n_hash; ++__i) {
           auto __v = __arr_hash.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_from_hash.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_from_hash.from_bytes: byte out of range 0..255");
+          }
           hash.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
@@ -25108,18 +25845,21 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
@@ -25133,8 +25873,9 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_from_hex(hex_str.c_str(), out, err);
@@ -25147,8 +25888,9 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_from_json(json.c_str(), out, err);
@@ -25161,17 +25903,21 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected KESVKey for hot_vkey");
+        }
         auto hot_vkey = getKESVKeyState(rt, args[0].asObject(rt), "hot_vkey");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(sequence_number) requires number");
+        }
         auto sequence_number = static_cast<uint32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isNumber())
+        if (count < 3 || !args[2].isNumber()) {
           throw jsi::JSError(rt, "new(kes_period) requires number");
+        }
         auto kes_period = static_cast<uint32_t>(args[2].asNumber());
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519Signature for sigma");
+        }
         auto sigma = getEd25519SignatureState(rt, args[3].asObject(rt), "sigma");
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_new(hot_vkey->get(), sequence_number, kes_period, sigma->get(), out, err);
@@ -25273,8 +26019,9 @@ static jsi::Object makeOutputDatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_data_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DataHash for data_hash");
+        }
         auto data_hash = getDataHashState(rt, args[0].asObject(rt), "data_hash");
         return callCslOutputDatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_output_datum_new_data_hash(data_hash->get(), out, err);
@@ -25287,8 +26034,9 @@ static jsi::Object makeOutputDatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for data");
+        }
         auto data = getPlutusDataState(rt, args[0].asObject(rt), "data");
         return callCslOutputDatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_output_datum_new_data(data->get(), out, err);
@@ -25438,18 +26186,21 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -25463,8 +26214,9 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_from_hex(hex_str.c_str(), out, err);
@@ -25477,8 +26229,9 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_from_json(json.c_str(), out, err);
@@ -25491,8 +26244,9 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolParamUpdate for protocol_param_updates");
+        }
         auto protocol_param_updates = getProtocolParamUpdateState(rt, args[0].asObject(rt), "protocol_param_updates");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new(protocol_param_updates->get(), out, err);
@@ -25505,11 +26259,13 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_action_id",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_action_id"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolParamUpdate for protocol_param_updates");
+        }
         auto protocol_param_updates = getProtocolParamUpdateState(rt, args[1].asObject(rt), "protocol_param_updates");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new_with_action_id(gov_action_id->get(), protocol_param_updates->get(), out, err);
@@ -25522,11 +26278,13 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_policy_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_policy_hash"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolParamUpdate for protocol_param_updates");
+        }
         auto protocol_param_updates = getProtocolParamUpdateState(rt, args[0].asObject(rt), "protocol_param_updates");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_hash");
+        }
         auto policy_hash = getScriptHashState(rt, args[1].asObject(rt), "policy_hash");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new_with_policy_hash(protocol_param_updates->get(), policy_hash->get(), out, err);
@@ -25539,14 +26297,17 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_policy_hash_and_action_id",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_policy_hash_and_action_id"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolParamUpdate for protocol_param_updates");
+        }
         auto protocol_param_updates = getProtocolParamUpdateState(rt, args[1].asObject(rt), "protocol_param_updates");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_hash");
+        }
         auto policy_hash = getScriptHashState(rt, args[2].asObject(rt), "policy_hash");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new_with_policy_hash_and_action_id(gov_action_id->get(), protocol_param_updates->get(), policy_hash->get(), out, err);
@@ -25707,8 +26468,9 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusDataState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "to_json(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[0].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_to_json(st->get(), schema, out, err);
@@ -25722,8 +26484,9 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusDataState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NetworkInfo for network");
+        }
         auto network = getNetworkInfoState(rt, args[0].asObject(rt), "network");
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_address(st->get(), network->get(), out, err);
@@ -25752,18 +26515,21 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
@@ -25777,8 +26543,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_hex(hex_str.c_str(), out, err);
@@ -25791,8 +26558,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_constr_plutus_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_constr_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ConstrPlutusData for constr_plutus_data");
+        }
         auto constr_plutus_data = getConstrPlutusDataState(rt, args[0].asObject(rt), "constr_plutus_data");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_constr_plutus_data(constr_plutus_data->get(), out, err);
@@ -25805,8 +26573,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_empty_constr_plutus_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_empty_constr_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for alternative");
+        }
         auto alternative = getBigNumState(rt, args[0].asObject(rt), "alternative");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_empty_constr_plutus_data(alternative->get(), out, err);
@@ -25819,11 +26588,13 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_single_value_constr_plutus_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_single_value_constr_plutus_data"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for alternative");
+        }
         auto alternative = getBigNumState(rt, args[0].asObject(rt), "alternative");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for plutus_data");
+        }
         auto plutus_data = getPlutusDataState(rt, args[1].asObject(rt), "plutus_data");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_single_value_constr_plutus_data(alternative->get(), plutus_data->get(), out, err);
@@ -25836,8 +26607,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_map",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_map"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusMap for map");
+        }
         auto map = getPlutusMapState(rt, args[0].asObject(rt), "map");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_map(map->get(), out, err);
@@ -25850,8 +26622,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_list",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_list"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusList for list");
+        }
         auto list = getPlutusListState(rt, args[0].asObject(rt), "list");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_list(list->get(), out, err);
@@ -25864,8 +26637,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_integer",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_integer"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigInt for integer");
+        }
         auto integer = getBigIntState(rt, args[0].asObject(rt), "integer");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_integer(integer->get(), out, err);
@@ -25878,18 +26652,21 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
@@ -25903,11 +26680,13 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "from_json(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_json(json.c_str(), schema, out, err);
@@ -25920,8 +26699,9 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_address(address->get(), out, err);
@@ -26022,8 +26802,9 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusListState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_get(st->get(), index, out, err);
@@ -26037,8 +26818,9 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusListState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for elem");
+        }
         auto elem = getPlutusDataState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_plutus_list_add(st->get(), elem->get(), &err.ptr)) {
@@ -26069,18 +26851,21 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
@@ -26094,8 +26879,9 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_from_hex(hex_str.c_str(), out, err);
@@ -26207,11 +26993,13 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusMapState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for key");
+        }
         auto key = getPlutusDataState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusMapValues for values");
+        }
         auto values = getPlutusMapValuesState(rt, args[1].asObject(rt), "values");
         return callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_insert(st->get(), key->get(), values->get(), out, err);
@@ -26225,8 +27013,9 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusMapState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for key");
+        }
         auto key = getPlutusDataState(rt, args[0].asObject(rt), "key");
         return callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_get(st->get(), key->get(), out, err);
@@ -26267,18 +27056,21 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
@@ -26292,8 +27084,9 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_from_hex(hex_str.c_str(), out, err);
@@ -26381,8 +27174,9 @@ static jsi::Object getOrCreatePlutusMapValuesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusMapValuesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_values_get(st->get(), index, out, err);
@@ -26396,8 +27190,9 @@ static jsi::Object getOrCreatePlutusMapValuesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusMapValuesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for elem");
+        }
         auto elem = getPlutusDataState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_plutus_map_values_add(st->get(), elem->get(), &err.ptr)) {
@@ -26564,18 +27359,21 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -26589,8 +27387,9 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_hex(hex_str.c_str(), out, err);
@@ -26603,18 +27402,21 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -26628,18 +27430,21 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_v2",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_v2"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_v2(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_v2.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_v2.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -26653,18 +27458,21 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_v3",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_v3"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_v3(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_v3.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_v3.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -26678,22 +27486,26 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_version",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_version"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_with_version(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_with_version.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_with_version.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Language for language");
+        }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new_with_version(bytes.data(), static_cast<uintptr_t>(bytes.size()), language->get(), out, err);
@@ -26706,18 +27518,21 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes_v2",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes_v2"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes_v2(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes_v2.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes_v2.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -26731,18 +27546,21 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes_v3",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes_v3"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes_v3(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes_v3.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes_v3.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
@@ -26756,22 +27574,26 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes_with_version",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes_with_version"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes_with_version(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes_with_version.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes_with_version.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Language for language");
+        }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes_with_version(bytes.data(), static_cast<uintptr_t>(bytes.size()), language->get(), out, err);
@@ -26784,11 +27606,13 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex_with_version",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex_with_version"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex_with_version(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Language for language");
+        }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_hex_with_version(hex_str.c_str(), language->get(), out, err);
@@ -26851,8 +27675,9 @@ static jsi::Object getOrCreatePlutusScriptSourceProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_required_signers"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusScriptSourceState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHashes for key_hashes");
+        }
         auto key_hashes = getEd25519KeyHashesState(rt, args[0].asObject(rt), "key_hashes");
         ScopedCharPtr err;
         if (!csl_bridge_plutus_script_source_set_required_signers(st->get(), key_hashes->get(), &err.ptr)) {
@@ -26897,8 +27722,9 @@ static jsi::Object makePlutusScriptSourceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScript for script");
+        }
         auto script = getPlutusScriptState(rt, args[0].asObject(rt), "script");
         return callCslPlutusScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_source_new(script->get(), out, err);
@@ -26911,17 +27737,21 @@ static jsi::Object makePlutusScriptSourceExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_ref_input",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_ref_input"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for script_hash");
+        }
         auto script_hash = getScriptHashState(rt, args[0].asObject(rt), "script_hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Language for lang_ver");
+        }
         auto lang_ver = getLanguageState(rt, args[2].asObject(rt), "lang_ver");
-        if (count < 4 || !args[3].isNumber())
+        if (count < 4 || !args[3].isNumber()) {
           throw jsi::JSError(rt, "new_ref_input(script_size) requires number");
+        }
         auto script_size = static_cast<size_t>(args[3].asNumber());
         return callCslPlutusScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_source_new_ref_input(script_hash->get(), input->get(), lang_ver->get(), script_size, out, err);
@@ -27034,8 +27864,9 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusScriptsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_get(st->get(), index, out, err);
@@ -27049,8 +27880,9 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusScriptsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScript for elem");
+        }
         auto elem = getPlutusScriptState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_plutus_scripts_add(st->get(), elem->get(), &err.ptr)) {
@@ -27081,18 +27913,21 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
@@ -27106,8 +27941,9 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_from_hex(hex_str.c_str(), out, err);
@@ -27120,8 +27956,9 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_from_json(json.c_str(), out, err);
@@ -27246,14 +28083,17 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScript for script");
+        }
         auto script = getPlutusScriptState(rt, args[0].asObject(rt), "script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for datum");
+        }
         auto datum = getPlutusDataState(rt, args[1].asObject(rt), "datum");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemer for redeemer");
+        }
         auto redeemer = getRedeemerState(rt, args[2].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new(script->get(), datum->get(), redeemer->get(), out, err);
@@ -27266,14 +28106,17 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_ref",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ref"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScriptSource for script");
+        }
         auto script = getPlutusScriptSourceState(rt, args[0].asObject(rt), "script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DatumSource for datum");
+        }
         auto datum = getDatumSourceState(rt, args[1].asObject(rt), "datum");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemer for redeemer");
+        }
         auto redeemer = getRedeemerState(rt, args[2].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new_with_ref(script->get(), datum->get(), redeemer->get(), out, err);
@@ -27286,11 +28129,13 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_without_datum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_without_datum"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScript for script");
+        }
         auto script = getPlutusScriptState(rt, args[0].asObject(rt), "script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemer for redeemer");
+        }
         auto redeemer = getRedeemerState(rt, args[1].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new_without_datum(script->get(), redeemer->get(), out, err);
@@ -27303,11 +28148,13 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_ref_without_datum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ref_without_datum"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScriptSource for script");
+        }
         auto script = getPlutusScriptSourceState(rt, args[0].asObject(rt), "script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemer for redeemer");
+        }
         auto redeemer = getRedeemerState(rt, args[1].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new_with_ref_without_datum(script->get(), redeemer->get(), out, err);
@@ -27384,8 +28231,9 @@ static jsi::Object getOrCreatePlutusWitnessesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusWitnessesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witnesses_get(st->get(), index, out, err);
@@ -27399,8 +28247,9 @@ static jsi::Object getOrCreatePlutusWitnessesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPlutusWitnessesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for elem");
+        }
         auto elem = getPlutusWitnessState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_plutus_witnesses_add(st->get(), elem->get(), &err.ptr)) {
@@ -27585,14 +28434,17 @@ static jsi::Object makePointerExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(slot) requires number");
+        }
         auto slot = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(tx_index) requires number");
+        }
         auto tx_index = static_cast<int64_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isNumber())
+        if (count < 3 || !args[2].isNumber()) {
           throw jsi::JSError(rt, "new(cert_index) requires number");
+        }
         auto cert_index = static_cast<int64_t>(args[2].asNumber());
         return callCslPointer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_new(slot, tx_index, cert_index, out, err);
@@ -27605,14 +28457,17 @@ static jsi::Object makePointerExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_pointer",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_pointer"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for slot");
+        }
         auto slot = getBigNumState(rt, args[0].asObject(rt), "slot");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for tx_index");
+        }
         auto tx_index = getBigNumState(rt, args[1].asObject(rt), "tx_index");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for cert_index");
+        }
         auto cert_index = getBigNumState(rt, args[2].asObject(rt), "cert_index");
         return callCslPointer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_new_pointer(slot->get(), tx_index->get(), cert_index->get(), out, err);
@@ -27740,14 +28595,17 @@ static jsi::Object makePointerAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(network) requires number");
+        }
         auto network = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for payment");
+        }
         auto payment = getCredentialState(rt, args[1].asObject(rt), "payment");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Pointer for stake");
+        }
         auto stake = getPointerState(rt, args[2].asObject(rt), "stake");
         return callCslPointerAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_new(network, payment->get(), stake->get(), out, err);
@@ -27760,8 +28618,9 @@ static jsi::Object makePointerAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for addr");
+        }
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslPointerAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_from_address(addr->get(), out, err);
@@ -27899,18 +28758,21 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
@@ -27924,8 +28786,9 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_from_hex(hex_str.c_str(), out, err);
@@ -27938,8 +28801,9 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_from_json(json.c_str(), out, err);
@@ -27952,11 +28816,13 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected URL for url");
+        }
         auto url = getURLState(rt, args[0].asObject(rt), "url");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PoolMetadataHash for pool_metadata_hash");
+        }
         auto pool_metadata_hash = getPoolMetadataHashState(rt, args[1].asObject(rt), "pool_metadata_hash");
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_new(url->get(), pool_metadata_hash->get(), out, err);
@@ -28031,8 +28897,9 @@ static jsi::Object getOrCreatePoolMetadataHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPoolMetadataHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -28073,18 +28940,21 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -28098,8 +28968,9 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_from_bech32(bech_str.c_str(), out, err);
@@ -28112,8 +28983,9 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_from_hex(hex.c_str(), out, err);
@@ -28335,18 +29207,21 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
@@ -28360,8 +29235,9 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_from_hex(hex_str.c_str(), out, err);
@@ -28374,8 +29250,9 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_from_json(json.c_str(), out, err);
@@ -28388,32 +29265,41 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 9,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for operator_");
+        }
         auto operator_ = getEd25519KeyHashState(rt, args[0].asObject(rt), "operator_");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected VRFKeyHash for vrf_keyhash");
+        }
         auto vrf_keyhash = getVRFKeyHashState(rt, args[1].asObject(rt), "vrf_keyhash");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pledge");
+        }
         auto pledge = getBigNumState(rt, args[2].asObject(rt), "pledge");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for cost");
+        }
         auto cost = getBigNumState(rt, args[3].asObject(rt), "cost");
-        if (count < 5 || !args[4].isObject())
+        if (count < 5 || !args[4].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for margin");
+        }
         auto margin = getUnitIntervalState(rt, args[4].asObject(rt), "margin");
-        if (count < 6 || !args[5].isObject())
+        if (count < 6 || !args[5].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for reward_account");
+        }
         auto reward_account = getRewardAddressState(rt, args[5].asObject(rt), "reward_account");
-        if (count < 7 || !args[6].isObject())
+        if (count < 7 || !args[6].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHashes for pool_owners");
+        }
         auto pool_owners = getEd25519KeyHashesState(rt, args[6].asObject(rt), "pool_owners");
-        if (count < 8 || !args[7].isObject())
+        if (count < 8 || !args[7].isObject()) {
           throw jsi::JSError(rt, "Expected Relays for relays");
+        }
         auto relays = getRelaysState(rt, args[7].asObject(rt), "relays");
-        if (count < 9 || !args[8].isObject())
+        if (count < 9 || !args[8].isObject()) {
           throw jsi::JSError(rt, "Expected PoolMetadata for pool_metadata");
+        }
         auto pool_metadata = getPoolMetadataState(rt, args[8].asObject(rt), "pool_metadata");
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_new_with_pool_metadata(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), pool_metadata->get(), out, err);
@@ -28539,18 +29425,21 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
@@ -28564,8 +29453,9 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_from_hex(hex_str.c_str(), out, err);
@@ -28578,8 +29468,9 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_from_json(json.c_str(), out, err);
@@ -28592,8 +29483,9 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PoolParams for pool_params");
+        }
         auto pool_params = getPoolParamsState(rt, args[0].asObject(rt), "pool_params");
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_new(pool_params->get(), out, err);
@@ -28733,18 +29625,21 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
@@ -28758,8 +29653,9 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_from_hex(hex_str.c_str(), out, err);
@@ -28772,8 +29668,9 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_from_json(json.c_str(), out, err);
@@ -28786,11 +29683,13 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for pool_keyhash");
+        }
         auto pool_keyhash = getEd25519KeyHashState(rt, args[0].asObject(rt), "pool_keyhash");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(epoch) requires number");
+        }
         auto epoch = static_cast<uint32_t>(args[1].asNumber());
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_new(pool_keyhash->get(), epoch, out, err);
@@ -28964,18 +29863,21 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
@@ -28989,8 +29891,9 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_from_hex(hex_str.c_str(), out, err);
@@ -29003,8 +29906,9 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_from_json(json.c_str(), out, err);
@@ -29017,20 +29921,25 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 5,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for motion_no_confidence");
+        }
         auto motion_no_confidence = getUnitIntervalState(rt, args[0].asObject(rt), "motion_no_confidence");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for committee_normal");
+        }
         auto committee_normal = getUnitIntervalState(rt, args[1].asObject(rt), "committee_normal");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for committee_no_confidence");
+        }
         auto committee_no_confidence = getUnitIntervalState(rt, args[2].asObject(rt), "committee_no_confidence");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for hard_fork_initiation");
+        }
         auto hard_fork_initiation = getUnitIntervalState(rt, args[3].asObject(rt), "hard_fork_initiation");
-        if (count < 5 || !args[4].isObject())
+        if (count < 5 || !args[4].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for security_relevant_threshold");
+        }
         auto security_relevant_threshold = getUnitIntervalState(rt, args[4].asObject(rt), "security_relevant_threshold");
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_new(motion_no_confidence->get(), committee_normal->get(), committee_no_confidence->get(), hard_fork_initiation->get(), security_relevant_threshold->get(), out, err);
@@ -29129,18 +30038,21 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPrivateKeyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "sign(message) requires number[]");
+        }
         auto __arr_message = args[0].asObject(rt).asArray(rt);
         size_t __n_message = __arr_message.length(rt);
         std::vector<uint8_t> message; message.reserve(__n_message);
         for (size_t __i=0; __i<__n_message; ++__i) {
           auto __v = __arr_message.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "sign.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "sign.from_bytes: byte out of range 0..255");
+          }
           message.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
@@ -29204,8 +30116,9 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech32_str) requires string");
+        }
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_bech32(bech32_str.c_str(), out, err);
@@ -29218,18 +30131,21 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_extended_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_extended_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_extended_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_extended_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_extended_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -29243,18 +30159,21 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_normal_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_normal_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_normal_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_normal_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_normal_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -29268,8 +30187,9 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_hex(hex_str.c_str(), out, err);
@@ -29382,11 +30302,13 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProposedProtocolParameterUpdatesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GenesisHash for key");
+        }
         auto key = getGenesisHashState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolParamUpdate for value");
+        }
         auto value = getProtocolParamUpdateState(rt, args[1].asObject(rt), "value");
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_insert(st->get(), key->get(), value->get(), out, err);
@@ -29400,8 +30322,9 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProposedProtocolParameterUpdatesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GenesisHash for key");
+        }
         auto key = getGenesisHashState(rt, args[0].asObject(rt), "key");
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_get(st->get(), key->get(), out, err);
@@ -29442,18 +30365,21 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
@@ -29467,8 +30393,9 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_from_hex(hex_str.c_str(), out, err);
@@ -29481,8 +30408,9 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_from_json(json.c_str(), out, err);
@@ -29592,8 +30520,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_minfee_a"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for minfee_a");
+        }
         auto minfee_a = getBigNumState(rt, args[0].asObject(rt), "minfee_a");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_minfee_a(st->get(), minfee_a->get(), &err.ptr)) {
@@ -29621,8 +30550,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_minfee_b"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for minfee_b");
+        }
         auto minfee_b = getBigNumState(rt, args[0].asObject(rt), "minfee_b");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_minfee_b(st->get(), minfee_b->get(), &err.ptr)) {
@@ -29650,8 +30580,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_block_body_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_max_block_body_size(max_block_body_size) requires number");
+        }
         auto max_block_body_size = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_block_body_size(st->get(), max_block_body_size, &err.ptr)) {
@@ -29681,8 +30612,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_tx_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_max_tx_size(max_tx_size) requires number");
+        }
         auto max_tx_size = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_tx_size(st->get(), max_tx_size, &err.ptr)) {
@@ -29712,8 +30644,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_block_header_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_max_block_header_size(max_block_header_size) requires number");
+        }
         auto max_block_header_size = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_block_header_size(st->get(), max_block_header_size, &err.ptr)) {
@@ -29743,8 +30676,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_key_deposit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
+        }
         auto key_deposit = getBigNumState(rt, args[0].asObject(rt), "key_deposit");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_key_deposit(st->get(), key_deposit->get(), &err.ptr)) {
@@ -29772,8 +30706,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pool_deposit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pool_deposit");
+        }
         auto pool_deposit = getBigNumState(rt, args[0].asObject(rt), "pool_deposit");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_pool_deposit(st->get(), pool_deposit->get(), &err.ptr)) {
@@ -29801,8 +30736,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_epoch"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_max_epoch(max_epoch) requires number");
+        }
         auto max_epoch = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_epoch(st->get(), max_epoch, &err.ptr)) {
@@ -29832,8 +30768,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_n_opt"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_n_opt(n_opt) requires number");
+        }
         auto n_opt = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_n_opt(st->get(), n_opt, &err.ptr)) {
@@ -29863,8 +30800,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pool_pledge_influence"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for pool_pledge_influence");
+        }
         auto pool_pledge_influence = getUnitIntervalState(rt, args[0].asObject(rt), "pool_pledge_influence");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_pool_pledge_influence(st->get(), pool_pledge_influence->get(), &err.ptr)) {
@@ -29892,8 +30830,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_expansion_rate"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for expansion_rate");
+        }
         auto expansion_rate = getUnitIntervalState(rt, args[0].asObject(rt), "expansion_rate");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_expansion_rate(st->get(), expansion_rate->get(), &err.ptr)) {
@@ -29921,8 +30860,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_treasury_growth_rate"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for treasury_growth_rate");
+        }
         auto treasury_growth_rate = getUnitIntervalState(rt, args[0].asObject(rt), "treasury_growth_rate");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_treasury_growth_rate(st->get(), treasury_growth_rate->get(), &err.ptr)) {
@@ -29974,8 +30914,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_protocol_version"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
         auto protocol_version = getProtocolVersionState(rt, args[0].asObject(rt), "protocol_version");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_protocol_version(st->get(), protocol_version->get(), &err.ptr)) {
@@ -30003,8 +30944,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_min_pool_cost"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for min_pool_cost");
+        }
         auto min_pool_cost = getBigNumState(rt, args[0].asObject(rt), "min_pool_cost");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_min_pool_cost(st->get(), min_pool_cost->get(), &err.ptr)) {
@@ -30032,8 +30974,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_ada_per_utxo_byte"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for ada_per_utxo_byte");
+        }
         auto ada_per_utxo_byte = getBigNumState(rt, args[0].asObject(rt), "ada_per_utxo_byte");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_ada_per_utxo_byte(st->get(), ada_per_utxo_byte->get(), &err.ptr)) {
@@ -30061,8 +31004,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_cost_models"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Costmdls for cost_models");
+        }
         auto cost_models = getCostmdlsState(rt, args[0].asObject(rt), "cost_models");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_cost_models(st->get(), cost_models->get(), &err.ptr)) {
@@ -30090,8 +31034,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_execution_costs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnitPrices for execution_costs");
+        }
         auto execution_costs = getExUnitPricesState(rt, args[0].asObject(rt), "execution_costs");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_execution_costs(st->get(), execution_costs->get(), &err.ptr)) {
@@ -30119,8 +31064,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_tx_ex_units"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnits for max_tx_ex_units");
+        }
         auto max_tx_ex_units = getExUnitsState(rt, args[0].asObject(rt), "max_tx_ex_units");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_tx_ex_units(st->get(), max_tx_ex_units->get(), &err.ptr)) {
@@ -30148,8 +31094,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_block_ex_units"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnits for max_block_ex_units");
+        }
         auto max_block_ex_units = getExUnitsState(rt, args[0].asObject(rt), "max_block_ex_units");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_block_ex_units(st->get(), max_block_ex_units->get(), &err.ptr)) {
@@ -30177,8 +31124,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_value_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_max_value_size(max_value_size) requires number");
+        }
         auto max_value_size = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_value_size(st->get(), max_value_size, &err.ptr)) {
@@ -30208,8 +31156,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_collateral_percentage"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_collateral_percentage(collateral_percentage) requires number");
+        }
         auto collateral_percentage = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_collateral_percentage(st->get(), collateral_percentage, &err.ptr)) {
@@ -30239,8 +31188,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_max_collateral_inputs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_max_collateral_inputs(max_collateral_inputs) requires number");
+        }
         auto max_collateral_inputs = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_max_collateral_inputs(st->get(), max_collateral_inputs, &err.ptr)) {
@@ -30270,8 +31220,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_pool_voting_thresholds"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PoolVotingThresholds for pool_voting_thresholds");
+        }
         auto pool_voting_thresholds = getPoolVotingThresholdsState(rt, args[0].asObject(rt), "pool_voting_thresholds");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_pool_voting_thresholds(st->get(), pool_voting_thresholds->get(), &err.ptr)) {
@@ -30299,8 +31250,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_drep_voting_thresholds"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DRepVotingThresholds for drep_voting_thresholds");
+        }
         auto drep_voting_thresholds = getDRepVotingThresholdsState(rt, args[0].asObject(rt), "drep_voting_thresholds");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_drep_voting_thresholds(st->get(), drep_voting_thresholds->get(), &err.ptr)) {
@@ -30328,8 +31280,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_min_committee_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_min_committee_size(min_committee_size) requires number");
+        }
         auto min_committee_size = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_min_committee_size(st->get(), min_committee_size, &err.ptr)) {
@@ -30359,8 +31312,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_committee_term_limit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_committee_term_limit(committee_term_limit) requires number");
+        }
         auto committee_term_limit = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_committee_term_limit(st->get(), committee_term_limit, &err.ptr)) {
@@ -30390,8 +31344,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_governance_action_validity_period"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_governance_action_validity_period(governance_action_validity_period) requires number");
+        }
         auto governance_action_validity_period = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_governance_action_validity_period(st->get(), governance_action_validity_period, &err.ptr)) {
@@ -30421,8 +31376,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_governance_action_deposit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for governance_action_deposit");
+        }
         auto governance_action_deposit = getBigNumState(rt, args[0].asObject(rt), "governance_action_deposit");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_governance_action_deposit(st->get(), governance_action_deposit->get(), &err.ptr)) {
@@ -30450,8 +31406,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_drep_deposit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for drep_deposit");
+        }
         auto drep_deposit = getBigNumState(rt, args[0].asObject(rt), "drep_deposit");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_drep_deposit(st->get(), drep_deposit->get(), &err.ptr)) {
@@ -30479,8 +31436,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_drep_inactivity_period"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_drep_inactivity_period(drep_inactivity_period) requires number");
+        }
         auto drep_inactivity_period = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_drep_inactivity_period(st->get(), drep_inactivity_period, &err.ptr)) {
@@ -30510,8 +31468,9 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_ref_script_coins_per_byte"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for ref_script_coins_per_byte");
+        }
         auto ref_script_coins_per_byte = getUnitIntervalState(rt, args[0].asObject(rt), "ref_script_coins_per_byte");
         ScopedCharPtr err;
         if (!csl_bridge_protocol_param_update_set_ref_script_coins_per_byte(st->get(), ref_script_coins_per_byte->get(), &err.ptr)) {
@@ -30554,18 +31513,21 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
@@ -30579,8 +31541,9 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_from_hex(hex_str.c_str(), out, err);
@@ -30593,8 +31556,9 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_from_json(json.c_str(), out, err);
@@ -30747,18 +31711,21 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
@@ -30772,8 +31739,9 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_from_hex(hex_str.c_str(), out, err);
@@ -30786,8 +31754,9 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_from_json(json.c_str(), out, err);
@@ -30800,11 +31769,13 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(major) requires number");
+        }
         auto major = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(minor) requires number");
+        }
         auto minor = static_cast<int64_t>(args[1].asNumber());
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_new(major, minor, out, err);
@@ -30891,22 +31862,26 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "verify"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPublicKeyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "verify(data) requires number[]");
+        }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
         std::vector<uint8_t> data; data.reserve(__n_data);
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "verify.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "verify.from_bytes: byte out of range 0..255");
+          }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519Signature for signature");
+        }
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_public_key_verify(st->get(), data.data(), static_cast<uintptr_t>(data.size()), signature->get(), &res, &err.ptr)) {
@@ -30961,8 +31936,9 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech32_str) requires string");
+        }
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_from_bech32(bech32_str.c_str(), out, err);
@@ -30975,18 +31951,21 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -31000,8 +31979,9 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_from_hex(hex_str.c_str(), out, err);
@@ -31078,8 +32058,9 @@ static jsi::Object getOrCreatePublicKeysProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPublicKeysState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_keys_get(st->get(), index, out, err);
@@ -31093,8 +32074,9 @@ static jsi::Object getOrCreatePublicKeysProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPublicKeysState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PublicKey for key");
+        }
         auto key = getPublicKeyState(rt, args[0].asObject(rt), "key");
         ScopedCharPtr err;
         if (!csl_bridge_public_keys_add(st->get(), key->get(), &err.ptr)) {
@@ -31285,18 +32267,21 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
@@ -31310,8 +32295,9 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_from_hex(hex_str.c_str(), out, err);
@@ -31324,8 +32310,9 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_from_json(json.c_str(), out, err);
@@ -31338,17 +32325,21 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RedeemerTag for tag");
+        }
         auto tag = getRedeemerTagState(rt, args[0].asObject(rt), "tag");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for index");
+        }
         auto index = getBigNumState(rt, args[1].asObject(rt), "index");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for data");
+        }
         auto data = getPlutusDataState(rt, args[2].asObject(rt), "data");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnits for ex_units");
+        }
         auto ex_units = getExUnitsState(rt, args[3].asObject(rt), "ex_units");
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_new(tag->get(), index->get(), data->get(), ex_units->get(), out, err);
@@ -31476,18 +32467,21 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
@@ -31501,8 +32495,9 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_from_hex(hex_str.c_str(), out, err);
@@ -31515,8 +32510,9 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_from_json(json.c_str(), out, err);
@@ -31695,8 +32691,9 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisRedeemersState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_get(st->get(), index, out, err);
@@ -31710,8 +32707,9 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisRedeemersState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemer for elem");
+        }
         auto elem = getRedeemerState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_redeemers_add(st->get(), elem->get(), &err.ptr)) {
@@ -31768,18 +32766,21 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
@@ -31793,8 +32794,9 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_from_hex(hex_str.c_str(), out, err);
@@ -31807,8 +32809,9 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_from_json(json.c_str(), out, err);
@@ -31983,18 +32986,21 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
@@ -32008,8 +33014,9 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_from_hex(hex_str.c_str(), out, err);
@@ -32022,8 +33029,9 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_from_json(json.c_str(), out, err);
@@ -32036,8 +33044,9 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_single_host_addr",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_single_host_addr"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected SingleHostAddr for single_host_addr");
+        }
         auto single_host_addr = getSingleHostAddrState(rt, args[0].asObject(rt), "single_host_addr");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_new_single_host_addr(single_host_addr->get(), out, err);
@@ -32050,8 +33059,9 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_single_host_name",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_single_host_name"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected SingleHostName for single_host_name");
+        }
         auto single_host_name = getSingleHostNameState(rt, args[0].asObject(rt), "single_host_name");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_new_single_host_name(single_host_name->get(), out, err);
@@ -32064,8 +33074,9 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_multi_host_name",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_multi_host_name"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MultiHostName for multi_host_name");
+        }
         auto multi_host_name = getMultiHostNameState(rt, args[0].asObject(rt), "multi_host_name");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_new_multi_host_name(multi_host_name->get(), out, err);
@@ -32178,8 +33189,9 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisRelaysState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_get(st->get(), index, out, err);
@@ -32193,8 +33205,9 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisRelaysState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Relay for elem");
+        }
         auto elem = getRelayState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_relays_add(st->get(), elem->get(), &err.ptr)) {
@@ -32225,18 +33238,21 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
@@ -32250,8 +33266,9 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_from_hex(hex_str.c_str(), out, err);
@@ -32264,8 +33281,9 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_from_json(json.c_str(), out, err);
@@ -32392,11 +33410,13 @@ static jsi::Object makeRewardAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(network) requires number");
+        }
         auto network = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for payment");
+        }
         auto payment = getCredentialState(rt, args[1].asObject(rt), "payment");
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_address_new(network, payment->get(), out, err);
@@ -32409,8 +33429,9 @@ static jsi::Object makeRewardAddressExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for addr");
+        }
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_address_from_address(addr->get(), out, err);
@@ -32523,8 +33544,9 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisRewardAddressesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_get(st->get(), index, out, err);
@@ -32538,8 +33560,9 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisRewardAddressesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for elem");
+        }
         auto elem = getRewardAddressState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_reward_addresses_add(st->get(), elem->get(), &err.ptr)) {
@@ -32570,18 +33593,21 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
@@ -32595,8 +33621,9 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_from_hex(hex_str.c_str(), out, err);
@@ -32609,8 +33636,9 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_from_json(json.c_str(), out, err);
@@ -32747,18 +33775,21 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
@@ -32772,8 +33803,9 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_from_hex(hex_str.c_str(), out, err);
@@ -32786,8 +33818,9 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_from_json(json.c_str(), out, err);
@@ -32800,8 +33833,9 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScripts for native_scripts");
+        }
         auto native_scripts = getNativeScriptsState(rt, args[0].asObject(rt), "native_scripts");
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_new(native_scripts->get(), out, err);
@@ -32927,18 +33961,21 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
@@ -32952,8 +33989,9 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_from_hex(hex_str.c_str(), out, err);
@@ -32966,8 +34004,9 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_from_json(json.c_str(), out, err);
@@ -32980,8 +34019,9 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScripts for native_scripts");
+        }
         auto native_scripts = getNativeScriptsState(rt, args[0].asObject(rt), "native_scripts");
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_new(native_scripts->get(), out, err);
@@ -33056,8 +34096,9 @@ static jsi::Object getOrCreateScriptDataHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisScriptDataHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -33098,18 +34139,21 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -33123,8 +34167,9 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_from_bech32(bech_str.c_str(), out, err);
@@ -33137,8 +34182,9 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_from_hex(hex.c_str(), out, err);
@@ -33213,8 +34259,9 @@ static jsi::Object getOrCreateScriptHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisScriptHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -33255,18 +34302,21 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -33280,8 +34330,9 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_from_bech32(bech_str.c_str(), out, err);
@@ -33294,8 +34345,9 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_from_hex(hex.c_str(), out, err);
@@ -33408,8 +34460,9 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisScriptHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_get(st->get(), index, out, err);
@@ -33423,8 +34476,9 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisScriptHashesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for elem");
+        }
         auto elem = getScriptHashState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_script_hashes_add(st->get(), elem->get(), &err.ptr)) {
@@ -33455,18 +34509,21 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
@@ -33480,8 +34537,9 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_from_hex(hex_str.c_str(), out, err);
@@ -33494,8 +34552,9 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_from_json(json.c_str(), out, err);
@@ -33646,18 +34705,21 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
@@ -33671,8 +34733,9 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_from_hex(hex_str.c_str(), out, err);
@@ -33685,8 +34748,9 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_from_json(json.c_str(), out, err);
@@ -33699,11 +34763,13 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(n) requires number");
+        }
         auto n = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScripts for native_scripts");
+        }
         auto native_scripts = getNativeScriptsState(rt, args[1].asObject(rt), "native_scripts");
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_new(n, native_scripts->get(), out, err);
@@ -33829,18 +34895,21 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
@@ -33854,8 +34923,9 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_from_hex(hex_str.c_str(), out, err);
@@ -33868,8 +34938,9 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_from_json(json.c_str(), out, err);
@@ -33882,8 +34953,9 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for addr_keyhash");
+        }
         auto addr_keyhash = getEd25519KeyHashState(rt, args[0].asObject(rt), "addr_keyhash");
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_new(addr_keyhash->get(), out, err);
@@ -34061,18 +35133,21 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
@@ -34086,8 +35161,9 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_from_hex(hex_str.c_str(), out, err);
@@ -34100,8 +35176,9 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_from_json(json.c_str(), out, err);
@@ -34114,8 +35191,9 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_native_script",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_native_script"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for native_script");
+        }
         auto native_script = getNativeScriptState(rt, args[0].asObject(rt), "native_script");
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_new_native_script(native_script->get(), out, err);
@@ -34128,8 +35206,9 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_plutus_script",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_plutus_script"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScript for plutus_script");
+        }
         auto plutus_script = getPlutusScriptState(rt, args[0].asObject(rt), "plutus_script");
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_new_plutus_script(plutus_script->get(), out, err);
@@ -34281,18 +35360,21 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
@@ -34306,8 +35388,9 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_from_hex(hex_str.c_str(), out, err);
@@ -34320,8 +35403,9 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_from_json(json.c_str(), out, err);
@@ -34334,14 +35418,17 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(port) requires number");
+        }
         auto port = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+        }
         auto ipv4 = getIpv4State(rt, args[1].asObject(rt), "ipv4");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
+        }
         auto ipv6 = getIpv6State(rt, args[2].asObject(rt), "ipv6");
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_new_with_port_ipv4_ipv6(port, ipv4->get(), ipv6->get(), out, err);
@@ -34481,18 +35568,21 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
@@ -34506,8 +35596,9 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_from_hex(hex_str.c_str(), out, err);
@@ -34520,8 +35611,9 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_from_json(json.c_str(), out, err);
@@ -34534,11 +35626,13 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(port) requires number");
+        }
         auto port = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DNSRecordAorAAAA for dns_name");
+        }
         auto dns_name = getDNSRecordAorAAAAState(rt, args[1].asObject(rt), "dns_name");
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_new_with_port(port, dns_name->get(), out, err);
@@ -34702,18 +35796,21 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -34727,8 +35824,9 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_from_hex(hex_str.c_str(), out, err);
@@ -34741,8 +35839,9 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_from_json(json.c_str(), out, err);
@@ -34755,14 +35854,17 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for pool_keyhash");
+        }
         auto pool_keyhash = getEd25519KeyHashState(rt, args[1].asObject(rt), "pool_keyhash");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected DRep for drep");
+        }
         auto drep = getDRepState(rt, args[2].asObject(rt), "drep");
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_new(stake_credential->get(), pool_keyhash->get(), drep->get(), out, err);
@@ -34914,18 +36016,21 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -34939,8 +36044,9 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_from_hex(hex_str.c_str(), out, err);
@@ -34953,8 +36059,9 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_from_json(json.c_str(), out, err);
@@ -34967,11 +36074,13 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for pool_keyhash");
+        }
         auto pool_keyhash = getEd25519KeyHashState(rt, args[1].asObject(rt), "pool_keyhash");
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_new(stake_credential->get(), pool_keyhash->get(), out, err);
@@ -35123,18 +36232,21 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
@@ -35148,8 +36260,9 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_from_hex(hex_str.c_str(), out, err);
@@ -35162,8 +36275,9 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_from_json(json.c_str(), out, err);
@@ -35176,8 +36290,9 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_new(stake_credential->get(), out, err);
@@ -35190,11 +36305,13 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_explicit_refund",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_explicit_refund"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_new_with_explicit_refund(stake_credential->get(), coin->get(), out, err);
@@ -35346,18 +36463,21 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
@@ -35371,8 +36491,9 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_from_hex(hex_str.c_str(), out, err);
@@ -35385,8 +36506,9 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_from_json(json.c_str(), out, err);
@@ -35399,8 +36521,9 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_new(stake_credential->get(), out, err);
@@ -35413,11 +36536,13 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_explicit_deposit",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_explicit_deposit"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_new_with_explicit_deposit(stake_credential->get(), coin->get(), out, err);
@@ -35581,18 +36706,21 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -35606,8 +36734,9 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_from_hex(hex_str.c_str(), out, err);
@@ -35620,8 +36749,9 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_from_json(json.c_str(), out, err);
@@ -35634,14 +36764,17 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for pool_keyhash");
+        }
         auto pool_keyhash = getEd25519KeyHashState(rt, args[1].asObject(rt), "pool_keyhash");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[2].asObject(rt), "coin");
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_new(stake_credential->get(), pool_keyhash->get(), coin->get(), out, err);
@@ -35817,18 +36950,21 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -35842,8 +36978,9 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_from_hex(hex_str.c_str(), out, err);
@@ -35856,8 +36993,9 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_from_json(json.c_str(), out, err);
@@ -35870,17 +37008,21 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for pool_keyhash");
+        }
         auto pool_keyhash = getEd25519KeyHashState(rt, args[1].asObject(rt), "pool_keyhash");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected DRep for drep");
+        }
         auto drep = getDRepState(rt, args[2].asObject(rt), "drep");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[3].asObject(rt), "coin");
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_new(stake_credential->get(), pool_keyhash->get(), drep->get(), coin->get(), out, err);
@@ -35957,8 +37099,9 @@ static jsi::Object getOrCreateStringsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisStringsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_strings_get(st->get(), index, out, err);
@@ -35972,8 +37115,9 @@ static jsi::Object getOrCreateStringsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisStringsState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "add(elem) requires string");
+        }
         std::string elem = args[0].asString(rt).utf8(rt);
         ScopedCharPtr err;
         if (!csl_bridge_strings_add(st->get(), elem.c_str(), &err.ptr)) {
@@ -36142,18 +37286,21 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
@@ -36167,8 +37314,9 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_from_hex(hex_str.c_str(), out, err);
@@ -36181,8 +37329,9 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_from_json(json.c_str(), out, err);
@@ -36195,8 +37344,9 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(slot) requires number");
+        }
         auto slot = static_cast<uint32_t>(args[0].asNumber());
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_new(slot, out, err);
@@ -36209,8 +37359,9 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_timelockexpiry",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_timelockexpiry"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for slot");
+        }
         auto slot = getBigNumState(rt, args[0].asObject(rt), "slot");
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_new_timelockexpiry(slot->get(), out, err);
@@ -36350,18 +37501,21 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
@@ -36375,8 +37529,9 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_from_hex(hex_str.c_str(), out, err);
@@ -36389,8 +37544,9 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_from_json(json.c_str(), out, err);
@@ -36403,8 +37559,9 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(slot) requires number");
+        }
         auto slot = static_cast<uint32_t>(args[0].asNumber());
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_new(slot, out, err);
@@ -36417,8 +37574,9 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_timelockstart",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_timelockstart"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for slot");
+        }
         auto slot = getBigNumState(rt, args[0].asObject(rt), "slot");
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_new_timelockstart(slot->get(), out, err);
@@ -36567,8 +37725,9 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_is_valid"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "set_is_valid(valid) requires bool");
+        }
         bool valid = args[0].asBool();
         ScopedCharPtr err;
         if (!csl_bridge_transaction_set_is_valid(st->get(), valid, &err.ptr)) {
@@ -36599,18 +37758,21 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
@@ -36624,8 +37786,9 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_from_hex(hex_str.c_str(), out, err);
@@ -36638,8 +37801,9 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_from_json(json.c_str(), out, err);
@@ -36652,14 +37816,17 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBody for body");
+        }
         auto body = getTransactionBodyState(rt, args[0].asObject(rt), "body");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionWitnessSet for witness_set");
+        }
         auto witness_set = getTransactionWitnessSetState(rt, args[1].asObject(rt), "witness_set");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected AuxiliaryData for auxiliary_data");
+        }
         auto auxiliary_data = getAuxiliaryDataState(rt, args[2].asObject(rt), "auxiliary_data");
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_new_with_auxiliary_data(body->get(), witness_set->get(), auxiliary_data->get(), out, err);
@@ -36736,8 +37903,9 @@ static jsi::Object getOrCreateTransactionBatchProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBatchState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_batch_get(st->get(), index, out, err);
@@ -36830,8 +37998,9 @@ static jsi::Object getOrCreateTransactionBatchListProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBatchListState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionBatch(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_batch_list_get(st->get(), index, out, err);
@@ -36960,8 +38129,9 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodiesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_get(st->get(), index, out, err);
@@ -36975,8 +38145,9 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodiesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBody for elem");
+        }
         auto elem = getTransactionBodyState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_bodies_add(st->get(), elem->get(), &err.ptr)) {
@@ -37007,18 +38178,21 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
@@ -37032,8 +38206,9 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_from_hex(hex_str.c_str(), out, err);
@@ -37046,8 +38221,9 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_from_json(json.c_str(), out, err);
@@ -37219,8 +38395,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_ttl"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for ttl");
+        }
         auto ttl = getBigNumState(rt, args[0].asObject(rt), "ttl");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_ttl(st->get(), ttl->get(), &err.ptr)) {
@@ -37250,8 +38427,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_certs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Certificates for certs");
+        }
         auto certs = getCertificatesState(rt, args[0].asObject(rt), "certs");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_certs(st->get(), certs->get(), &err.ptr)) {
@@ -37279,8 +38457,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_withdrawals"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Withdrawals for withdrawals");
+        }
         auto withdrawals = getWithdrawalsState(rt, args[0].asObject(rt), "withdrawals");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_withdrawals(st->get(), withdrawals->get(), &err.ptr)) {
@@ -37308,8 +38487,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_update"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Update for update");
+        }
         auto update = getUpdateState(rt, args[0].asObject(rt), "update");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_update(st->get(), update->get(), &err.ptr)) {
@@ -37337,8 +38517,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_auxiliary_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AuxiliaryDataHash for auxiliary_data_hash");
+        }
         auto auxiliary_data_hash = getAuxiliaryDataHashState(rt, args[0].asObject(rt), "auxiliary_data_hash");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_auxiliary_data_hash(st->get(), auxiliary_data_hash->get(), &err.ptr)) {
@@ -37366,8 +38547,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_validity_start_interval"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_validity_start_interval(validity_start_interval) requires number");
+        }
         auto validity_start_interval = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_validity_start_interval(st->get(), validity_start_interval, &err.ptr)) {
@@ -37383,8 +38565,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_validity_start_interval_bignum"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for validity_start_interval");
+        }
         auto validity_start_interval = getBigNumState(rt, args[0].asObject(rt), "validity_start_interval");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_validity_start_interval_bignum(st->get(), validity_start_interval->get(), &err.ptr)) {
@@ -37426,8 +38609,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_mint"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Mint for mint");
+        }
         auto mint = getMintState(rt, args[0].asObject(rt), "mint");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_mint(st->get(), mint->get(), &err.ptr)) {
@@ -37455,8 +38639,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_reference_inputs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInputs for reference_inputs");
+        }
         auto reference_inputs = getTransactionInputsState(rt, args[0].asObject(rt), "reference_inputs");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_reference_inputs(st->get(), reference_inputs->get(), &err.ptr)) {
@@ -37484,8 +38669,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_script_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptDataHash for script_data_hash");
+        }
         auto script_data_hash = getScriptDataHashState(rt, args[0].asObject(rt), "script_data_hash");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_script_data_hash(st->get(), script_data_hash->get(), &err.ptr)) {
@@ -37513,8 +38699,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_collateral"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInputs for collateral");
+        }
         auto collateral = getTransactionInputsState(rt, args[0].asObject(rt), "collateral");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_collateral(st->get(), collateral->get(), &err.ptr)) {
@@ -37542,8 +38729,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_required_signers"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHashes for required_signers");
+        }
         auto required_signers = getEd25519KeyHashesState(rt, args[0].asObject(rt), "required_signers");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_required_signers(st->get(), required_signers->get(), &err.ptr)) {
@@ -37571,8 +38759,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_network_id"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NetworkId for network_id");
+        }
         auto network_id = getNetworkIdState(rt, args[0].asObject(rt), "network_id");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_network_id(st->get(), network_id->get(), &err.ptr)) {
@@ -37600,8 +38789,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_collateral_return"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for collateral_return");
+        }
         auto collateral_return = getTransactionOutputState(rt, args[0].asObject(rt), "collateral_return");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_collateral_return(st->get(), collateral_return->get(), &err.ptr)) {
@@ -37629,8 +38819,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_total_collateral"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for total_collateral");
+        }
         auto total_collateral = getBigNumState(rt, args[0].asObject(rt), "total_collateral");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_total_collateral(st->get(), total_collateral->get(), &err.ptr)) {
@@ -37658,8 +38849,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_voting_procedures"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProcedures for voting_procedures");
+        }
         auto voting_procedures = getVotingProceduresState(rt, args[0].asObject(rt), "voting_procedures");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_voting_procedures(st->get(), voting_procedures->get(), &err.ptr)) {
@@ -37687,8 +38879,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_voting_proposals"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProposals for voting_proposals");
+        }
         auto voting_proposals = getVotingProposalsState(rt, args[0].asObject(rt), "voting_proposals");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_voting_proposals(st->get(), voting_proposals->get(), &err.ptr)) {
@@ -37716,8 +38909,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_donation"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for donation");
+        }
         auto donation = getBigNumState(rt, args[0].asObject(rt), "donation");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_donation(st->get(), donation->get(), &err.ptr)) {
@@ -37745,8 +38939,9 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_current_treasury_value"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBodyState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for current_treasury_value");
+        }
         auto current_treasury_value = getBigNumState(rt, args[0].asObject(rt), "current_treasury_value");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_body_set_current_treasury_value(st->get(), current_treasury_value->get(), &err.ptr)) {
@@ -37789,18 +38984,21 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
@@ -37814,8 +39012,9 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_from_hex(hex_str.c_str(), out, err);
@@ -37828,8 +39027,9 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_from_json(json.c_str(), out, err);
@@ -37842,17 +39042,21 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInputs for inputs");
+        }
         auto inputs = getTransactionInputsState(rt, args[0].asObject(rt), "inputs");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutputs for outputs");
+        }
         auto outputs = getTransactionOutputsState(rt, args[1].asObject(rt), "outputs");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for fee");
+        }
         auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
-        if (count < 4 || !args[3].isNumber())
+        if (count < 4 || !args[3].isNumber()) {
           throw jsi::JSError(rt, "new(ttl) requires number");
+        }
         auto ttl = static_cast<uint32_t>(args[3].asNumber());
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_new_with_ttl(inputs->get(), outputs->get(), fee->get(), ttl, out, err);
@@ -37865,14 +39069,17 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_tx_body",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_tx_body"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInputs for inputs");
+        }
         auto inputs = getTransactionInputsState(rt, args[0].asObject(rt), "inputs");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutputs for outputs");
+        }
         auto outputs = getTransactionOutputsState(rt, args[1].asObject(rt), "outputs");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for fee");
+        }
         auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_new_tx_body(inputs->get(), outputs->get(), fee->get(), out, err);
@@ -37935,11 +39142,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_inputs_from"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutputs for inputs");
+        }
         auto inputs = getTransactionUnspentOutputsState(rt, args[0].asObject(rt), "inputs");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "add_inputs_from(strategy) requires number");
+        }
         auto strategy = static_cast<int32_t>(args[1].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_inputs_from(st->get(), inputs->get(), strategy, &err.ptr)) {
@@ -37955,8 +39164,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_inputs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TxInputsBuilder for inputs");
+        }
         auto inputs = getTxInputsBuilderState(rt, args[0].asObject(rt), "inputs");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_inputs(st->get(), inputs->get(), &err.ptr)) {
@@ -37972,8 +39182,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_collateral"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TxInputsBuilder for collateral");
+        }
         auto collateral = getTxInputsBuilderState(rt, args[0].asObject(rt), "collateral");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_collateral(st->get(), collateral->get(), &err.ptr)) {
@@ -37989,8 +39200,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_collateral_return"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for collateral_return");
+        }
         auto collateral_return = getTransactionOutputState(rt, args[0].asObject(rt), "collateral_return");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_collateral_return(st->get(), collateral_return->get(), &err.ptr)) {
@@ -38020,8 +39232,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_collateral_return_and_total"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for collateral_return");
+        }
         auto collateral_return = getTransactionOutputState(rt, args[0].asObject(rt), "collateral_return");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_collateral_return_and_total(st->get(), collateral_return->get(), &err.ptr)) {
@@ -38037,8 +39250,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_total_collateral"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for total_collateral");
+        }
         auto total_collateral = getBigNumState(rt, args[0].asObject(rt), "total_collateral");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_total_collateral(st->get(), total_collateral->get(), &err.ptr)) {
@@ -38068,11 +39282,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_total_collateral_and_return"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for total_collateral");
+        }
         auto total_collateral = getBigNumState(rt, args[0].asObject(rt), "total_collateral");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Address for return_address");
+        }
         auto return_address = getAddressState(rt, args[1].asObject(rt), "return_address");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_total_collateral_and_return(st->get(), total_collateral->get(), return_address->get(), &err.ptr)) {
@@ -38088,8 +39304,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_reference_input"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for reference_input");
+        }
         auto reference_input = getTransactionInputState(rt, args[0].asObject(rt), "reference_input");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_reference_input(st->get(), reference_input->get(), &err.ptr)) {
@@ -38105,11 +39322,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_script_reference_input"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for reference_input");
+        }
         auto reference_input = getTransactionInputState(rt, args[0].asObject(rt), "reference_input");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "add_script_reference_input(script_size) requires number");
+        }
         auto script_size = static_cast<size_t>(args[1].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_script_reference_input(st->get(), reference_input->get(), script_size, &err.ptr)) {
@@ -38125,14 +39344,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_key_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for hash");
+        }
         auto hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_key_input(st->get(), hash->get(), input->get(), amount->get(), &err.ptr)) {
@@ -38148,14 +39370,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_native_script_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for script");
+        }
         auto script = getNativeScriptState(rt, args[0].asObject(rt), "script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_native_script_input(st->get(), script->get(), input->get(), amount->get(), &err.ptr)) {
@@ -38171,14 +39396,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_plutus_script_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[0].asObject(rt), "witness");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_plutus_script_input(st->get(), witness->get(), input->get(), amount->get(), &err.ptr)) {
@@ -38194,14 +39422,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_bootstrap_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ByronAddress for hash");
+        }
         auto hash = getByronAddressState(rt, args[0].asObject(rt), "hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_bootstrap_input(st->get(), hash->get(), input->get(), amount->get(), &err.ptr)) {
@@ -38217,14 +39448,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_regular_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_regular_input(st->get(), address->get(), input->get(), amount->get(), &err.ptr)) {
@@ -38240,14 +39474,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_inputs_from_and_change"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutputs for inputs");
+        }
         auto inputs = getTransactionUnspentOutputsState(rt, args[0].asObject(rt), "inputs");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "add_inputs_from_and_change(strategy) requires number");
+        }
         auto strategy = static_cast<int32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected ChangeConfig for change_config");
+        }
         auto change_config = getChangeConfigState(rt, args[2].asObject(rt), "change_config");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_inputs_from_and_change(st->get(), inputs->get(), strategy, change_config->get(), &res, &err.ptr)) {
@@ -38263,17 +39500,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_inputs_from_and_change_with_collateral_return"), 4,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutputs for inputs");
+        }
         auto inputs = getTransactionUnspentOutputsState(rt, args[0].asObject(rt), "inputs");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "add_inputs_from_and_change_with_collateral_return(strategy) requires number");
+        }
         auto strategy = static_cast<int32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected ChangeConfig for change_config");
+        }
         auto change_config = getChangeConfigState(rt, args[2].asObject(rt), "change_config");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for collateral_percentage");
+        }
         auto collateral_percentage = getBigNumState(rt, args[3].asObject(rt), "collateral_percentage");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_inputs_from_and_change_with_collateral_return(st->get(), inputs->get(), strategy, change_config->get(), collateral_percentage->get(), &err.ptr)) {
@@ -38313,14 +39554,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "fee_for_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_fee_for_input(st->get(), address->get(), input->get(), amount->get(), out, err);
@@ -38334,8 +39578,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_output"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for output");
+        }
         auto output = getTransactionOutputState(rt, args[0].asObject(rt), "output");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_output(st->get(), output->get(), &err.ptr)) {
@@ -38351,8 +39596,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "fee_for_output"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for output");
+        }
         auto output = getTransactionOutputState(rt, args[0].asObject(rt), "output");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_fee_for_output(st->get(), output->get(), out, err);
@@ -38366,8 +39612,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_fee"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for fee");
+        }
         auto fee = getBigNumState(rt, args[0].asObject(rt), "fee");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_fee(st->get(), fee->get(), &err.ptr)) {
@@ -38383,8 +39630,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_min_fee"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for fee");
+        }
         auto fee = getBigNumState(rt, args[0].asObject(rt), "fee");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_min_fee(st->get(), fee->get(), &err.ptr)) {
@@ -38400,8 +39648,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_ttl"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_ttl(ttl) requires number");
+        }
         auto ttl = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_ttl(st->get(), ttl, &err.ptr)) {
@@ -38417,8 +39666,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_ttl_bignum"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for ttl");
+        }
         auto ttl = getBigNumState(rt, args[0].asObject(rt), "ttl");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_ttl_bignum(st->get(), ttl->get(), &err.ptr)) {
@@ -38448,8 +39698,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_validity_start_interval"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "set_validity_start_interval(validity_start_interval) requires number");
+        }
         auto validity_start_interval = static_cast<int64_t>(args[0].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_validity_start_interval(st->get(), validity_start_interval, &err.ptr)) {
@@ -38465,8 +39716,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_validity_start_interval_bignum"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for validity_start_interval");
+        }
         auto validity_start_interval = getBigNumState(rt, args[0].asObject(rt), "validity_start_interval");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_validity_start_interval_bignum(st->get(), validity_start_interval->get(), &err.ptr)) {
@@ -38496,8 +39748,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_certs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Certificates for certs");
+        }
         auto certs = getCertificatesState(rt, args[0].asObject(rt), "certs");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_certs(st->get(), certs->get(), &err.ptr)) {
@@ -38527,8 +39780,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_certs_builder"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected CertificatesBuilder for certs");
+        }
         auto certs = getCertificatesBuilderState(rt, args[0].asObject(rt), "certs");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_certs_builder(st->get(), certs->get(), &err.ptr)) {
@@ -38544,8 +39798,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_withdrawals"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Withdrawals for withdrawals");
+        }
         auto withdrawals = getWithdrawalsState(rt, args[0].asObject(rt), "withdrawals");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_withdrawals(st->get(), withdrawals->get(), &err.ptr)) {
@@ -38561,8 +39816,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_withdrawals_builder"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected WithdrawalsBuilder for withdrawals");
+        }
         auto withdrawals = getWithdrawalsBuilderState(rt, args[0].asObject(rt), "withdrawals");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_withdrawals_builder(st->get(), withdrawals->get(), &err.ptr)) {
@@ -38578,8 +39834,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_voting_builder"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingBuilder for voting_builder");
+        }
         auto voting_builder = getVotingBuilderState(rt, args[0].asObject(rt), "voting_builder");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_voting_builder(st->get(), voting_builder->get(), &err.ptr)) {
@@ -38595,8 +39852,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_voting_proposal_builder"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProposalBuilder for voting_proposal_builder");
+        }
         auto voting_proposal_builder = getVotingProposalBuilderState(rt, args[0].asObject(rt), "voting_proposal_builder");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_voting_proposal_builder(st->get(), voting_proposal_builder->get(), &err.ptr)) {
@@ -38638,8 +39896,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_auxiliary_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AuxiliaryData for auxiliary_data");
+        }
         auto auxiliary_data = getAuxiliaryDataState(rt, args[0].asObject(rt), "auxiliary_data");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_auxiliary_data(st->get(), auxiliary_data->get(), &err.ptr)) {
@@ -38669,8 +39928,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_metadata"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GeneralTransactionMetadata for metadata");
+        }
         auto metadata = getGeneralTransactionMetadataState(rt, args[0].asObject(rt), "metadata");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_metadata(st->get(), metadata->get(), &err.ptr)) {
@@ -38686,11 +39946,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_metadatum"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key");
+        }
         auto key = getBigNumState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for val");
+        }
         auto val = getTransactionMetadatumState(rt, args[1].asObject(rt), "val");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_metadatum(st->get(), key->get(), val->get(), &err.ptr)) {
@@ -38706,11 +39968,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_json_metadatum"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key");
+        }
         auto key = getBigNumState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isString())
+        if (count < 2 || !args[1].isString()) {
           throw jsi::JSError(rt, "add_json_metadatum(val) requires string");
+        }
         std::string val = args[1].asString(rt).utf8(rt);
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_json_metadatum(st->get(), key->get(), val.c_str(), &err.ptr)) {
@@ -38726,14 +39990,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_json_metadatum_with_schema"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key");
+        }
         auto key = getBigNumState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isString())
+        if (count < 2 || !args[1].isString()) {
           throw jsi::JSError(rt, "add_json_metadatum_with_schema(val) requires string");
+        }
         std::string val = args[1].asString(rt).utf8(rt);
-        if (count < 3 || !args[2].isNumber())
+        if (count < 3 || !args[2].isNumber()) {
           throw jsi::JSError(rt, "add_json_metadatum_with_schema(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[2].asNumber());
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_json_metadatum_with_schema(st->get(), key->get(), val.c_str(), schema, &err.ptr)) {
@@ -38749,8 +40016,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_mint_builder"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MintBuilder for mint_builder");
+        }
         auto mint_builder = getMintBuilderState(rt, args[0].asObject(rt), "mint_builder");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_mint_builder(st->get(), mint_builder->get(), &err.ptr)) {
@@ -38792,11 +40060,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_mint"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Mint for mint");
+        }
         auto mint = getMintState(rt, args[0].asObject(rt), "mint");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScripts for mint_scripts");
+        }
         auto mint_scripts = getNativeScriptsState(rt, args[1].asObject(rt), "mint_scripts");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_mint(st->get(), mint->get(), mint_scripts->get(), &err.ptr)) {
@@ -38836,11 +40106,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_mint_asset"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for policy_script");
+        }
         auto policy_script = getNativeScriptState(rt, args[0].asObject(rt), "policy_script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected MintAssets for mint_assets");
+        }
         auto mint_assets = getMintAssetsState(rt, args[1].asObject(rt), "mint_assets");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_mint_asset(st->get(), policy_script->get(), mint_assets->get(), &err.ptr)) {
@@ -38856,14 +40128,17 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_mint_asset"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for policy_script");
+        }
         auto policy_script = getNativeScriptState(rt, args[0].asObject(rt), "policy_script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Int for amount");
+        }
         auto amount = getIntState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_mint_asset(st->get(), policy_script->get(), asset_name->get(), amount->get(), &err.ptr)) {
@@ -38879,20 +40154,25 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_mint_asset_and_output"), 5,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for policy_script");
+        }
         auto policy_script = getNativeScriptState(rt, args[0].asObject(rt), "policy_script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Int for amount");
+        }
         auto amount = getIntState(rt, args[2].asObject(rt), "amount");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutputAmountBuilder for output_builder");
+        }
         auto output_builder = getTransactionOutputAmountBuilderState(rt, args[3].asObject(rt), "output_builder");
-        if (count < 5 || !args[4].isObject())
+        if (count < 5 || !args[4].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for output_coin");
+        }
         auto output_coin = getBigNumState(rt, args[4].asObject(rt), "output_coin");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_mint_asset_and_output(st->get(), policy_script->get(), asset_name->get(), amount->get(), output_builder->get(), output_coin->get(), &err.ptr)) {
@@ -38908,17 +40188,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_mint_asset_and_output_min_required_coin"), 4,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScript for policy_script");
+        }
         auto policy_script = getNativeScriptState(rt, args[0].asObject(rt), "policy_script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
+        }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Int for amount");
+        }
         auto amount = getIntState(rt, args[2].asObject(rt), "amount");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutputAmountBuilder for output_builder");
+        }
         auto output_builder = getTransactionOutputAmountBuilderState(rt, args[3].asObject(rt), "output_builder");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_mint_asset_and_output_min_required_coin(st->get(), policy_script->get(), asset_name->get(), amount->get(), output_builder->get(), &err.ptr)) {
@@ -38934,8 +40218,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_extra_witness_datum"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for datum");
+        }
         auto datum = getPlutusDataState(rt, args[0].asObject(rt), "datum");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_extra_witness_datum(st->get(), datum->get(), &err.ptr)) {
@@ -38963,8 +40248,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_donation"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for donation");
+        }
         auto donation = getBigNumState(rt, args[0].asObject(rt), "donation");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_donation(st->get(), donation->get(), &err.ptr)) {
@@ -38992,8 +40278,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_current_treasury_value"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for current_treasury_value");
+        }
         auto current_treasury_value = getBigNumState(rt, args[0].asObject(rt), "current_treasury_value");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_current_treasury_value(st->get(), current_treasury_value->get(), &err.ptr)) {
@@ -39117,8 +40404,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_change_if_needed"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_change_if_needed(st->get(), address->get(), &res, &err.ptr)) {
@@ -39134,11 +40422,13 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_change_if_needed_with_datum"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected OutputDatum for plutus_data");
+        }
         auto plutus_data = getOutputDatumState(rt, args[1].asObject(rt), "plutus_data");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_change_if_needed_with_datum(st->get(), address->get(), plutus_data->get(), &res, &err.ptr)) {
@@ -39154,8 +40444,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "calc_script_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Costmdls for cost_models");
+        }
         auto cost_models = getCostmdlsState(rt, args[0].asObject(rt), "cost_models");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_calc_script_data_hash(st->get(), cost_models->get(), &err.ptr)) {
@@ -39171,8 +40462,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_script_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptDataHash for hash");
+        }
         auto hash = getScriptDataHashState(rt, args[0].asObject(rt), "hash");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_set_script_data_hash(st->get(), hash->get(), &err.ptr)) {
@@ -39202,8 +40494,9 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_required_signer"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for key");
+        }
         auto key = getEd25519KeyHashState(rt, args[0].asObject(rt), "key");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_builder_add_required_signer(st->get(), key->get(), &err.ptr)) {
@@ -39308,8 +40601,9 @@ static jsi::Object makeTransactionBuilderExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBuilderConfig for cfg");
+        }
         auto cfg = getTransactionBuilderConfigState(rt, args[0].asObject(rt), "cfg");
         return callCslTransactionBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_new(cfg->get(), out, err);
@@ -39437,8 +40731,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "fee_algo"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected LinearFee for fee_algo");
+        }
         auto fee_algo = getLinearFeeState(rt, args[0].asObject(rt), "fee_algo");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_fee_algo(st->get(), fee_algo->get(), out, err);
@@ -39452,8 +40747,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "coins_per_utxo_byte"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coins_per_utxo_byte");
+        }
         auto coins_per_utxo_byte = getBigNumState(rt, args[0].asObject(rt), "coins_per_utxo_byte");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_coins_per_utxo_byte(st->get(), coins_per_utxo_byte->get(), out, err);
@@ -39467,8 +40763,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "ex_unit_prices"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnitPrices for ex_unit_prices");
+        }
         auto ex_unit_prices = getExUnitPricesState(rt, args[0].asObject(rt), "ex_unit_prices");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_ex_unit_prices(st->get(), ex_unit_prices->get(), out, err);
@@ -39482,8 +40779,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "pool_deposit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pool_deposit");
+        }
         auto pool_deposit = getBigNumState(rt, args[0].asObject(rt), "pool_deposit");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_pool_deposit(st->get(), pool_deposit->get(), out, err);
@@ -39497,8 +40795,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "key_deposit"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
+        }
         auto key_deposit = getBigNumState(rt, args[0].asObject(rt), "key_deposit");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_key_deposit(st->get(), key_deposit->get(), out, err);
@@ -39512,8 +40811,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "max_value_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "max_value_size(max_value_size) requires number");
+        }
         auto max_value_size = static_cast<uint32_t>(args[0].asNumber());
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_max_value_size(st->get(), max_value_size, out, err);
@@ -39527,8 +40827,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "max_tx_size"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "max_tx_size(max_tx_size) requires number");
+        }
         auto max_tx_size = static_cast<uint32_t>(args[0].asNumber());
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_max_tx_size(st->get(), max_tx_size, out, err);
@@ -39542,8 +40843,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "ref_script_coins_per_byte"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for ref_script_coins_per_byte");
+        }
         auto ref_script_coins_per_byte = getUnitIntervalState(rt, args[0].asObject(rt), "ref_script_coins_per_byte");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_ref_script_coins_per_byte(st->get(), ref_script_coins_per_byte->get(), out, err);
@@ -39557,8 +40859,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "prefer_pure_change"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "prefer_pure_change(prefer_pure_change) requires bool");
+        }
         bool prefer_pure_change = args[0].asBool();
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_prefer_pure_change(st->get(), prefer_pure_change, out, err);
@@ -39572,8 +40875,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "deduplicate_explicit_ref_inputs_with_regular_inputs"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "deduplicate_explicit_ref_inputs_with_regular_inputs(deduplicate_explicit_ref_inputs_with_regular_inputs) requires bool");
+        }
         bool deduplicate_explicit_ref_inputs_with_regular_inputs = args[0].asBool();
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_deduplicate_explicit_ref_inputs_with_regular_inputs(st->get(), deduplicate_explicit_ref_inputs_with_regular_inputs, out, err);
@@ -39587,8 +40891,9 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "do_not_burn_extra_change"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isBool())
+        if (count < 1 || !args[0].isBool()) {
           throw jsi::JSError(rt, "do_not_burn_extra_change(do_not_burn_extra_change) requires bool");
+        }
         bool do_not_burn_extra_change = args[0].asBool();
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_do_not_burn_extra_change(st->get(), do_not_burn_extra_change, out, err);
@@ -39702,8 +41007,9 @@ static jsi::Object getOrCreateTransactionHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -39744,18 +41050,21 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -39769,8 +41078,9 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_from_bech32(bech_str.c_str(), out, err);
@@ -39783,8 +41093,9 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_from_hex(hex.c_str(), out, err);
@@ -39924,18 +41235,21 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
@@ -39949,8 +41263,9 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_from_hex(hex_str.c_str(), out, err);
@@ -39963,8 +41278,9 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_from_json(json.c_str(), out, err);
@@ -39977,11 +41293,13 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionHash for transaction_id");
+        }
         auto transaction_id = getTransactionHashState(rt, args[0].asObject(rt), "transaction_id");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(index) requires number");
+        }
         auto index = static_cast<uint32_t>(args[1].asNumber());
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_new(transaction_id->get(), index, out, err);
@@ -40094,8 +41412,9 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionInputsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_get(st->get(), index, out, err);
@@ -40109,8 +41428,9 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionInputsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[0].asObject(rt), "input");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_transaction_inputs_add(st->get(), input->get(), &res, &err.ptr)) {
@@ -40153,18 +41473,21 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
@@ -40178,8 +41501,9 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_from_hex(hex_str.c_str(), out, err);
@@ -40192,8 +41516,9 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_from_json(json.c_str(), out, err);
@@ -40380,18 +41705,21 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
@@ -40405,8 +41733,9 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_from_hex(hex_str.c_str(), out, err);
@@ -40419,8 +41748,9 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_map",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_map"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MetadataMap for map");
+        }
         auto map = getMetadataMapState(rt, args[0].asObject(rt), "map");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_map(map->get(), out, err);
@@ -40433,8 +41763,9 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_list",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_list"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MetadataList for list");
+        }
         auto list = getMetadataListState(rt, args[0].asObject(rt), "list");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_list(list->get(), out, err);
@@ -40447,8 +41778,9 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_int",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_int"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Int for int_value");
+        }
         auto int_value = getIntState(rt, args[0].asObject(rt), "int_value");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_int(int_value->get(), out, err);
@@ -40461,18 +41793,21 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
@@ -40486,8 +41821,9 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_text",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_text"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "new_text(text) requires string");
+        }
         std::string text = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_text(text.c_str(), out, err);
@@ -40588,8 +41924,9 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionMetadatumLabelsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_get(st->get(), index, out, err);
@@ -40603,8 +41940,9 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionMetadatumLabelsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for elem");
+        }
         auto elem = getBigNumState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_metadatum_labels_add(st->get(), elem->get(), &err.ptr)) {
@@ -40635,18 +41973,21 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
@@ -40660,8 +42001,9 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_from_hex(hex_str.c_str(), out, err);
@@ -40831,8 +42173,9 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_script_ref"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptRef for script_ref");
+        }
         auto script_ref = getScriptRefState(rt, args[0].asObject(rt), "script_ref");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_output_set_script_ref(st->get(), script_ref->get(), &err.ptr)) {
@@ -40848,8 +42191,9 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for data");
+        }
         auto data = getPlutusDataState(rt, args[0].asObject(rt), "data");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_output_set_plutus_data(st->get(), data->get(), &err.ptr)) {
@@ -40865,8 +42209,9 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DataHash for data_hash");
+        }
         auto data_hash = getDataHashState(rt, args[0].asObject(rt), "data_hash");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_output_set_data_hash(st->get(), data_hash->get(), &err.ptr)) {
@@ -40953,18 +42298,21 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
@@ -40978,8 +42326,9 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_from_hex(hex_str.c_str(), out, err);
@@ -40992,8 +42341,9 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_from_json(json.c_str(), out, err);
@@ -41006,11 +42356,13 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[1].asObject(rt), "amount");
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_new(address->get(), amount->get(), out, err);
@@ -41073,8 +42425,9 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_value"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputAmountBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[0].asObject(rt), "amount");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_value(st->get(), amount->get(), out, err);
@@ -41088,8 +42441,9 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_coin"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputAmountBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_coin(st->get(), coin->get(), out, err);
@@ -41103,11 +42457,13 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_coin_and_asset"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputAmountBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected MultiAsset for multiasset");
+        }
         auto multiasset = getMultiAssetState(rt, args[1].asObject(rt), "multiasset");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_coin_and_asset(st->get(), coin->get(), multiasset->get(), out, err);
@@ -41121,11 +42477,13 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_asset_and_min_required_coin_by_utxo_cost"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputAmountBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MultiAsset for multiasset");
+        }
         auto multiasset = getMultiAssetState(rt, args[0].asObject(rt), "multiasset");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DataCost for data_cost");
+        }
         auto data_cost = getDataCostState(rt, args[1].asObject(rt), "data_cost");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_asset_and_min_required_coin_by_utxo_cost(st->get(), multiasset->get(), data_cost->get(), out, err);
@@ -41216,8 +42574,9 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_address(st->get(), address->get(), out, err);
@@ -41231,8 +42590,9 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_data_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected DataHash for data_hash");
+        }
         auto data_hash = getDataHashState(rt, args[0].asObject(rt), "data_hash");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_data_hash(st->get(), data_hash->get(), out, err);
@@ -41246,8 +42606,9 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for data");
+        }
         auto data = getPlutusDataState(rt, args[0].asObject(rt), "data");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_plutus_data(st->get(), data->get(), out, err);
@@ -41261,8 +42622,9 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "with_script_ref"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptRef for script_ref");
+        }
         auto script_ref = getScriptRefState(rt, args[0].asObject(rt), "script_ref");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_script_ref(st->get(), script_ref->get(), out, err);
@@ -41414,8 +42776,9 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_get(st->get(), index, out, err);
@@ -41429,8 +42792,9 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionOutputsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for elem");
+        }
         auto elem = getTransactionOutputState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_outputs_add(st->get(), elem->get(), &err.ptr)) {
@@ -41461,18 +42825,21 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
@@ -41486,8 +42853,9 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_from_hex(hex_str.c_str(), out, err);
@@ -41500,8 +42868,9 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_from_json(json.c_str(), out, err);
@@ -41650,18 +43019,21 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
@@ -41675,8 +43047,9 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_from_hex(hex_str.c_str(), out, err);
@@ -41689,8 +43062,9 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_from_json(json.c_str(), out, err);
@@ -41703,11 +43077,13 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[0].asObject(rt), "input");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for output");
+        }
         auto output = getTransactionOutputState(rt, args[1].asObject(rt), "output");
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_new(input->get(), output->get(), out, err);
@@ -41796,8 +43172,9 @@ static jsi::Object getOrCreateTransactionUnspentOutputsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionUnspentOutputsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_outputs_get(st->get(), index, out, err);
@@ -41811,8 +43188,9 @@ static jsi::Object getOrCreateTransactionUnspentOutputsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionUnspentOutputsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutput for elem");
+        }
         auto elem = getTransactionUnspentOutputState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_unspent_outputs_add(st->get(), elem->get(), &err.ptr)) {
@@ -41843,8 +43221,9 @@ static jsi::Object makeTransactionUnspentOutputsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionUnspentOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_outputs_from_json(json.c_str(), out, err);
@@ -41954,8 +43333,9 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_vkeys"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkeywitnesses for vkeys");
+        }
         auto vkeys = getVkeywitnessesState(rt, args[0].asObject(rt), "vkeys");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_set_set_vkeys(st->get(), vkeys->get(), &err.ptr)) {
@@ -41983,8 +43363,9 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_native_scripts"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScripts for native_scripts");
+        }
         auto native_scripts = getNativeScriptsState(rt, args[0].asObject(rt), "native_scripts");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_set_set_native_scripts(st->get(), native_scripts->get(), &err.ptr)) {
@@ -42012,8 +43393,9 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_bootstraps"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BootstrapWitnesses for bootstraps");
+        }
         auto bootstraps = getBootstrapWitnessesState(rt, args[0].asObject(rt), "bootstraps");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_set_set_bootstraps(st->get(), bootstraps->get(), &err.ptr)) {
@@ -42041,8 +43423,9 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_plutus_scripts"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusScripts for plutus_scripts");
+        }
         auto plutus_scripts = getPlutusScriptsState(rt, args[0].asObject(rt), "plutus_scripts");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_set_set_plutus_scripts(st->get(), plutus_scripts->get(), &err.ptr)) {
@@ -42070,8 +43453,9 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusList for plutus_data");
+        }
         auto plutus_data = getPlutusListState(rt, args[0].asObject(rt), "plutus_data");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_set_set_plutus_data(st->get(), plutus_data->get(), &err.ptr)) {
@@ -42099,8 +43483,9 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_redeemers"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemers for redeemers");
+        }
         auto redeemers = getRedeemersState(rt, args[0].asObject(rt), "redeemers");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_set_set_redeemers(st->get(), redeemers->get(), &err.ptr)) {
@@ -42143,18 +43528,21 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
@@ -42168,8 +43556,9 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_from_hex(hex_str.c_str(), out, err);
@@ -42182,8 +43571,9 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_from_json(json.c_str(), out, err);
@@ -42307,8 +43697,9 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_get(st->get(), index, out, err);
@@ -42322,8 +43713,9 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionWitnessSetsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionWitnessSet for elem");
+        }
         auto elem = getTransactionWitnessSetState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_transaction_witness_sets_add(st->get(), elem->get(), &err.ptr)) {
@@ -42354,18 +43746,21 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
@@ -42379,8 +43774,9 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_from_hex(hex_str.c_str(), out, err);
@@ -42393,8 +43789,9 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_from_json(json.c_str(), out, err);
@@ -42480,8 +43877,9 @@ static jsi::Object getOrCreateTreasuryWithdrawalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTreasuryWithdrawalsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for key");
+        }
         auto key = getRewardAddressState(rt, args[0].asObject(rt), "key");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_get(st->get(), key->get(), out, err);
@@ -42495,11 +43893,13 @@ static jsi::Object getOrCreateTreasuryWithdrawalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTreasuryWithdrawalsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for key");
+        }
         auto key = getRewardAddressState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for value");
+        }
         auto value = getBigNumState(rt, args[1].asObject(rt), "value");
         ScopedCharPtr err;
         if (!csl_bridge_treasury_withdrawals_insert(st->get(), key->get(), value->get(), &err.ptr)) {
@@ -42556,8 +43956,9 @@ static jsi::Object makeTreasuryWithdrawalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTreasuryWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_from_json(json.c_str(), out, err);
@@ -42706,18 +44107,21 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -42731,8 +44135,9 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_from_hex(hex_str.c_str(), out, err);
@@ -42745,8 +44150,9 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_from_json(json.c_str(), out, err);
@@ -42759,8 +44165,9 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TreasuryWithdrawals for withdrawals");
+        }
         auto withdrawals = getTreasuryWithdrawalsState(rt, args[0].asObject(rt), "withdrawals");
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_new(withdrawals->get(), out, err);
@@ -42773,11 +44180,13 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_policy_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_policy_hash"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TreasuryWithdrawals for withdrawals");
+        }
         auto withdrawals = getTreasuryWithdrawalsState(rt, args[0].asObject(rt), "withdrawals");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_hash");
+        }
         auto policy_hash = getScriptHashState(rt, args[1].asObject(rt), "policy_hash");
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_new_with_policy_hash(withdrawals->get(), policy_hash->get(), out, err);
@@ -42840,8 +44249,9 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_regular_utxo"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutput for utxo");
+        }
         auto utxo = getTransactionUnspentOutputState(rt, args[0].asObject(rt), "utxo");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_regular_utxo(st->get(), utxo->get(), &err.ptr)) {
@@ -42857,11 +44267,13 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_plutus_script_utxo"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutput for utxo");
+        }
         auto utxo = getTransactionUnspentOutputState(rt, args[0].asObject(rt), "utxo");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[1].asObject(rt), "witness");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_plutus_script_utxo(st->get(), utxo->get(), witness->get(), &err.ptr)) {
@@ -42877,11 +44289,13 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_native_script_utxo"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutput for utxo");
+        }
         auto utxo = getTransactionUnspentOutputState(rt, args[0].asObject(rt), "utxo");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScriptSource for witness");
+        }
         auto witness = getNativeScriptSourceState(rt, args[1].asObject(rt), "witness");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_native_script_utxo(st->get(), utxo->get(), witness->get(), &err.ptr)) {
@@ -42897,14 +44311,17 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_key_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for hash");
+        }
         auto hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_key_input(st->get(), hash->get(), input->get(), amount->get(), &err.ptr)) {
@@ -42920,14 +44337,17 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_native_script_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScriptSource for script");
+        }
         auto script = getNativeScriptSourceState(rt, args[0].asObject(rt), "script");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_native_script_input(st->get(), script->get(), input->get(), amount->get(), &err.ptr)) {
@@ -42943,14 +44363,17 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_plutus_script_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[0].asObject(rt), "witness");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_plutus_script_input(st->get(), witness->get(), input->get(), amount->get(), &err.ptr)) {
@@ -42966,14 +44389,17 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_bootstrap_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ByronAddress for address");
+        }
         auto address = getByronAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_bootstrap_input(st->get(), address->get(), input->get(), amount->get(), &err.ptr)) {
@@ -42989,14 +44415,17 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_regular_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInput for input");
+        }
         auto input = getTransactionInputState(rt, args[1].asObject(rt), "input");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Value for amount");
+        }
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_regular_input(st->get(), address->get(), input->get(), amount->get(), &err.ptr)) {
@@ -43062,8 +44491,9 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_required_signer"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for key");
+        }
         auto key = getEd25519KeyHashState(rt, args[0].asObject(rt), "key");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_required_signer(st->get(), key->get(), &err.ptr)) {
@@ -43079,8 +44509,9 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_required_signers"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHashes for keys");
+        }
         auto keys = getEd25519KeyHashesState(rt, args[0].asObject(rt), "keys");
         ScopedCharPtr err;
         if (!csl_bridge_tx_inputs_builder_add_required_signers(st->get(), keys->get(), &err.ptr)) {
@@ -43271,18 +44702,21 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
@@ -43296,8 +44730,9 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_from_hex(hex_str.c_str(), out, err);
@@ -43310,8 +44745,9 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_from_json(json.c_str(), out, err);
@@ -43324,8 +44760,9 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "new(url) requires string");
+        }
         std::string url = args[0].asString(rt).utf8(rt);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_new(url.c_str(), out, err);
@@ -43463,18 +44900,21 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
@@ -43488,8 +44928,9 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_from_hex(hex_str.c_str(), out, err);
@@ -43502,8 +44943,9 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_from_json(json.c_str(), out, err);
@@ -43516,11 +44958,13 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for numerator");
+        }
         auto numerator = getBigNumState(rt, args[0].asObject(rt), "numerator");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for denominator");
+        }
         auto denominator = getBigNumState(rt, args[1].asObject(rt), "denominator");
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_new(numerator->get(), denominator->get(), out, err);
@@ -43660,18 +45104,21 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
@@ -43685,8 +45132,9 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_from_hex(hex_str.c_str(), out, err);
@@ -43699,8 +45147,9 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_from_json(json.c_str(), out, err);
@@ -43713,11 +45162,13 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ProposedProtocolParameterUpdates for proposed_protocol_parameter_updates");
+        }
         auto proposed_protocol_parameter_updates = getProposedProtocolParameterUpdatesState(rt, args[0].asObject(rt), "proposed_protocol_parameter_updates");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(epoch) requires number");
+        }
         auto epoch = static_cast<uint32_t>(args[1].asNumber());
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_new(proposed_protocol_parameter_updates->get(), epoch, out, err);
@@ -43867,18 +45318,21 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
@@ -43892,8 +45346,9 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_from_hex(hex_str.c_str(), out, err);
@@ -43906,8 +45361,9 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_from_json(json.c_str(), out, err);
@@ -43920,11 +45376,13 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Committee for committee");
+        }
         auto committee = getCommitteeState(rt, args[0].asObject(rt), "committee");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Credentials for members_to_remove");
+        }
         auto members_to_remove = getCredentialsState(rt, args[1].asObject(rt), "members_to_remove");
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_new(committee->get(), members_to_remove->get(), out, err);
@@ -43937,14 +45395,17 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_action_id",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_action_id"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Committee for committee");
+        }
         auto committee = getCommitteeState(rt, args[1].asObject(rt), "committee");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Credentials for members_to_remove");
+        }
         auto members_to_remove = getCredentialsState(rt, args[2].asObject(rt), "members_to_remove");
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_new_with_action_id(gov_action_id->get(), committee->get(), members_to_remove->get(), out, err);
@@ -44082,18 +45543,21 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
@@ -44107,8 +45571,9 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_from_hex(hex_str.c_str(), out, err);
@@ -44121,8 +45586,9 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_from_json(json.c_str(), out, err);
@@ -44135,32 +45601,38 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(output) requires number[]");
+        }
         auto __arr_output = args[0].asObject(rt).asArray(rt);
         size_t __n_output = __arr_output.length(rt);
         std::vector<uint8_t> output; output.reserve(__n_output);
         for (size_t __i=0; __i<__n_output; ++__i) {
           auto __v = __arr_output.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           output.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
-        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt))
+        if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "new(proof) requires number[]");
+        }
         auto __arr_proof = args[1].asObject(rt).asArray(rt);
         size_t __n_proof = __arr_proof.length(rt);
         std::vector<uint8_t> proof; proof.reserve(__n_proof);
         for (size_t __i=0; __i<__n_proof; ++__i) {
           auto __v = __arr_proof.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+          }
           proof.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
@@ -44236,8 +45708,9 @@ static jsi::Object getOrCreateVRFKeyHashProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVRFKeyHashState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -44278,18 +45751,21 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
@@ -44303,8 +45779,9 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_from_bech32(bech_str.c_str(), out, err);
@@ -44317,8 +45794,9 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_from_hex(hex.c_str(), out, err);
@@ -44393,8 +45871,9 @@ static jsi::Object getOrCreateVRFVKeyProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVRFVKeyState(rt, thisVal);
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+        }
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_to_bech32(st->get(), prefix.c_str(), out, err);
@@ -44435,18 +45914,21 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
@@ -44460,8 +45942,9 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bech32",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_bech32(bech_str) requires string");
+        }
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_from_bech32(bech_str.c_str(), out, err);
@@ -44474,8 +45957,9 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex) requires string");
+        }
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_from_hex(hex.c_str(), out, err);
@@ -44600,8 +46084,9 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_coin"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisValueState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
         ScopedCharPtr err;
         if (!csl_bridge_value_set_coin(st->get(), coin->get(), &err.ptr)) {
@@ -44629,8 +46114,9 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "set_multiasset"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisValueState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MultiAsset for multiasset");
+        }
         auto multiasset = getMultiAssetState(rt, args[0].asObject(rt), "multiasset");
         ScopedCharPtr err;
         if (!csl_bridge_value_set_multiasset(st->get(), multiasset->get(), &err.ptr)) {
@@ -44646,8 +46132,9 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "checked_add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisValueState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Value for rhs");
+        }
         auto rhs = getValueState(rt, args[0].asObject(rt), "rhs");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_checked_add(st->get(), rhs->get(), out, err);
@@ -44661,8 +46148,9 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "checked_sub"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisValueState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Value for rhs_value");
+        }
         auto rhs_value = getValueState(rt, args[0].asObject(rt), "rhs_value");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_checked_sub(st->get(), rhs_value->get(), out, err);
@@ -44676,8 +46164,9 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "clamped_sub"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisValueState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Value for rhs_value");
+        }
         auto rhs_value = getValueState(rt, args[0].asObject(rt), "rhs_value");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_clamped_sub(st->get(), rhs_value->get(), out, err);
@@ -44691,8 +46180,9 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "compare"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisValueState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Value for rhs_value");
+        }
         auto rhs_value = getValueState(rt, args[0].asObject(rt), "rhs_value");
         int64_t res{}; ScopedCharPtr err;
         if (!csl_bridge_value_compare(st->get(), rhs_value->get(), &res, &err.ptr)) {
@@ -44723,18 +46213,21 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
@@ -44748,8 +46241,9 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_from_hex(hex_str.c_str(), out, err);
@@ -44762,8 +46256,9 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_from_json(json.c_str(), out, err);
@@ -44776,8 +46271,9 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_new(coin->get(), out, err);
@@ -44790,8 +46286,9 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_from_assets",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_assets"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected MultiAsset for multiasset");
+        }
         auto multiasset = getMultiAssetState(rt, args[0].asObject(rt), "multiasset");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_new_from_assets(multiasset->get(), out, err);
@@ -44804,11 +46301,13 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_assets",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_assets"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected MultiAsset for multiasset");
+        }
         auto multiasset = getMultiAssetState(rt, args[1].asObject(rt), "multiasset");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_new_with_assets(coin->get(), multiasset->get(), out, err);
@@ -44959,18 +46458,21 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
@@ -44984,8 +46486,9 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_from_hex(hex_str.c_str(), out, err);
@@ -44998,8 +46501,9 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_from_json(json.c_str(), out, err);
@@ -45012,11 +46516,13 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Block for block");
+        }
         auto block = getBlockState(rt, args[0].asObject(rt), "block");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "new(era_code) requires number");
+        }
         auto era_code = static_cast<uint32_t>(args[1].asNumber());
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_new(block->get(), era_code, out, err);
@@ -45142,18 +46648,21 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
@@ -45167,8 +46676,9 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_from_hex(hex_str.c_str(), out, err);
@@ -45181,8 +46691,9 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_from_json(json.c_str(), out, err);
@@ -45195,8 +46706,9 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PublicKey for pk");
+        }
         auto pk = getPublicKeyState(rt, args[0].asObject(rt), "pk");
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_new(pk->get(), out, err);
@@ -45273,8 +46785,9 @@ static jsi::Object getOrCreateVkeysProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVkeysState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeys_get(st->get(), index, out, err);
@@ -45288,8 +46801,9 @@ static jsi::Object getOrCreateVkeysProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVkeysState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for elem");
+        }
         auto elem = getVkeyState(rt, args[0].asObject(rt), "elem");
         ScopedCharPtr err;
         if (!csl_bridge_vkeys_add(st->get(), elem->get(), &err.ptr)) {
@@ -45456,18 +46970,21 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
@@ -45481,8 +46998,9 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_from_hex(hex_str.c_str(), out, err);
@@ -45495,8 +47013,9 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_from_json(json.c_str(), out, err);
@@ -45509,11 +47028,13 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for vkey");
+        }
         auto vkey = getVkeyState(rt, args[0].asObject(rt), "vkey");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519Signature for signature");
+        }
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_new(vkey->get(), signature->get(), out, err);
@@ -45626,8 +47147,9 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVkeywitnessesState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_get(st->get(), index, out, err);
@@ -45641,8 +47163,9 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVkeywitnessesState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Vkeywitness for witness");
+        }
         auto witness = getVkeywitnessState(rt, args[0].asObject(rt), "witness");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_vkeywitnesses_add(st->get(), witness->get(), &res, &err.ptr)) {
@@ -45673,18 +47196,21 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
@@ -45698,8 +47224,9 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_from_hex(hex_str.c_str(), out, err);
@@ -45712,8 +47239,9 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_from_json(json.c_str(), out, err);
@@ -45876,18 +47404,21 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -45901,8 +47432,9 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_from_hex(hex_str.c_str(), out, err);
@@ -45915,8 +47447,9 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_from_json(json.c_str(), out, err);
@@ -45929,11 +47462,13 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DRep for drep");
+        }
         auto drep = getDRepState(rt, args[1].asObject(rt), "drep");
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_new(stake_credential->get(), drep->get(), out, err);
@@ -46097,18 +47632,21 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
@@ -46122,8 +47660,9 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_from_hex(hex_str.c_str(), out, err);
@@ -46136,8 +47675,9 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_from_json(json.c_str(), out, err);
@@ -46150,14 +47690,17 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for stake_credential");
+        }
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DRep for drep");
+        }
         auto drep = getDRepState(rt, args[1].asObject(rt), "drep");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[2].asObject(rt), "coin");
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_new(stake_credential->get(), drep->get(), coin->get(), out, err);
@@ -46347,18 +47890,21 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
@@ -46372,8 +47918,9 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_from_hex(hex_str.c_str(), out, err);
@@ -46386,8 +47933,9 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_from_json(json.c_str(), out, err);
@@ -46400,8 +47948,9 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_constitutional_committee_hot_credential",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_constitutional_committee_hot_credential"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for cred");
+        }
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_new_constitutional_committee_hot_credential(cred->get(), out, err);
@@ -46414,8 +47963,9 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_drep_credential",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_drep_credential"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Credential for cred");
+        }
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_new_drep_credential(cred->get(), out, err);
@@ -46428,8 +47978,9 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_stake_pool_key_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_stake_pool_key_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for key_hash");
+        }
         auto key_hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "key_hash");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_new_stake_pool_key_hash(key_hash->get(), out, err);
@@ -46504,8 +48055,9 @@ static jsi::Object getOrCreateVotersProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotersState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
         ScopedCharPtr err;
         if (!csl_bridge_voters_add(st->get(), voter->get(), &err.ptr)) {
@@ -46521,8 +48073,9 @@ static jsi::Object getOrCreateVotersProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotersState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voters_get(st->get(), index, out, err);
@@ -46565,8 +48118,9 @@ static jsi::Object makeVotersExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoters(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voters_from_json(json.c_str(), out, err);
@@ -46640,14 +48194,17 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[1].asObject(rt), "gov_action_id");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProcedure for voting_procedure");
+        }
         auto voting_procedure = getVotingProcedureState(rt, args[2].asObject(rt), "voting_procedure");
         ScopedCharPtr err;
         if (!csl_bridge_voting_builder_add(st->get(), voter->get(), gov_action_id->get(), voting_procedure->get(), &err.ptr)) {
@@ -46663,17 +48220,21 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_plutus_witness"), 4,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[1].asObject(rt), "gov_action_id");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProcedure for voting_procedure");
+        }
         auto voting_procedure = getVotingProcedureState(rt, args[2].asObject(rt), "voting_procedure");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[3].asObject(rt), "witness");
         ScopedCharPtr err;
         if (!csl_bridge_voting_builder_add_with_plutus_witness(st->get(), voter->get(), gov_action_id->get(), voting_procedure->get(), witness->get(), &err.ptr)) {
@@ -46689,17 +48250,21 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_native_script"), 4,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for gov_action_id");
+        }
         auto gov_action_id = getGovernanceActionIdState(rt, args[1].asObject(rt), "gov_action_id");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProcedure for voting_procedure");
+        }
         auto voting_procedure = getVotingProcedureState(rt, args[2].asObject(rt), "voting_procedure");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScriptSource for native_script_source");
+        }
         auto native_script_source = getNativeScriptSourceState(rt, args[3].asObject(rt), "native_script_source");
         ScopedCharPtr err;
         if (!csl_bridge_voting_builder_add_with_native_script(st->get(), voter->get(), gov_action_id->get(), voting_procedure->get(), native_script_source->get(), &err.ptr)) {
@@ -46930,18 +48495,21 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
@@ -46955,8 +48523,9 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_from_hex(hex_str.c_str(), out, err);
@@ -46969,8 +48538,9 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_from_json(json.c_str(), out, err);
@@ -46983,8 +48553,9 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(vote) requires number");
+        }
         auto vote = static_cast<int32_t>(args[0].asNumber());
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_new(vote, out, err);
@@ -46997,11 +48568,13 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new_with_anchor",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_anchor"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new_with_anchor(vote) requires number");
+        }
         auto vote = static_cast<int32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_new_with_anchor(vote, anchor->get(), out, err);
@@ -47100,14 +48673,17 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProceduresState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for governance_action_id");
+        }
         auto governance_action_id = getGovernanceActionIdState(rt, args[1].asObject(rt), "governance_action_id");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProcedure for voting_procedure");
+        }
         auto voting_procedure = getVotingProcedureState(rt, args[2].asObject(rt), "voting_procedure");
         ScopedCharPtr err;
         if (!csl_bridge_voting_procedures_insert(st->get(), voter->get(), governance_action_id->get(), voting_procedure->get(), &err.ptr)) {
@@ -47123,11 +48699,13 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProceduresState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for governance_action_id");
+        }
         auto governance_action_id = getGovernanceActionIdState(rt, args[1].asObject(rt), "governance_action_id");
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_get(st->get(), voter->get(), governance_action_id->get(), out, err);
@@ -47153,8 +48731,9 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_governance_action_ids_by_voter"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProceduresState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Voter for voter");
+        }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
         return callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_get_governance_action_ids_by_voter(st->get(), voter->get(), out, err);
@@ -47183,18 +48762,21 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
@@ -47208,8 +48790,9 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_from_hex(hex_str.c_str(), out, err);
@@ -47222,8 +48805,9 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_from_json(json.c_str(), out, err);
@@ -47396,18 +48980,21 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
@@ -47421,8 +49008,9 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_from_hex(hex_str.c_str(), out, err);
@@ -47435,8 +49023,9 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_from_json(json.c_str(), out, err);
@@ -47449,17 +49038,21 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "new",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected GovernanceAction for governance_action");
+        }
         auto governance_action = getGovernanceActionState(rt, args[0].asObject(rt), "governance_action");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Anchor for anchor");
+        }
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for reward_account");
+        }
         auto reward_account = getRewardAddressState(rt, args[2].asObject(rt), "reward_account");
-        if (count < 4 || !args[3].isObject())
+        if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for deposit");
+        }
         auto deposit = getBigNumState(rt, args[3].asObject(rt), "deposit");
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_new(governance_action->get(), anchor->get(), reward_account->get(), deposit->get(), out, err);
@@ -47522,8 +49115,9 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProposal for proposal");
+        }
         auto proposal = getVotingProposalState(rt, args[0].asObject(rt), "proposal");
         ScopedCharPtr err;
         if (!csl_bridge_voting_proposal_builder_add(st->get(), proposal->get(), &err.ptr)) {
@@ -47539,11 +49133,13 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_plutus_witness"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProposal for proposal");
+        }
         auto proposal = getVotingProposalState(rt, args[0].asObject(rt), "proposal");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[1].asObject(rt), "witness");
         ScopedCharPtr err;
         if (!csl_bridge_voting_proposal_builder_add_with_plutus_witness(st->get(), proposal->get(), witness->get(), &err.ptr)) {
@@ -47735,8 +49331,9 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalsState(rt, thisVal);
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "get(index) requires number");
+        }
         auto index = static_cast<size_t>(args[0].asNumber());
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_get(st->get(), index, out, err);
@@ -47750,8 +49347,9 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProposal for proposal");
+        }
         auto proposal = getVotingProposalState(rt, args[0].asObject(rt), "proposal");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_voting_proposals_add(st->get(), proposal->get(), &res, &err.ptr)) {
@@ -47767,8 +49365,9 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "contains"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected VotingProposal for elem");
+        }
         auto elem = getVotingProposalState(rt, args[0].asObject(rt), "elem");
         bool res = false; ScopedCharPtr err;
         if (!csl_bridge_voting_proposals_contains(st->get(), elem->get(), &res, &err.ptr)) {
@@ -47811,18 +49410,21 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
@@ -47836,8 +49438,9 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_from_hex(hex_str.c_str(), out, err);
@@ -47850,8 +49453,9 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_from_json(json.c_str(), out, err);
@@ -47975,11 +49579,13 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "insert"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for key");
+        }
         auto key = getRewardAddressState(rt, args[0].asObject(rt), "key");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for value");
+        }
         auto value = getBigNumState(rt, args[1].asObject(rt), "value");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_insert(st->get(), key->get(), value->get(), out, err);
@@ -47993,8 +49599,9 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for key");
+        }
         auto key = getRewardAddressState(rt, args[0].asObject(rt), "key");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_get(st->get(), key->get(), out, err);
@@ -48035,18 +49642,21 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
@@ -48060,8 +49670,9 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_hex(hex_str) requires string");
+        }
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_from_hex(hex_str.c_str(), out, err);
@@ -48074,8 +49685,9 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
   ns.setProperty(rt, "from_json",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_json"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "from_json(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_from_json(json.c_str(), out, err);
@@ -48149,11 +49761,13 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add"), 2,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for address");
+        }
         auto address = getRewardAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         ScopedCharPtr err;
         if (!csl_bridge_withdrawals_builder_add(st->get(), address->get(), coin->get(), &err.ptr)) {
@@ -48169,14 +49783,17 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_plutus_witness"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for address");
+        }
         auto address = getRewardAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusWitness for witness");
+        }
         auto witness = getPlutusWitnessState(rt, args[2].asObject(rt), "witness");
         ScopedCharPtr err;
         if (!csl_bridge_withdrawals_builder_add_with_plutus_witness(st->get(), address->get(), coin->get(), witness->get(), &err.ptr)) {
@@ -48192,14 +49809,17 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "add_with_native_script"), 3,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected RewardAddress for address");
+        }
         auto address = getRewardAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for coin");
+        }
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected NativeScriptSource for native_script_source");
+        }
         auto native_script_source = getNativeScriptSourceState(rt, args[2].asObject(rt), "native_script_source");
         ScopedCharPtr err;
         if (!csl_bridge_withdrawals_builder_add_with_native_script(st->get(), address->get(), coin->get(), native_script_source->get(), &err.ptr)) {
@@ -48328,11 +49948,13 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "calculate_ex_units_ceil_cost",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "calculate_ex_units_ceil_cost"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnits for ex_units");
+        }
         auto ex_units = getExUnitsState(rt, args[0].asObject(rt), "ex_units");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnitPrices for ex_unit_prices");
+        }
         auto ex_unit_prices = getExUnitPricesState(rt, args[1].asObject(rt), "ex_unit_prices");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_calculate_ex_units_ceil_cost(ex_units->get(), ex_unit_prices->get(), out, err);
@@ -48345,14 +49967,17 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "create_send_all",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "create_send_all"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Address for address");
+        }
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionUnspentOutputs for utxos");
+        }
         auto utxos = getTransactionUnspentOutputsState(rt, args[1].asObject(rt), "utxos");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBuilderConfig for config");
+        }
         auto config = getTransactionBuilderConfigState(rt, args[2].asObject(rt), "config");
         return callCslTransactionBatchList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_create_send_all(address->get(), utxos->get(), config->get(), out, err);
@@ -48365,8 +49990,9 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "decode_arbitrary_bytes_from_metadatum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "decode_arbitrary_bytes_from_metadatum"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for metadata");
+        }
         auto metadata = getTransactionMetadatumState(rt, args[0].asObject(rt), "metadata");
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_decode_arbitrary_bytes_from_metadatum(metadata->get(), out, err);
@@ -48379,11 +50005,13 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "decode_metadatum_to_json_str",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "decode_metadatum_to_json_str"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for metadatum");
+        }
         auto metadatum = getTransactionMetadatumState(rt, args[0].asObject(rt), "metadatum");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "decode_metadatum_to_json_str(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_decode_metadatum_to_json_str(metadatum->get(), schema, out, err);
@@ -48396,11 +50024,13 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "decode_plutus_datum_to_json_str",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "decode_plutus_datum_to_json_str"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for datum");
+        }
         auto datum = getPlutusDataState(rt, args[0].asObject(rt), "datum");
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "decode_plutus_datum_to_json_str(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_decode_plutus_datum_to_json_str(datum->get(), schema, out, err);
@@ -48413,11 +50043,13 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "decrypt_with_password",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "decrypt_with_password"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "decrypt_with_password(password) requires string");
+        }
         std::string password = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isString())
+        if (count < 2 || !args[1].isString()) {
           throw jsi::JSError(rt, "decrypt_with_password(data) requires string");
+        }
         std::string data = args[1].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_decrypt_with_password(password.c_str(), data.c_str(), out, err);
@@ -48430,18 +50062,21 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "encode_arbitrary_bytes_as_metadatum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "encode_arbitrary_bytes_as_metadatum"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires number[]");
+        }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
         std::vector<uint8_t> bytes; bytes.reserve(__n_bytes);
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum.from_bytes: byte out of range 0..255");
+          }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
@@ -48455,11 +50090,13 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "encode_json_str_to_metadatum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "encode_json_str_to_metadatum"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "encode_json_str_to_metadatum(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "encode_json_str_to_metadatum(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_json_str_to_metadatum(json.c_str(), schema, out, err);
@@ -48472,14 +50109,17 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "encode_json_str_to_native_script",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "encode_json_str_to_native_script"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "encode_json_str_to_native_script(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isString())
+        if (count < 2 || !args[1].isString()) {
           throw jsi::JSError(rt, "encode_json_str_to_native_script(self_xpub) requires string");
+        }
         std::string self_xpub = args[1].asString(rt).utf8(rt);
-        if (count < 3 || !args[2].isNumber())
+        if (count < 3 || !args[2].isNumber()) {
           throw jsi::JSError(rt, "encode_json_str_to_native_script(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[2].asNumber());
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_json_str_to_native_script(json.c_str(), self_xpub.c_str(), schema, out, err);
@@ -48492,11 +50132,13 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "encode_json_str_to_plutus_datum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "encode_json_str_to_plutus_datum"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "encode_json_str_to_plutus_datum(json) requires string");
+        }
         std::string json = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isNumber())
+        if (count < 2 || !args[1].isNumber()) {
           throw jsi::JSError(rt, "encode_json_str_to_plutus_datum(schema) requires number");
+        }
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_json_str_to_plutus_datum(json.c_str(), schema, out, err);
@@ -48509,17 +50151,21 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "encrypt_with_password",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "encrypt_with_password"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isString())
+        if (count < 1 || !args[0].isString()) {
           throw jsi::JSError(rt, "encrypt_with_password(password) requires string");
+        }
         std::string password = args[0].asString(rt).utf8(rt);
-        if (count < 2 || !args[1].isString())
+        if (count < 2 || !args[1].isString()) {
           throw jsi::JSError(rt, "encrypt_with_password(salt) requires string");
+        }
         std::string salt = args[1].asString(rt).utf8(rt);
-        if (count < 3 || !args[2].isString())
+        if (count < 3 || !args[2].isString()) {
           throw jsi::JSError(rt, "encrypt_with_password(nonce) requires string");
+        }
         std::string nonce = args[2].asString(rt).utf8(rt);
-        if (count < 4 || !args[3].isString())
+        if (count < 4 || !args[3].isString()) {
           throw jsi::JSError(rt, "encrypt_with_password(data) requires string");
+        }
         std::string data = args[3].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_encrypt_with_password(password.c_str(), salt.c_str(), nonce.c_str(), data.c_str(), out, err);
@@ -48532,14 +50178,17 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "get_deposit",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_deposit"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBody for txbody");
+        }
         auto txbody = getTransactionBodyState(rt, args[0].asObject(rt), "txbody");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pool_deposit");
+        }
         auto pool_deposit = getBigNumState(rt, args[1].asObject(rt), "pool_deposit");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
+        }
         auto key_deposit = getBigNumState(rt, args[2].asObject(rt), "key_deposit");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_get_deposit(txbody->get(), pool_deposit->get(), key_deposit->get(), out, err);
@@ -48552,14 +50201,17 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "get_implicit_input",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_implicit_input"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBody for txbody");
+        }
         auto txbody = getTransactionBodyState(rt, args[0].asObject(rt), "txbody");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for pool_deposit");
+        }
         auto pool_deposit = getBigNumState(rt, args[1].asObject(rt), "pool_deposit");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
+        }
         auto key_deposit = getBigNumState(rt, args[2].asObject(rt), "key_deposit");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_get_implicit_input(txbody->get(), pool_deposit->get(), key_deposit->get(), out, err);
@@ -48572,18 +50224,21 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "has_transaction_set_tag",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "has_transaction_set_tag"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt))
+        if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
           throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires number[]");
+        }
         auto __arr_tx_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_tx_bytes = __arr_tx_bytes.length(rt);
         std::vector<uint8_t> tx_bytes; tx_bytes.reserve(__n_tx_bytes);
         for (size_t __i=0; __i<__n_tx_bytes; ++__i) {
           auto __v = __arr_tx_bytes.getValueAtIndex(rt, __i);
-          if (!__v.isNumber())
+          if (!__v.isNumber()) {
             throw jsi::JSError(rt, "has_transaction_set_tag.from_bytes: array must contain numbers");
+          }
           double __d = __v.asNumber();
-          if (__d < 0 || __d > 255)
+          if (__d < 0 || __d > 255) {
             throw jsi::JSError(rt, "has_transaction_set_tag.from_bytes: byte out of range 0..255");
+          }
           tx_bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         int32_t res{}; ScopedCharPtr err;
@@ -48599,8 +50254,9 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "hash_auxiliary_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_auxiliary_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected AuxiliaryData for auxiliary_data");
+        }
         auto auxiliary_data = getAuxiliaryDataState(rt, args[0].asObject(rt), "auxiliary_data");
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hash_auxiliary_data(auxiliary_data->get(), out, err);
@@ -48613,8 +50269,9 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "hash_plutus_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_plutus_data"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected PlutusData for plutus_data");
+        }
         auto plutus_data = getPlutusDataState(rt, args[0].asObject(rt), "plutus_data");
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hash_plutus_data(plutus_data->get(), out, err);
@@ -48627,31 +50284,36 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   exports.setProperty(rt, "hash_script_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 0,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-if (count == 2) {
-          if (count < 1 || !args[0].isObject())
+        if (count == 2) {
+          if (count < 1 || !args[0].isObject()) {
             throw jsi::JSError(rt, "Expected Redeemers for arg0");
+          }
           auto arg0 = getRedeemersState(rt, args[0].asObject(rt), "arg0");
-          if (count < 2 || !args[1].isObject())
+          if (count < 2 || !args[1].isObject()) {
             throw jsi::JSError(rt, "Expected Costmdls for arg1");
+          }
           auto arg1 = getCostmdlsState(rt, args[1].asObject(rt), "arg1");
           return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_hash_script_data(arg0->get(), arg1->get(), out, err);
           });
-} else if (count == 3) {
-          if (count < 1 || !args[0].isObject())
+        } else if (count == 3) {
+          if (count < 1 || !args[0].isObject()) {
             throw jsi::JSError(rt, "Expected Redeemers for arg0");
+          }
           auto arg0 = getRedeemersState(rt, args[0].asObject(rt), "arg0");
-          if (count < 2 || !args[1].isObject())
+          if (count < 2 || !args[1].isObject()) {
             throw jsi::JSError(rt, "Expected Costmdls for arg1");
+          }
           auto arg1 = getCostmdlsState(rt, args[1].asObject(rt), "arg1");
-          if (count < 3 || !args[2].isObject())
+          if (count < 3 || !args[2].isObject()) {
             throw jsi::JSError(rt, "Expected PlutusList for arg2");
+          }
           auto arg2 = getPlutusListState(rt, args[2].asObject(rt), "arg2");
           return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_hash_script_data_with_datums(arg0->get(), arg1->get(), arg2->get(), out, err);
           });
-} else {
-            throw jsi::JSError(rt, "Invalid number of arguments for hash_script_data. Expected 0 or 1 arguments.");
+        } else {
+          throw jsi::JSError(rt, "Invalid number of arguments for hash_script_data. Expected 0 or 1 arguments.");
         }
       }
     )
@@ -48661,14 +50323,17 @@ if (count == 2) {
   exports.setProperty(rt, "make_daedalus_bootstrap_witness",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "make_daedalus_bootstrap_witness"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionHash for tx_body_hash");
+        }
         auto tx_body_hash = getTransactionHashState(rt, args[0].asObject(rt), "tx_body_hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ByronAddress for addr");
+        }
         auto addr = getByronAddressState(rt, args[1].asObject(rt), "addr");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected LegacyDaedalusPrivateKey for key");
+        }
         auto key = getLegacyDaedalusPrivateKeyState(rt, args[2].asObject(rt), "key");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_make_daedalus_bootstrap_witness(tx_body_hash->get(), addr->get(), key->get(), out, err);
@@ -48681,14 +50346,17 @@ if (count == 2) {
   exports.setProperty(rt, "make_icarus_bootstrap_witness",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "make_icarus_bootstrap_witness"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionHash for tx_body_hash");
+        }
         auto tx_body_hash = getTransactionHashState(rt, args[0].asObject(rt), "tx_body_hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ByronAddress for addr");
+        }
         auto addr = getByronAddressState(rt, args[1].asObject(rt), "addr");
-        if (count < 3 || !args[2].isObject())
+        if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "Expected Bip32PrivateKey for key");
+        }
         auto key = getBip32PrivateKeyState(rt, args[2].asObject(rt), "key");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_make_icarus_bootstrap_witness(tx_body_hash->get(), addr->get(), key->get(), out, err);
@@ -48701,11 +50369,13 @@ if (count == 2) {
   exports.setProperty(rt, "make_vkey_witness",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "make_vkey_witness"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionHash for tx_body_hash");
+        }
         auto tx_body_hash = getTransactionHashState(rt, args[0].asObject(rt), "tx_body_hash");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected PrivateKey for sk");
+        }
         auto sk = getPrivateKeyState(rt, args[1].asObject(rt), "sk");
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_make_vkey_witness(tx_body_hash->get(), sk->get(), out, err);
@@ -48718,11 +50388,13 @@ if (count == 2) {
   exports.setProperty(rt, "min_ada_for_output",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "min_ada_for_output"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionOutput for output");
+        }
         auto output = getTransactionOutputState(rt, args[0].asObject(rt), "output");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DataCost for data_cost");
+        }
         auto data_cost = getDataCostState(rt, args[1].asObject(rt), "data_cost");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_ada_for_output(output->get(), data_cost->get(), out, err);
@@ -48735,11 +50407,13 @@ if (count == 2) {
   exports.setProperty(rt, "min_fee",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "min_fee"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Transaction for tx");
+        }
         auto tx = getTransactionState(rt, args[0].asObject(rt), "tx");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected LinearFee for linear_fee");
+        }
         auto linear_fee = getLinearFeeState(rt, args[1].asObject(rt), "linear_fee");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_fee(tx->get(), linear_fee->get(), out, err);
@@ -48752,11 +50426,13 @@ if (count == 2) {
   exports.setProperty(rt, "min_ref_script_fee",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "min_ref_script_fee"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber())
+        if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "min_ref_script_fee(total_ref_scripts_size) requires number");
+        }
         auto total_ref_scripts_size = static_cast<size_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected UnitInterval for ref_script_coins_per_byte");
+        }
         auto ref_script_coins_per_byte = getUnitIntervalState(rt, args[1].asObject(rt), "ref_script_coins_per_byte");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_ref_script_fee(total_ref_scripts_size, ref_script_coins_per_byte->get(), out, err);
@@ -48769,11 +50445,13 @@ if (count == 2) {
   exports.setProperty(rt, "min_script_fee",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "min_script_fee"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject())
+        if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Transaction for tx");
+        }
         auto tx = getTransactionState(rt, args[0].asObject(rt), "tx");
-        if (count < 2 || !args[1].isObject())
+        if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected ExUnitPrices for ex_unit_prices");
+        }
         auto ex_unit_prices = getExUnitPricesState(rt, args[1].asObject(rt), "ex_unit_prices");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_script_fee(tx->get(), ex_unit_prices->get(), out, err);
