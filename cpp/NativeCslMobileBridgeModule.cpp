@@ -19646,102 +19646,190 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 10,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 0,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new(block_number) requires number");
+        if (count == 9) {
+          if (count < 1 || !args[0].isNumber()) {
+            throw jsi::JSError(rt, "new(block_number) requires number");
+          }
+          auto block_number = static_cast<int64_t>(args[0].asNumber());
+          if (count < 2 || !args[1].isNumber()) {
+            throw jsi::JSError(rt, "new(slot) requires number");
+          }
+          auto slot = static_cast<uint32_t>(args[1].asNumber());
+          if (count < 3 || !args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+          }
+          auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
+          if (count < 4 || !args[3].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+          }
+          auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
+          if (count < 5 || !args[4].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+          }
+          auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
+          if (count < 6 || !args[5].isNumber()) {
+            throw jsi::JSError(rt, "new(block_body_size) requires number");
+          }
+          auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
+          if (count < 7 || !args[6].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+          }
+          auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
+          if (count < 8 || !args[7].isObject()) {
+            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+          }
+          auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
+          if (count < 9 || !args[8].isObject()) {
+            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+          }
+          auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new(block_number, slot, issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        } else if (count == 10) {
+          if (count < 1 || !args[0].isNumber()) {
+            throw jsi::JSError(rt, "new(block_number) requires number");
+          }
+          auto block_number = static_cast<int64_t>(args[0].asNumber());
+          if (count < 2 || !args[1].isNumber()) {
+            throw jsi::JSError(rt, "new(slot) requires number");
+          }
+          auto slot = static_cast<uint32_t>(args[1].asNumber());
+          if (count < 3 || !args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+          }
+          auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
+          if (count < 4 || !args[3].isObject()) {
+            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+          }
+          auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
+          if (count < 5 || !args[4].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+          }
+          auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
+          if (count < 6 || !args[5].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+          }
+          auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
+          if (count < 7 || !args[6].isNumber()) {
+            throw jsi::JSError(rt, "new(block_body_size) requires number");
+          }
+          auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
+          if (count < 8 || !args[7].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+          }
+          auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
+          if (count < 9 || !args[8].isObject()) {
+            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+          }
+          auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
+          if (count < 10 || !args[9].isObject()) {
+            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+          }
+          auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        } else {
+          throw jsi::JSError(rt, "Invalid number of arguments for new. Expected 0 or 1 arguments.");
         }
-        auto block_number = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isNumber()) {
-          throw jsi::JSError(rt, "new(slot) requires number");
-        }
-        auto slot = static_cast<uint32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
-        }
-        auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
-        if (count < 4 || !args[3].isObject()) {
-          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
-        }
-        auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
-        if (count < 5 || !args[4].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-        }
-        auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
-        if (count < 6 || !args[5].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-        }
-        auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
-        if (count < 7 || !args[6].isNumber()) {
-          throw jsi::JSError(rt, "new(block_body_size) requires number");
-        }
-        auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
-        if (count < 8 || !args[7].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-        }
-        auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
-        if (count < 9 || !args[8].isObject()) {
-          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-        }
-        auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
-        if (count < 10 || !args[9].isObject()) {
-          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-        }
-        auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
-        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-        });
       }
     )
   );
 
   // new_headerbody
   ns.setProperty(rt, "new_headerbody",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 10,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 0,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
+        if (count == 9) {
+          if (count < 1 || !args[0].isNumber()) {
+            throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
+          }
+          auto block_number = static_cast<int64_t>(args[0].asNumber());
+          if (count < 2 || !args[1].isObject()) {
+            throw jsi::JSError(rt, "Expected BigNum for slot");
+          }
+          auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
+          if (count < 3 || !args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+          }
+          auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
+          if (count < 4 || !args[3].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+          }
+          auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
+          if (count < 5 || !args[4].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+          }
+          auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
+          if (count < 6 || !args[5].isNumber()) {
+            throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
+          }
+          auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
+          if (count < 7 || !args[6].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+          }
+          auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
+          if (count < 8 || !args[7].isObject()) {
+            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+          }
+          auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
+          if (count < 9 || !args[8].isObject()) {
+            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+          }
+          auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new_headerbody(block_number, slot->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        } else if (count == 10) {
+          if (count < 1 || !args[0].isNumber()) {
+            throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
+          }
+          auto block_number = static_cast<int64_t>(args[0].asNumber());
+          if (count < 2 || !args[1].isObject()) {
+            throw jsi::JSError(rt, "Expected BigNum for slot");
+          }
+          auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
+          if (count < 3 || !args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+          }
+          auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
+          if (count < 4 || !args[3].isObject()) {
+            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+          }
+          auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
+          if (count < 5 || !args[4].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+          }
+          auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
+          if (count < 6 || !args[5].isObject()) {
+            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+          }
+          auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
+          if (count < 7 || !args[6].isNumber()) {
+            throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
+          }
+          auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
+          if (count < 8 || !args[7].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+          }
+          auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
+          if (count < 9 || !args[8].isObject()) {
+            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+          }
+          auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
+          if (count < 10 || !args[9].isObject()) {
+            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+          }
+          auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        } else {
+          throw jsi::JSError(rt, "Invalid number of arguments for new_headerbody. Expected 0 or 1 arguments.");
         }
-        auto block_number = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected BigNum for slot");
-        }
-        auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
-        }
-        auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
-        if (count < 4 || !args[3].isObject()) {
-          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
-        }
-        auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
-        if (count < 5 || !args[4].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-        }
-        auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
-        if (count < 6 || !args[5].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-        }
-        auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
-        if (count < 7 || !args[6].isNumber()) {
-          throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
-        }
-        auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
-        if (count < 8 || !args[7].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-        }
-        auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
-        if (count < 9 || !args[8].isObject()) {
-          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-        }
-        auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
-        if (count < 10 || !args[9].isObject()) {
-          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-        }
-        auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
-        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-        });
       }
     )
   );
