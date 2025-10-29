@@ -14,4 +14,3 @@ const cslBridge: typeof bridgeTypes = getCslBridge();
 
 export default cslBridge;
 export const { BigNum } = cslBridge;
-
