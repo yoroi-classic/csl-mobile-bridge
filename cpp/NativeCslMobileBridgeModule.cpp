@@ -4900,7 +4900,7 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -4917,21 +4917,25 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAddressState(rt, thisVal);
-        if (count == 0) {
-          return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
-            return csl_bridge_address_to_bech32(st->get(), out, err);
-          });
-        } else if (count == 1) {
-          if (count < 1 || !args[0].isString()) {
-            throw jsi::JSError(rt, "to_bech32(arg0) requires string");
-          }
-          std::string arg0 = args[0].asString(rt).utf8(rt);
-          return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
-            return csl_bridge_address_to_bech32_with_prefix(st->get(), arg0.c_str(), out, err);
-          });
-        } else {
-          throw jsi::JSError(rt, "Invalid number of arguments for to_bech32. Expected 0 or 1 arguments.");
+        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+          return csl_bridge_address_to_bech32(st->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // to_bech32_with_prefix(): String
+  proto.setProperty(rt, "to_bech32_with_prefix",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32_with_prefix"), 1,
+      [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
+        auto st = getThisAddressState(rt, thisVal);
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "to_bech32_with_prefix(prefix) requires string");
         }
+        std::string prefix = args[0].asString(rt).utf8(rt);
+        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+          return csl_bridge_address_to_bech32_with_prefix(st->get(), prefix.c_str(), out, err);
+        });
       }
     )
   );
@@ -4971,7 +4975,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(data) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
         }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
@@ -5088,7 +5092,7 @@ static jsi::Object getOrCreateAnchorProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -5169,7 +5173,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -5290,7 +5294,7 @@ static jsi::Object getOrCreateAnchorDataHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -5351,7 +5355,7 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -5453,7 +5457,7 @@ static jsi::Object getOrCreateAssetNameProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -5489,7 +5493,7 @@ static jsi::Object getOrCreateAssetNameProto(jsi::Runtime& rt) {
     )
   );
 
-  // name(): number[]
+  // name(): Uint8Array
   proto.setProperty(rt, "name",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "name"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -5522,7 +5526,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -5580,7 +5584,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(name) requires number[]");
+          throw jsi::JSError(rt, "new(name) requires Uint8Array");
         }
         auto __arr_name = args[0].asObject(rt).asArray(rt);
         size_t __n_name = __arr_name.length(rt);
@@ -5652,7 +5656,7 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -5757,7 +5761,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -5870,7 +5874,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -5989,7 +5993,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -6102,7 +6106,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -6281,7 +6285,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -6394,7 +6398,7 @@ static jsi::Object getOrCreateAuxiliaryDataHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -6455,7 +6459,7 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -6848,7 +6852,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7075,7 +7079,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -7214,7 +7218,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7413,7 +7417,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -7598,7 +7602,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_128_xprv(): number[]
+  // to_128_xprv(): Uint8Array
   proto.setProperty(rt, "to_128_xprv",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_128_xprv"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7634,7 +7638,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7658,7 +7662,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // chaincode(): number[]
+  // chaincode(): Uint8Array
   proto.setProperty(rt, "chaincode",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "chaincode"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7703,7 +7707,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_128_xprv"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_128_xprv(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_128_xprv(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -7742,7 +7746,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -7785,7 +7789,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bip39_entropy"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bip39_entropy(entropy) requires number[]");
+          throw jsi::JSError(rt, "from_bip39_entropy(entropy) requires Uint8Array");
         }
         auto __arr_entropy = args[0].asObject(rt).asArray(rt);
         size_t __n_entropy = __arr_entropy.length(rt);
@@ -7802,7 +7806,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
           entropy.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bip39_entropy(password) requires number[]");
+          throw jsi::JSError(rt, "from_bip39_entropy(password) requires Uint8Array");
         }
         auto __arr_password = args[1].asObject(rt).asArray(rt);
         size_t __n_password = __arr_password.length(rt);
@@ -7917,7 +7921,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7941,7 +7945,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // chaincode(): number[]
+  // chaincode(): Uint8Array
   proto.setProperty(rt, "chaincode",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "chaincode"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -7986,7 +7990,7 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -8088,7 +8092,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -8205,7 +8209,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -8338,7 +8342,7 @@ static jsi::Object getOrCreateBlockHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -8399,7 +8403,7 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -8501,7 +8505,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -8561,7 +8565,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
     )
   );
 
-  // chain_code(): number[]
+  // chain_code(): Uint8Array
   proto.setProperty(rt, "chain_code",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "chain_code"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -8573,7 +8577,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
     )
   );
 
-  // attributes(): number[]
+  // attributes(): Uint8Array
   proto.setProperty(rt, "attributes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "attributes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -8606,7 +8610,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -8672,7 +8676,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         }
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
         if (count < 3 || !args[2].isObject() || !args[2].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(chain_code) requires number[]");
+          throw jsi::JSError(rt, "new(chain_code) requires Uint8Array");
         }
         auto __arr_chain_code = args[2].asObject(rt).asArray(rt);
         size_t __n_chain_code = __arr_chain_code.length(rt);
@@ -8689,7 +8693,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
           chain_code.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         if (count < 4 || !args[3].isObject() || !args[3].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(attributes) requires number[]");
+          throw jsi::JSError(rt, "new(attributes) requires Uint8Array");
         }
         auto __arr_attributes = args[3].asObject(rt).asArray(rt);
         size_t __n_attributes = __arr_attributes.length(rt);
@@ -8761,7 +8765,7 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -8866,7 +8870,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -8991,7 +8995,7 @@ static jsi::Object getOrCreateByronAddressProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -9031,7 +9035,7 @@ static jsi::Object getOrCreateByronAddressProto(jsi::Runtime& rt) {
     )
   );
 
-  // attributes(): number[]
+  // attributes(): Uint8Array
   proto.setProperty(rt, "attributes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "attributes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -9090,7 +9094,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -9228,7 +9232,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -9541,7 +9545,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -9928,7 +9932,7 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -10033,7 +10037,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -10514,7 +10518,7 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -10635,7 +10639,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -10752,7 +10756,7 @@ static jsi::Object getOrCreateCommitteeColdResignProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -10847,7 +10851,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -10983,7 +10987,7 @@ static jsi::Object getOrCreateCommitteeHotAuthProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -11078,7 +11082,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -11199,7 +11203,7 @@ static jsi::Object getOrCreateConstitutionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -11280,7 +11284,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -11416,7 +11420,7 @@ static jsi::Object getOrCreateConstrPlutusDataProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -11485,7 +11489,7 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -11591,7 +11595,7 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -11698,7 +11702,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -11811,7 +11815,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -11946,7 +11950,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -12111,7 +12115,7 @@ static jsi::Object getOrCreateCredentialProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -12198,7 +12202,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -12300,7 +12304,7 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -12405,7 +12409,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -12518,7 +12522,7 @@ static jsi::Object getOrCreateDNSRecordAorAAAAProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -12587,7 +12591,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -12704,7 +12708,7 @@ static jsi::Object getOrCreateDNSRecordSRVProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -12773,7 +12777,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -12890,7 +12894,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -13001,7 +13005,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -13185,7 +13189,7 @@ static jsi::Object getOrCreateDRepDeregistrationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -13280,7 +13284,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -13401,7 +13405,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -13508,7 +13512,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -13652,7 +13656,7 @@ static jsi::Object getOrCreateDRepUpdateProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -13747,7 +13751,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -13883,7 +13887,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -14240,7 +14244,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -14485,7 +14489,7 @@ static jsi::Object getOrCreateDataHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -14546,7 +14550,7 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -14743,7 +14747,7 @@ static jsi::Object getOrCreateEd25519KeyHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -14804,7 +14808,7 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -14906,7 +14910,7 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -15041,7 +15045,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -15154,7 +15158,7 @@ static jsi::Object getOrCreateEd25519SignatureProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -15241,7 +15245,7 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -15450,7 +15454,7 @@ static jsi::Object getOrCreateExUnitPricesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -15531,7 +15535,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -15652,7 +15656,7 @@ static jsi::Object getOrCreateExUnitsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -15733,7 +15737,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -15947,7 +15951,7 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -16034,7 +16038,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -16070,7 +16074,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     )
   );
 
-  // raw_body(): number[]
+  // raw_body(): Uint8Array
   proto.setProperty(rt, "raw_body",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "raw_body"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -16088,7 +16092,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "set_body(raw_body) requires number[]");
+          throw jsi::JSError(rt, "set_body(raw_body) requires Uint8Array");
         }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
@@ -16119,7 +16123,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires number[]");
+          throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires Uint8Array");
         }
         auto __arr_raw_witness_set = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_witness_set = __arr_raw_witness_set.length(rt);
@@ -16156,7 +16160,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     )
   );
 
-  // raw_witness_set(): number[]
+  // raw_witness_set(): Uint8Array
   proto.setProperty(rt, "raw_witness_set",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "raw_witness_set"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -16206,7 +16210,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedTransactionState(rt, thisVal);
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires number[]");
+          throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires Uint8Array");
         }
         auto __arr_raw_auxiliary_data = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
@@ -16243,7 +16247,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
     )
   );
 
-  // raw_auxiliary_data(): number[]
+  // raw_auxiliary_data(): Uint8Array
   proto.setProperty(rt, "raw_auxiliary_data",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "raw_auxiliary_data"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -16386,7 +16390,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -16429,7 +16433,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(raw_body) requires number[]");
+          throw jsi::JSError(rt, "new(raw_body) requires Uint8Array");
         }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
@@ -16446,7 +16450,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(raw_witness_set) requires number[]");
+          throw jsi::JSError(rt, "new(raw_witness_set) requires Uint8Array");
         }
         auto __arr_raw_witness_set = args[1].asObject(rt).asArray(rt);
         size_t __n_raw_witness_set = __arr_raw_witness_set.length(rt);
@@ -16478,7 +16482,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_auxiliary"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_with_auxiliary(raw_body) requires number[]");
+          throw jsi::JSError(rt, "new_with_auxiliary(raw_body) requires Uint8Array");
         }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
@@ -16495,7 +16499,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires number[]");
+          throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires Uint8Array");
         }
         auto __arr_raw_witness_set = args[1].asObject(rt).asArray(rt);
         size_t __n_raw_witness_set = __arr_raw_witness_set.length(rt);
@@ -16512,7 +16516,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         if (count < 3 || !args[2].isObject() || !args[2].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires number[]");
+          throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires Uint8Array");
         }
         auto __arr_raw_auxiliary_data = args[2].asObject(rt).asArray(rt);
         size_t __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
@@ -16544,7 +16548,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_body_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires number[]");
+          throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires Uint8Array");
         }
         auto __arr_raw_body = args[0].asObject(rt).asArray(rt);
         size_t __n_raw_body = __arr_raw_body.length(rt);
@@ -16685,7 +16689,7 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -16807,7 +16811,7 @@ static jsi::Object getOrCreateFixedTransactionBodyProto(jsi::Runtime& rt) {
     )
   );
 
-  // original_bytes(): number[]
+  // original_bytes(): Uint8Array
   proto.setProperty(rt, "original_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "original_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -16840,7 +16844,7 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -16975,7 +16979,7 @@ static jsi::Object getOrCreateFixedTxWitnessesSetProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -17008,7 +17012,7 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(data) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
         }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
@@ -17127,7 +17131,7 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -17214,7 +17218,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -17333,7 +17337,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -17446,7 +17450,7 @@ static jsi::Object getOrCreateGenesisDelegateHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -17507,7 +17511,7 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -17609,7 +17613,7 @@ static jsi::Object getOrCreateGenesisHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -17670,7 +17674,7 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -17772,7 +17776,7 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -17877,7 +17881,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -17990,7 +17994,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -18083,7 +18087,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -18208,7 +18212,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -18363,7 +18367,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -18570,7 +18574,7 @@ static jsi::Object getOrCreateGovernanceActionIdProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -18653,7 +18657,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -18925,7 +18929,7 @@ static jsi::Object getOrCreateHardForkInitiationActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -19006,7 +19010,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -19142,7 +19146,7 @@ static jsi::Object getOrCreateHeaderProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -19223,7 +19227,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -19344,7 +19348,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -19591,7 +19595,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -19646,190 +19650,196 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 0,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 9,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count == 9) {
-          if (count < 1 || !args[0].isNumber()) {
-            throw jsi::JSError(rt, "new(block_number) requires number");
-          }
-          auto block_number = static_cast<int64_t>(args[0].asNumber());
-          if (count < 2 || !args[1].isNumber()) {
-            throw jsi::JSError(rt, "new(slot) requires number");
-          }
-          auto slot = static_cast<uint32_t>(args[1].asNumber());
-          if (count < 3 || !args[2].isObject()) {
-            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
-          }
-          auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
-          if (count < 4 || !args[3].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-          }
-          auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
-          if (count < 5 || !args[4].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-          }
-          auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
-          if (count < 6 || !args[5].isNumber()) {
-            throw jsi::JSError(rt, "new(block_body_size) requires number");
-          }
-          auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
-          if (count < 7 || !args[6].isObject()) {
-            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-          }
-          auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
-          if (count < 8 || !args[7].isObject()) {
-            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-          }
-          auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
-          if (count < 9 || !args[8].isObject()) {
-            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-          }
-          auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
-          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_header_body_new(block_number, slot, issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
-        } else if (count == 10) {
-          if (count < 1 || !args[0].isNumber()) {
-            throw jsi::JSError(rt, "new(block_number) requires number");
-          }
-          auto block_number = static_cast<int64_t>(args[0].asNumber());
-          if (count < 2 || !args[1].isNumber()) {
-            throw jsi::JSError(rt, "new(slot) requires number");
-          }
-          auto slot = static_cast<uint32_t>(args[1].asNumber());
-          if (count < 3 || !args[2].isObject()) {
-            throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
-          }
-          auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
-          if (count < 4 || !args[3].isObject()) {
-            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
-          }
-          auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
-          if (count < 5 || !args[4].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-          }
-          auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
-          if (count < 6 || !args[5].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-          }
-          auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
-          if (count < 7 || !args[6].isNumber()) {
-            throw jsi::JSError(rt, "new(block_body_size) requires number");
-          }
-          auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
-          if (count < 8 || !args[7].isObject()) {
-            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-          }
-          auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
-          if (count < 9 || !args[8].isObject()) {
-            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-          }
-          auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
-          if (count < 10 || !args[9].isObject()) {
-            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-          }
-          auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
-          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
-        } else {
-          throw jsi::JSError(rt, "Invalid number of arguments for new. Expected 0 or 1 arguments.");
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new(block_number) requires number");
         }
+        auto block_number = static_cast<int64_t>(args[0].asNumber());
+        if (count < 2 || !args[1].isNumber()) {
+          throw jsi::JSError(rt, "new(slot) requires number");
+        }
+        auto slot = static_cast<uint32_t>(args[1].asNumber());
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        }
+        auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
+        if (count < 4 || !args[3].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+        }
+        auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
+        if (count < 5 || !args[4].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+        }
+        auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
+        if (count < 6 || !args[5].isNumber()) {
+          throw jsi::JSError(rt, "new(block_body_size) requires number");
+        }
+        auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
+        if (count < 7 || !args[6].isObject()) {
+          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+        }
+        auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
+        if (count < 8 || !args[7].isObject()) {
+          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+        }
+        auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
+        if (count < 9 || !args[8].isObject()) {
+          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
+        auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
+        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_header_body_new(block_number, slot, issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_prev_hash
+  ns.setProperty(rt, "new_with_prev_hash",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_prev_hash"), 10,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new_with_prev_hash(block_number) requires number");
+        }
+        auto block_number = static_cast<int64_t>(args[0].asNumber());
+        if (count < 2 || !args[1].isNumber()) {
+          throw jsi::JSError(rt, "new_with_prev_hash(slot) requires number");
+        }
+        auto slot = static_cast<uint32_t>(args[1].asNumber());
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+        }
+        auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
+        if (count < 4 || !args[3].isObject()) {
+          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        }
+        auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
+        if (count < 5 || !args[4].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+        }
+        auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
+        if (count < 6 || !args[5].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+        }
+        auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
+        if (count < 7 || !args[6].isNumber()) {
+          throw jsi::JSError(rt, "new_with_prev_hash(block_body_size) requires number");
+        }
+        auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
+        if (count < 8 || !args[7].isObject()) {
+          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+        }
+        auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
+        if (count < 9 || !args[8].isObject()) {
+          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+        }
+        auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
+        if (count < 10 || !args[9].isObject()) {
+          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
+        auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
+        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+        });
       }
     )
   );
 
   // new_headerbody
   ns.setProperty(rt, "new_headerbody",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 0,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 9,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count == 9) {
-          if (count < 1 || !args[0].isNumber()) {
-            throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
-          }
-          auto block_number = static_cast<int64_t>(args[0].asNumber());
-          if (count < 2 || !args[1].isObject()) {
-            throw jsi::JSError(rt, "Expected BigNum for slot");
-          }
-          auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
-          if (count < 3 || !args[2].isObject()) {
-            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
-          }
-          auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
-          if (count < 4 || !args[3].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-          }
-          auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
-          if (count < 5 || !args[4].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-          }
-          auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
-          if (count < 6 || !args[5].isNumber()) {
-            throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
-          }
-          auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
-          if (count < 7 || !args[6].isObject()) {
-            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-          }
-          auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
-          if (count < 8 || !args[7].isObject()) {
-            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-          }
-          auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
-          if (count < 9 || !args[8].isObject()) {
-            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-          }
-          auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
-          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_header_body_new_headerbody(block_number, slot->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
-        } else if (count == 10) {
-          if (count < 1 || !args[0].isNumber()) {
-            throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
-          }
-          auto block_number = static_cast<int64_t>(args[0].asNumber());
-          if (count < 2 || !args[1].isObject()) {
-            throw jsi::JSError(rt, "Expected BigNum for slot");
-          }
-          auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
-          if (count < 3 || !args[2].isObject()) {
-            throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
-          }
-          auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
-          if (count < 4 || !args[3].isObject()) {
-            throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
-          }
-          auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
-          if (count < 5 || !args[4].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-          }
-          auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
-          if (count < 6 || !args[5].isObject()) {
-            throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-          }
-          auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
-          if (count < 7 || !args[6].isNumber()) {
-            throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
-          }
-          auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
-          if (count < 8 || !args[7].isObject()) {
-            throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-          }
-          auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
-          if (count < 9 || !args[8].isObject()) {
-            throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-          }
-          auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
-          if (count < 10 || !args[9].isObject()) {
-            throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-          }
-          auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
-          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
-        } else {
-          throw jsi::JSError(rt, "Invalid number of arguments for new_headerbody. Expected 0 or 1 arguments.");
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
         }
+        auto block_number = static_cast<int64_t>(args[0].asNumber());
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected BigNum for slot");
+        }
+        auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        }
+        auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
+        if (count < 4 || !args[3].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+        }
+        auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
+        if (count < 5 || !args[4].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+        }
+        auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
+        if (count < 6 || !args[5].isNumber()) {
+          throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
+        }
+        auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
+        if (count < 7 || !args[6].isObject()) {
+          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+        }
+        auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
+        if (count < 8 || !args[7].isObject()) {
+          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+        }
+        auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
+        if (count < 9 || !args[8].isObject()) {
+          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
+        auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
+        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_header_body_new_headerbody(block_number, slot->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_headerbody_with_prev_hash
+  ns.setProperty(rt, "new_headerbody_with_prev_hash",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody_with_prev_hash"), 10,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new_headerbody_with_prev_hash(block_number) requires number");
+        }
+        auto block_number = static_cast<int64_t>(args[0].asNumber());
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected BigNum for slot");
+        }
+        auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+        }
+        auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
+        if (count < 4 || !args[3].isObject()) {
+          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        }
+        auto issuer_vkey = getVkeyState(rt, args[3].asObject(rt), "issuer_vkey");
+        if (count < 5 || !args[4].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
+        }
+        auto vrf_vkey = getVRFVKeyState(rt, args[4].asObject(rt), "vrf_vkey");
+        if (count < 6 || !args[5].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
+        }
+        auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
+        if (count < 7 || !args[6].isNumber()) {
+          throw jsi::JSError(rt, "new_headerbody_with_prev_hash(block_body_size) requires number");
+        }
+        auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
+        if (count < 8 || !args[7].isObject()) {
+          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
+        }
+        auto block_body_hash = getBlockHashState(rt, args[7].asObject(rt), "block_body_hash");
+        if (count < 9 || !args[8].isObject()) {
+          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
+        }
+        auto operational_cert = getOperationalCertState(rt, args[8].asObject(rt), "operational_cert");
+        if (count < 10 || !args[9].isObject()) {
+          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
+        }
+        auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
+        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+        });
       }
     )
   );
@@ -19959,7 +19969,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20108,7 +20118,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -20270,7 +20280,7 @@ static jsi::Object getOrCreateIpv4Proto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20306,7 +20316,7 @@ static jsi::Object getOrCreateIpv4Proto(jsi::Runtime& rt) {
     )
   );
 
-  // ip(): number[]
+  // ip(): Uint8Array
   proto.setProperty(rt, "ip",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "ip"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20339,7 +20349,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -20397,7 +20407,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(data) requires number[]");
+          throw jsi::JSError(rt, "new(data) requires Uint8Array");
         }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
@@ -20469,7 +20479,7 @@ static jsi::Object getOrCreateIpv6Proto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20505,7 +20515,7 @@ static jsi::Object getOrCreateIpv6Proto(jsi::Runtime& rt) {
     )
   );
 
-  // ip(): number[]
+  // ip(): Uint8Array
   proto.setProperty(rt, "ip",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "ip"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20538,7 +20548,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -20596,7 +20606,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(data) requires number[]");
+          throw jsi::JSError(rt, "new(data) requires Uint8Array");
         }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
@@ -20668,7 +20678,7 @@ static jsi::Object getOrCreateKESSignatureProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20701,7 +20711,7 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -20773,7 +20783,7 @@ static jsi::Object getOrCreateKESVKeyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -20834,7 +20844,7 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -20936,7 +20946,7 @@ static jsi::Object getOrCreateLanguageProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -21007,7 +21017,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -21277,7 +21287,7 @@ static jsi::Object getOrCreateLegacyDaedalusPrivateKeyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -21289,7 +21299,7 @@ static jsi::Object getOrCreateLegacyDaedalusPrivateKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // chaincode(): number[]
+  // chaincode(): Uint8Array
   proto.setProperty(rt, "chaincode",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "chaincode"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -21322,7 +21332,7 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -21502,7 +21512,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -21621,7 +21631,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -21734,7 +21744,7 @@ static jsi::Object getOrCreateMalformedAddressProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // original_bytes(): number[]
+  // original_bytes(): Uint8Array
   proto.setProperty(rt, "original_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "original_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -21838,7 +21848,7 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -21931,7 +21941,7 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -22029,7 +22039,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -22226,7 +22236,7 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -22324,7 +22334,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -22467,7 +22477,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -23222,7 +23232,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -23331,7 +23341,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -23471,7 +23481,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardsCertProto(jsi::Runtime& rt
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -23540,7 +23550,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -23657,7 +23667,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -23836,7 +23846,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -23949,7 +23959,7 @@ static jsi::Object getOrCreateMultiHostNameProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -24018,7 +24028,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -24135,7 +24145,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -24302,7 +24312,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -24677,7 +24687,7 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -24745,7 +24755,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -24847,7 +24857,7 @@ static jsi::Object getOrCreateNetworkIdProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -24918,7 +24928,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -25187,7 +25197,7 @@ static jsi::Object getOrCreateNewConstitutionActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -25282,7 +25292,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -25418,7 +25428,7 @@ static jsi::Object getOrCreateNoConfidenceActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -25487,7 +25497,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -25615,7 +25625,7 @@ static jsi::Object getOrCreateNonceProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -25651,7 +25661,7 @@ static jsi::Object getOrCreateNonceProto(jsi::Runtime& rt) {
     )
   );
 
-  // get_hash(): number[]
+  // get_hash(): Uint8Array
   proto.setProperty(rt, "get_hash",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_hash"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -25684,7 +25694,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -25753,7 +25763,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_from_hash"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_from_hash(hash) requires number[]");
+          throw jsi::JSError(rt, "new_from_hash(hash) requires Uint8Array");
         }
         auto __arr_hash = args[0].asObject(rt).asArray(rt);
         size_t __n_hash = __arr_hash.length(rt);
@@ -25825,7 +25835,7 @@ static jsi::Object getOrCreateOperationalCertProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -25934,7 +25944,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -26182,7 +26192,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -26275,7 +26285,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -26453,7 +26463,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -26539,7 +26549,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
     )
   );
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -26604,7 +26614,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -26741,7 +26751,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -26847,7 +26857,7 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -26940,7 +26950,7 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27038,7 +27048,7 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -27145,7 +27155,7 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27367,7 +27377,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -27391,7 +27401,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
     )
   );
 
-  // bytes(): number[]
+  // bytes(): Uint8Array
   proto.setProperty(rt, "bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -27448,7 +27458,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27491,7 +27501,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(bytes) requires number[]");
+          throw jsi::JSError(rt, "new(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27519,7 +27529,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_v2"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_v2(bytes) requires number[]");
+          throw jsi::JSError(rt, "new_v2(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27547,7 +27557,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_v3"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_v3(bytes) requires number[]");
+          throw jsi::JSError(rt, "new_v3(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27575,7 +27585,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_version"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_with_version(bytes) requires number[]");
+          throw jsi::JSError(rt, "new_with_version(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27607,7 +27617,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes_v2"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes_v2(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes_v2(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27635,7 +27645,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes_v3"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes_v3(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes_v3(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27663,7 +27673,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes_with_version"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes_with_version(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes_with_version(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -27897,7 +27907,7 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -28002,7 +28012,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -28766,7 +28776,7 @@ static jsi::Object getOrCreatePoolMetadataProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -28847,7 +28857,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -28968,7 +28978,7 @@ static jsi::Object getOrCreatePoolMetadataHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -29029,7 +29039,7 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -29131,7 +29141,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -29296,7 +29306,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -29351,7 +29361,50 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 9,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 8,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected Ed25519KeyHash for operator_");
+        }
+        auto operator_ = getEd25519KeyHashState(rt, args[0].asObject(rt), "operator_");
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected VRFKeyHash for vrf_keyhash");
+        }
+        auto vrf_keyhash = getVRFKeyHashState(rt, args[1].asObject(rt), "vrf_keyhash");
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected BigNum for pledge");
+        }
+        auto pledge = getBigNumState(rt, args[2].asObject(rt), "pledge");
+        if (count < 4 || !args[3].isObject()) {
+          throw jsi::JSError(rt, "Expected BigNum for cost");
+        }
+        auto cost = getBigNumState(rt, args[3].asObject(rt), "cost");
+        if (count < 5 || !args[4].isObject()) {
+          throw jsi::JSError(rt, "Expected UnitInterval for margin");
+        }
+        auto margin = getUnitIntervalState(rt, args[4].asObject(rt), "margin");
+        if (count < 6 || !args[5].isObject()) {
+          throw jsi::JSError(rt, "Expected RewardAddress for reward_account");
+        }
+        auto reward_account = getRewardAddressState(rt, args[5].asObject(rt), "reward_account");
+        if (count < 7 || !args[6].isObject()) {
+          throw jsi::JSError(rt, "Expected Ed25519KeyHashes for pool_owners");
+        }
+        auto pool_owners = getEd25519KeyHashesState(rt, args[6].asObject(rt), "pool_owners");
+        if (count < 8 || !args[7].isObject()) {
+          throw jsi::JSError(rt, "Expected Relays for relays");
+        }
+        auto relays = getRelaysState(rt, args[7].asObject(rt), "relays");
+        return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_pool_params_new(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_pool_metadata
+  ns.setProperty(rt, "new_with_pool_metadata",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_pool_metadata"), 9,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for operator_");
@@ -29445,7 +29498,7 @@ static jsi::Object getOrCreatePoolRegistrationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -29514,7 +29567,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -29631,7 +29684,7 @@ static jsi::Object getOrCreatePoolRetirementProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -29714,7 +29767,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -29835,7 +29888,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -29952,7 +30005,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -30109,7 +30162,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -30127,7 +30180,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPrivateKeyState(rt, thisVal);
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "sign(message) requires number[]");
+          throw jsi::JSError(rt, "sign(message) requires Uint8Array");
         }
         auto __arr_message = args[0].asObject(rt).asArray(rt);
         size_t __n_message = __arr_message.length(rt);
@@ -30220,7 +30273,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_extended_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_extended_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_extended_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -30248,7 +30301,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_normal_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_normal_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_normal_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -30335,7 +30388,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -30454,7 +30507,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -30567,7 +30620,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -31602,7 +31655,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -31715,7 +31768,7 @@ static jsi::Object getOrCreateProtocolVersionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -31800,7 +31853,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -31933,7 +31986,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
     )
   );
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -31951,7 +32004,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisPublicKeyState(rt, thisVal);
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "verify(data) requires number[]");
+          throw jsi::JSError(rt, "verify(data) requires Uint8Array");
         }
         auto __arr_data = args[0].asObject(rt).asArray(rt);
         size_t __n_data = __arr_data.length(rt);
@@ -32040,7 +32093,7 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -32251,7 +32304,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -32356,7 +32409,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -32485,7 +32538,7 @@ static jsi::Object getOrCreateRedeemerTagProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -32556,7 +32609,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -32724,7 +32777,7 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -32855,7 +32908,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -32968,7 +33021,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -33075,7 +33128,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -33222,7 +33275,7 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -33327,7 +33380,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -33577,7 +33630,7 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -33682,7 +33735,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -33795,7 +33848,7 @@ static jsi::Object getOrCreateScriptAllProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -33864,7 +33917,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -33981,7 +34034,7 @@ static jsi::Object getOrCreateScriptAnyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -34050,7 +34103,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -34167,7 +34220,7 @@ static jsi::Object getOrCreateScriptDataHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -34228,7 +34281,7 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -34330,7 +34383,7 @@ static jsi::Object getOrCreateScriptHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -34391,7 +34444,7 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -34493,7 +34546,7 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -34598,7 +34651,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -34711,7 +34764,7 @@ static jsi::Object getOrCreateScriptNOfKProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -34794,7 +34847,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -34915,7 +34968,7 @@ static jsi::Object getOrCreateScriptPubkeyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -34984,7 +35037,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -35101,7 +35154,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -35189,7 +35242,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
     )
   );
 
-  // to_unwrapped_bytes(): number[]
+  // to_unwrapped_bytes(): Uint8Array
   proto.setProperty(rt, "to_unwrapped_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_unwrapped_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -35222,7 +35275,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -35354,7 +35407,7 @@ static jsi::Object getOrCreateSingleHostAddrProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -35449,7 +35502,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -35504,10 +35557,123 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 0,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new(out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_port
+  ns.setProperty(rt, "new_with_port",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new(port) requires number");
+          throw jsi::JSError(rt, "new_with_port(port) requires number");
+        }
+        auto port = static_cast<uint32_t>(args[0].asNumber());
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new_with_port(port, out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_ipv4
+  ns.setProperty(rt, "new_with_ipv4",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ipv4"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+        }
+        auto ipv4 = getIpv4State(rt, args[0].asObject(rt), "ipv4");
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new_with_ipv4(ipv4->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_port_ipv4
+  ns.setProperty(rt, "new_with_port_ipv4",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port_ipv4"), 2,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new_with_port_ipv4(port) requires number");
+        }
+        auto port = static_cast<uint32_t>(args[0].asNumber());
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+        }
+        auto ipv4 = getIpv4State(rt, args[1].asObject(rt), "ipv4");
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new_with_port_ipv4(port, ipv4->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_ipv6
+  ns.setProperty(rt, "new_with_ipv6",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ipv6"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
+        }
+        auto ipv6 = getIpv6State(rt, args[0].asObject(rt), "ipv6");
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new_with_ipv6(ipv6->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_port_ipv6
+  ns.setProperty(rt, "new_with_port_ipv6",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port_ipv6"), 2,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new_with_port_ipv6(port) requires number");
+        }
+        auto port = static_cast<uint32_t>(args[0].asNumber());
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
+        }
+        auto ipv6 = getIpv6State(rt, args[1].asObject(rt), "ipv6");
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new_with_port_ipv6(port, ipv6->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_ipv4_ipv6
+  ns.setProperty(rt, "new_with_ipv4_ipv6",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ipv4_ipv6"), 2,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+        }
+        auto ipv4 = getIpv4State(rt, args[0].asObject(rt), "ipv4");
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
+        }
+        auto ipv6 = getIpv6State(rt, args[1].asObject(rt), "ipv6");
+        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_addr_new_with_ipv4_ipv6(ipv4->get(), ipv6->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_port_ipv4_ipv6
+  ns.setProperty(rt, "new_with_port_ipv4_ipv6",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port_ipv4_ipv6"), 3,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isNumber()) {
+          throw jsi::JSError(rt, "new_with_port_ipv4_ipv6(port) requires number");
         }
         auto port = static_cast<uint32_t>(args[0].asNumber());
         if (count < 2 || !args[1].isObject()) {
@@ -35574,7 +35740,7 @@ static jsi::Object getOrCreateSingleHostNameProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -35657,7 +35823,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -35712,10 +35878,25 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected DNSRecordAorAAAA for dns_name");
+        }
+        auto dns_name = getDNSRecordAorAAAAState(rt, args[0].asObject(rt), "dns_name");
+        return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_single_host_name_new(dns_name->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_port
+  ns.setProperty(rt, "new_with_port",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new(port) requires number");
+          throw jsi::JSError(rt, "new_with_port(port) requires number");
         }
         auto port = static_cast<uint32_t>(args[0].asNumber());
         if (count < 2 || !args[1].isObject()) {
@@ -35778,7 +35959,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -35885,7 +36066,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -36010,7 +36191,7 @@ static jsi::Object getOrCreateStakeDelegationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -36105,7 +36286,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -36226,7 +36407,7 @@ static jsi::Object getOrCreateStakeDeregistrationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -36321,7 +36502,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -36457,7 +36638,7 @@ static jsi::Object getOrCreateStakeRegistrationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -36552,7 +36733,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -36688,7 +36869,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -36795,7 +36976,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -36920,7 +37101,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -37039,7 +37220,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -37292,7 +37473,7 @@ static jsi::Object getOrCreateTimelockExpiryProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -37375,7 +37556,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -37507,7 +37688,7 @@ static jsi::Object getOrCreateTimelockStartProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -37590,7 +37771,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -37722,7 +37903,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -37847,7 +38028,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -37902,7 +38083,26 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected TransactionBody for body");
+        }
+        auto body = getTransactionBodyState(rt, args[0].asObject(rt), "body");
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected TransactionWitnessSet for witness_set");
+        }
+        auto witness_set = getTransactionWitnessSetState(rt, args[1].asObject(rt), "witness_set");
+        return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_transaction_new(body->get(), witness_set->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_auxiliary_data
+  ns.setProperty(rt, "new_with_auxiliary_data",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_auxiliary_data"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBody for body");
@@ -38162,7 +38362,7 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -38267,7 +38467,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -38380,7 +38580,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -39073,7 +39273,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -39128,7 +39328,30 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected TransactionInputs for inputs");
+        }
+        auto inputs = getTransactionInputsState(rt, args[0].asObject(rt), "inputs");
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected TransactionOutputs for outputs");
+        }
+        auto outputs = getTransactionOutputsState(rt, args[1].asObject(rt), "outputs");
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected BigNum for fee");
+        }
+        auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
+        return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_transaction_body_new(inputs->get(), outputs->get(), fee->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // new_with_ttl
+  ns.setProperty(rt, "new_with_ttl",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ttl"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInputs for inputs");
@@ -39143,7 +39366,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         }
         auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
         if (count < 4 || !args[3].isNumber()) {
-          throw jsi::JSError(rt, "new(ttl) requires number");
+          throw jsi::JSError(rt, "new_with_ttl(ttl) requires number");
         }
         auto ttl = static_cast<uint32_t>(args[3].asNumber());
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
@@ -41078,7 +41301,7 @@ static jsi::Object getOrCreateTransactionHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -41139,7 +41362,7 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -41241,7 +41464,7 @@ static jsi::Object getOrCreateTransactionInputProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -41324,7 +41547,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -41445,7 +41668,7 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -41562,7 +41785,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -41675,7 +41898,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -41749,7 +41972,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
     )
   );
 
-  // as_bytes(): number[]
+  // as_bytes(): Uint8Array
   proto.setProperty(rt, "as_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "as_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -41794,7 +42017,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -41882,7 +42105,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -41969,7 +42192,7 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -42062,7 +42285,7 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -42160,7 +42383,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -42387,7 +42610,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -42809,7 +43032,7 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -42914,7 +43137,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -43027,7 +43250,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -43108,7 +43331,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -43380,7 +43603,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -43617,7 +43840,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -43730,7 +43953,7 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -43835,7 +44058,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -44115,7 +44338,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -44196,7 +44419,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -44722,7 +44945,7 @@ static jsi::Object getOrCreateURLProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -44791,7 +45014,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -44908,7 +45131,7 @@ static jsi::Object getOrCreateUnitIntervalProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -44989,7 +45212,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -45110,7 +45333,7 @@ static jsi::Object getOrCreateUpdateProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -45193,7 +45416,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -45314,7 +45537,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -45407,7 +45630,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -45551,7 +45774,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -45587,7 +45810,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
     )
   );
 
-  // output(): number[]
+  // output(): Uint8Array
   proto.setProperty(rt, "output",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "output"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -45599,7 +45822,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
     )
   );
 
-  // proof(): number[]
+  // proof(): Uint8Array
   proto.setProperty(rt, "proof",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "proof"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -45632,7 +45855,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -45690,7 +45913,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(output) requires number[]");
+          throw jsi::JSError(rt, "new(output) requires Uint8Array");
         }
         auto __arr_output = args[0].asObject(rt).asArray(rt);
         size_t __n_output = __arr_output.length(rt);
@@ -45707,7 +45930,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
           output.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
         if (count < 2 || !args[1].isObject() || !args[1].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "new(proof) requires number[]");
+          throw jsi::JSError(rt, "new(proof) requires Uint8Array");
         }
         auto __arr_proof = args[1].asObject(rt).asArray(rt);
         size_t __n_proof = __arr_proof.length(rt);
@@ -45779,7 +46002,7 @@ static jsi::Object getOrCreateVRFKeyHashProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -45840,7 +46063,7 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -45942,7 +46165,7 @@ static jsi::Object getOrCreateVRFVKeyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -46003,7 +46226,7 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -46105,7 +46328,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -46302,7 +46525,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -46464,7 +46687,7 @@ static jsi::Object getOrCreateVersionedBlockProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -46547,7 +46770,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -46668,7 +46891,7 @@ static jsi::Object getOrCreateVkeyProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -46737,7 +46960,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -46978,7 +47201,7 @@ static jsi::Object getOrCreateVkeywitnessProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -47059,7 +47282,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -47180,7 +47403,7 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -47285,7 +47508,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -47398,7 +47621,7 @@ static jsi::Object getOrCreateVoteDelegationProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -47493,7 +47716,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -47614,7 +47837,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -47721,7 +47944,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -47846,7 +48069,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -47979,7 +48202,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -48501,7 +48724,7 @@ static jsi::Object getOrCreateVotingProcedureProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -48584,7 +48807,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -48720,7 +48943,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -48851,7 +49074,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -48964,7 +49187,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -49069,7 +49292,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -49364,7 +49587,7 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -49499,7 +49722,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -49612,7 +49835,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
 
   jsi::Object proto(rt);
 
-  // to_bytes(): number[]
+  // to_bytes(): Uint8Array
   proto.setProperty(rt, "to_bytes",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bytes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -49731,7 +49954,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "from_bytes"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires number[]");
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -50074,7 +50297,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
-  // decode_arbitrary_bytes_from_metadatum(): number[]
+  // decode_arbitrary_bytes_from_metadatum(): Uint8Array
   exports.setProperty(rt, "decode_arbitrary_bytes_from_metadatum",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "decode_arbitrary_bytes_from_metadatum"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -50151,7 +50374,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "encode_arbitrary_bytes_as_metadatum"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires number[]");
+          throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires Uint8Array");
         }
         auto __arr_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_bytes = __arr_bytes.length(rt);
@@ -50313,7 +50536,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "has_transaction_set_tag"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isArray(rt)) {
-          throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires number[]");
+          throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires Uint8Array");
         }
         auto __arr_tx_bytes = args[0].asObject(rt).asArray(rt);
         size_t __n_tx_bytes = __arr_tx_bytes.length(rt);
@@ -50370,39 +50593,42 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
 
   // hash_script_data(): ScriptDataHash
   exports.setProperty(rt, "hash_script_data",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 0,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count == 2) {
-          if (count < 1 || !args[0].isObject()) {
-            throw jsi::JSError(rt, "Expected Redeemers for arg0");
-          }
-          auto arg0 = getRedeemersState(rt, args[0].asObject(rt), "arg0");
-          if (count < 2 || !args[1].isObject()) {
-            throw jsi::JSError(rt, "Expected Costmdls for arg1");
-          }
-          auto arg1 = getCostmdlsState(rt, args[1].asObject(rt), "arg1");
-          return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_hash_script_data(arg0->get(), arg1->get(), out, err);
-          });
-        } else if (count == 3) {
-          if (count < 1 || !args[0].isObject()) {
-            throw jsi::JSError(rt, "Expected Redeemers for arg0");
-          }
-          auto arg0 = getRedeemersState(rt, args[0].asObject(rt), "arg0");
-          if (count < 2 || !args[1].isObject()) {
-            throw jsi::JSError(rt, "Expected Costmdls for arg1");
-          }
-          auto arg1 = getCostmdlsState(rt, args[1].asObject(rt), "arg1");
-          if (count < 3 || !args[2].isObject()) {
-            throw jsi::JSError(rt, "Expected PlutusList for arg2");
-          }
-          auto arg2 = getPlutusListState(rt, args[2].asObject(rt), "arg2");
-          return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-            return csl_bridge_hash_script_data_with_datums(arg0->get(), arg1->get(), arg2->get(), out, err);
-          });
-        } else {
-          throw jsi::JSError(rt, "Invalid number of arguments for hash_script_data. Expected 0 or 1 arguments.");
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected Redeemers for redeemers");
         }
+        auto redeemers = getRedeemersState(rt, args[0].asObject(rt), "redeemers");
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected Costmdls for cost_models");
+        }
+        auto cost_models = getCostmdlsState(rt, args[1].asObject(rt), "cost_models");
+        return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_hash_script_data(redeemers->get(), cost_models->get(), out, err);
+        });
+      }
+    )
+  );
+
+  // hash_script_data_with_datums(): ScriptDataHash
+  exports.setProperty(rt, "hash_script_data_with_datums",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data_with_datums"), 3,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "Expected Redeemers for redeemers");
+        }
+        auto redeemers = getRedeemersState(rt, args[0].asObject(rt), "redeemers");
+        if (count < 2 || !args[1].isObject()) {
+          throw jsi::JSError(rt, "Expected Costmdls for cost_models");
+        }
+        auto cost_models = getCostmdlsState(rt, args[1].asObject(rt), "cost_models");
+        if (count < 3 || !args[2].isObject()) {
+          throw jsi::JSError(rt, "Expected PlutusList for datums");
+        }
+        auto datums = getPlutusListState(rt, args[2].asObject(rt), "datums");
+        return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
+          return csl_bridge_hash_script_data_with_datums(redeemers->get(), cost_models->get(), datums->get(), out, err);
+        });
       }
     )
   );
