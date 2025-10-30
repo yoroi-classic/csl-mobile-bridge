@@ -4983,11 +4983,11 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -5181,11 +5181,11 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -5363,11 +5363,11 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -5534,11 +5534,11 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -5592,11 +5592,11 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_name; ++__i) {
           auto __v = __arr_name.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           name.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -5769,11 +5769,11 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -6001,11 +6001,11 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -6293,11 +6293,11 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -6467,11 +6467,11 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7087,11 +7087,11 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7425,11 +7425,11 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7715,11 +7715,11 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_128_xprv.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_128_xprv: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_128_xprv.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_128_xprv: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7754,11 +7754,11 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7797,11 +7797,11 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_entropy; ++__i) {
           auto __v = __arr_entropy.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
           }
           entropy.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7814,11 +7814,11 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_password; ++__i) {
           auto __v = __arr_password.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bip39_entropy.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
           }
           password.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -7998,11 +7998,11 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -8217,11 +8217,11 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -8411,11 +8411,11 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -8618,11 +8618,11 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -8684,11 +8684,11 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_chain_code; ++__i) {
           auto __v = __arr_chain_code.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           chain_code.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -8701,11 +8701,11 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_attributes; ++__i) {
           auto __v = __arr_attributes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           attributes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -8878,11 +8878,11 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -9102,11 +9102,11 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -9553,11 +9553,11 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -10045,11 +10045,11 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -10647,11 +10647,11 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -10859,11 +10859,11 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -11090,11 +11090,11 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -11292,11 +11292,11 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -11497,11 +11497,11 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -11710,11 +11710,11 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -11958,11 +11958,11 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -12210,11 +12210,11 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -12417,11 +12417,11 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -12599,11 +12599,11 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -12785,11 +12785,11 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -13013,11 +13013,11 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -13292,11 +13292,11 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -13520,11 +13520,11 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -13759,11 +13759,11 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -14252,11 +14252,11 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -14558,11 +14558,11 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -14816,11 +14816,11 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -15053,11 +15053,11 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -15253,11 +15253,11 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -15543,11 +15543,11 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -15745,11 +15745,11 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -15959,11 +15959,11 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16100,11 +16100,11 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "set_body.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "set_body: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "set_body.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "set_body: byte out of range 0..255");
           }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16131,11 +16131,11 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_witness_set; ++__i) {
           auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "set_witness_set.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "set_witness_set: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "set_witness_set.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "set_witness_set: byte out of range 0..255");
           }
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16218,11 +16218,11 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_auxiliary_data; ++__i) {
           auto __v = __arr_raw_auxiliary_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "set_auxiliary_data.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "set_auxiliary_data: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "set_auxiliary_data.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "set_auxiliary_data: byte out of range 0..255");
           }
           raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16398,11 +16398,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16441,11 +16441,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16458,11 +16458,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_witness_set; ++__i) {
           auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16490,11 +16490,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
           }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16507,11 +16507,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_witness_set; ++__i) {
           auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
           }
           raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16524,11 +16524,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_auxiliary_data; ++__i) {
           auto __v = __arr_raw_auxiliary_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_auxiliary.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
           }
           raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16556,11 +16556,11 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_raw_body; ++__i) {
           auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_from_body_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_from_body_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_from_body_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_from_body_bytes: byte out of range 0..255");
           }
           raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16697,11 +16697,11 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -16852,11 +16852,11 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -17020,11 +17020,11 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -17139,11 +17139,11 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -17345,11 +17345,11 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -17519,11 +17519,11 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -17682,11 +17682,11 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -17889,11 +17889,11 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -18095,11 +18095,11 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -18375,11 +18375,11 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -18665,11 +18665,11 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -19018,11 +19018,11 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -19235,11 +19235,11 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -19603,11 +19603,11 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20126,11 +20126,11 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20357,11 +20357,11 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20415,11 +20415,11 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20556,11 +20556,11 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20614,11 +20614,11 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20719,11 +20719,11 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -20852,11 +20852,11 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -21025,11 +21025,11 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -21340,11 +21340,11 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -21639,11 +21639,11 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -21949,11 +21949,11 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -22244,11 +22244,11 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -22485,11 +22485,11 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -23349,11 +23349,11 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -23558,11 +23558,11 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -23854,11 +23854,11 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -24036,11 +24036,11 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -24320,11 +24320,11 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -24763,11 +24763,11 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -24936,11 +24936,11 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -25300,11 +25300,11 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -25505,11 +25505,11 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -25702,11 +25702,11 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -25771,11 +25771,11 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_hash; ++__i) {
           auto __v = __arr_hash.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_from_hash.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_from_hash: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_from_hash.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_from_hash: byte out of range 0..255");
           }
           hash.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -25952,11 +25952,11 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -26293,11 +26293,11 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -26622,11 +26622,11 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -26759,11 +26759,11 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -26958,11 +26958,11 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27163,11 +27163,11 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27466,11 +27466,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27509,11 +27509,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27537,11 +27537,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_v2.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_v2: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_v2.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_v2: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27565,11 +27565,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_v3.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_v3: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_v3.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_v3: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27593,11 +27593,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_version.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_with_version: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_version.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_with_version: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27625,11 +27625,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes_v2.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes_v2: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes_v2.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes_v2: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27653,11 +27653,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes_v3.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes_v3: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes_v3.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes_v3: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -27681,11 +27681,11 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes_with_version.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes_with_version: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes_with_version.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes_with_version: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -28020,11 +28020,11 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -28865,11 +28865,11 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -29047,11 +29047,11 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -29314,11 +29314,11 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -29575,11 +29575,11 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -29775,11 +29775,11 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -30013,11 +30013,11 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -30188,11 +30188,11 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_message; ++__i) {
           auto __v = __arr_message.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "sign.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "sign: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "sign.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "sign: byte out of range 0..255");
           }
           message.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -30281,11 +30281,11 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_extended_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_extended_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_extended_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_extended_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -30309,11 +30309,11 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_normal_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_normal_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_normal_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_normal_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -30515,11 +30515,11 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -31663,11 +31663,11 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -31861,11 +31861,11 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -32012,11 +32012,11 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_data; ++__i) {
           auto __v = __arr_data.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "verify.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "verify: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "verify.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "verify: byte out of range 0..255");
           }
           data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -32101,11 +32101,11 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -32417,11 +32417,11 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -32617,11 +32617,11 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -32916,11 +32916,11 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -33136,11 +33136,11 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -33388,11 +33388,11 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -33743,11 +33743,11 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -33925,11 +33925,11 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -34111,11 +34111,11 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -34289,11 +34289,11 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -34452,11 +34452,11 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -34659,11 +34659,11 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -34855,11 +34855,11 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -35045,11 +35045,11 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -35283,11 +35283,11 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -35510,11 +35510,11 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -35831,11 +35831,11 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -36074,11 +36074,11 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -36294,11 +36294,11 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -36510,11 +36510,11 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -36741,11 +36741,11 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -36984,11 +36984,11 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -37228,11 +37228,11 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -37564,11 +37564,11 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -37779,11 +37779,11 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -38036,11 +38036,11 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -38475,11 +38475,11 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -39281,11 +39281,11 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -41370,11 +41370,11 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -41555,11 +41555,11 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -41793,11 +41793,11 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -42025,11 +42025,11 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -42113,11 +42113,11 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -42293,11 +42293,11 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -42618,11 +42618,11 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -43145,11 +43145,11 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -43339,11 +43339,11 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -43848,11 +43848,11 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -44066,11 +44066,11 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -44427,11 +44427,11 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45022,11 +45022,11 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45220,11 +45220,11 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45424,11 +45424,11 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45638,11 +45638,11 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45863,11 +45863,11 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45921,11 +45921,11 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_output; ++__i) {
           auto __v = __arr_output.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           output.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -45938,11 +45938,11 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_proof; ++__i) {
           auto __v = __arr_proof.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "new: byte out of range 0..255");
           }
           proof.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -46071,11 +46071,11 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -46234,11 +46234,11 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -46533,11 +46533,11 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -46778,11 +46778,11 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -46968,11 +46968,11 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -47290,11 +47290,11 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -47516,11 +47516,11 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -47724,11 +47724,11 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -47952,11 +47952,11 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -48210,11 +48210,11 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -48815,11 +48815,11 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -49082,11 +49082,11 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -49300,11 +49300,11 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -49730,11 +49730,11 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -49962,11 +49962,11 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -50382,11 +50382,11 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_bytes; ++__i) {
           auto __v = __arr_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: byte out of range 0..255");
           }
           bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
@@ -50544,11 +50544,11 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         for (size_t __i=0; __i<__n_tx_bytes; ++__i) {
           auto __v = __arr_tx_bytes.getValueAtIndex(rt, __i);
           if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "has_transaction_set_tag.from_bytes: array must contain numbers");
+            throw jsi::JSError(rt, "has_transaction_set_tag: Expected Uint8Array as input");
           }
           double __d = __v.asNumber();
           if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "has_transaction_set_tag.from_bytes: byte out of range 0..255");
+            throw jsi::JSError(rt, "has_transaction_set_tag: byte out of range 0..255");
           }
           tx_bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
         }
