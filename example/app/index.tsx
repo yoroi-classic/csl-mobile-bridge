@@ -1,83 +1,86 @@
-import { ScrollView, Text, StyleSheet } from "react-native";
-import { BigNum } from "@emurgo/csl-mobile-bridge-jsi";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
+import { ScrollView, Text, View, TouchableOpacity } from "react-native";
+import { ExampleSection } from './types';
+import { styles } from './styles';
+
+// Import all example classes
+import BigNumExamples from './examples/BigNumExamples';
+import AddressExamples from './examples/AddressExamples';
+import TransactionExamples from './examples/TransactionExamples';
+import ValueExamples from './examples/ValueExamples';
+import ProtocolParametersExamples from './examples/ProtocolParametersExamples';
+import CryptographyExamples from './examples/CryptographyExamples';
+import MetadataExamples from './examples/MetadataExamples';
 
 export default function Index() {
-  const [results, setResults] = useState<string[]>([]);
+  const [sections, setSections] = useState<ExampleSection[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const results: string[] = [];
-
-      // Basic creation
-      const bn1 = BigNum.from_str("12345678901234");
-      results.push(`from_str: ${bn1.to_str()}`);
-
-      // Static methods
-      const zero = BigNum.zero();
-      const one = BigNum.one();
-      results.push(`zero: ${zero.to_str()}`);
-      results.push(`one: ${one.to_str()}`);
-
-      // Arithmetic operations
-      const bn2 = BigNum.from_str("1000000000000000000");
-      const sum = bn1.checked_add(bn2);
-      results.push(`12345678901234 + 1000000000000000000 = ${sum.to_str()}`);
-
-      const product = bn1.checked_mul(BigNum.from_str("2"));
-      results.push(`12345678901234 * 2 = ${product.to_str()}`);
-
-      // Comparison
-      const isLess = bn1.less_than(product);
-      results.push(`bn1 < product: ${isLess}`);
-
-      const isZero = zero.is_zero();
-      results.push(`zero.is_zero(): ${isZero}`);
-
-      // Conversions
-      const hex = bn1.to_hex();
-      results.push(`hex: ${hex}`);
-
-      // From bytes
-      const fromBytes = BigNum.from_bytes(bn1.to_bytes());
-      results.push(`from_bytes: ${fromBytes.to_str()}`);
-
-      // From hex
-      const fromHex = BigNum.from_hex(hex);
-      results.push(`from_hex: ${fromHex.to_str()}`);
-
-      setResults(results);
-    } catch (error) {
-      console.error("Error with BigNum:", error);
-      setResults([`Error: ${error instanceof Error ? error.message : String(error)}`]);
-    }
+    runAllExamples();
   }, []);
 
+  const runAllExamples = async () => {
+    setLoading(true);
+    const newSections: ExampleSection[] = [];
+
+    try {
+      // Run all example classes
+      newSections.push(await BigNumExamples.run());
+      newSections.push(await AddressExamples.run());
+      newSections.push(await TransactionExamples.run());
+      newSections.push(await ValueExamples.run());
+      newSections.push(await ProtocolParametersExamples.run());
+      newSections.push(await CryptographyExamples.run());
+      newSections.push(await MetadataExamples.run());
+      
+    } catch (error) {
+      console.error("Error running examples:", error);
+      newSections.push({
+        title: "Global Error",
+        results: [],
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
+    setSections(newSections);
+    setLoading(false);
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>CSL Mobile Bridge Demo</Text>
-      {results.map((result, index) => (
-        <Text key={index} style={styles.result}>{result}</Text>
-      ))}
-    </ScrollView>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>CSL Mobile Bridge Demo</Text>
+        <Text style={styles.subtitle}>Comprehensive Examples & Testing</Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={runAllExamples}>
+          <Text style={styles.refreshButtonText}>🔄 Refresh Examples</Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Running examples...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {sections.map((section, sectionIndex) => (
+            <View key={sectionIndex} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.error ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{section.error}</Text>
+                </View>
+              ) : (
+                section.results.map((result, resultIndex) => (
+                  <View key={resultIndex} style={styles.resultContainer}>
+                    <Text style={styles.resultText}>{result}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  result: {
-    fontSize: 16,
-    marginVertical: 5,
-    textAlign: 'center',
-  },
-});
