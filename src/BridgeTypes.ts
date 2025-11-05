@@ -12,8 +12,7 @@ export declare class Address {
   to_hex(): string;
   static from_hex(hex_str: string): Address;
   to_bytes(): Uint8Array;
-  to_bech32(): string;
-  to_bech32_with_prefix(prefix: string): string;
+  to_bech32(prefix?: string): string;
   static from_bech32(bech_str: string): Address;
   network_id(): number;
 }
@@ -883,10 +882,8 @@ export declare class HeaderBody {
   block_body_hash(): BlockHash;
   operational_cert(): OperationalCert;
   protocol_version(): ProtocolVersion;
-  static new(block_number: number, slot: number, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
-  static new_with_prev_hash(block_number: number, slot: number, prev_hash: BlockHash, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
-  static new_headerbody(block_number: number, slot: BigNum, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
-  static new_headerbody_with_prev_hash(block_number: number, slot: BigNum, prev_hash: BlockHash, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
+  static new(block_number: number, slot: number, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
+  static new_headerbody(block_number: number, slot: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
 }
 
 export declare class InfoAction {
@@ -1443,8 +1440,7 @@ export declare class PoolParams {
   pool_owners(): Ed25519KeyHashes;
   relays(): Relays;
   pool_metadata(): PoolMetadata;
-  static new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: RewardAddress, pool_owners: Ed25519KeyHashes, relays: Relays): PoolParams;
-  static new_with_pool_metadata(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: RewardAddress, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata: PoolMetadata): PoolParams;
+  static new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: RewardAddress, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata?: PoolMetadata): PoolParams;
 }
 
 export declare class PoolRegistration {
@@ -1814,14 +1810,7 @@ export declare class SingleHostAddr {
   port(): number;
   ipv4(): Ipv4;
   ipv6(): Ipv6;
-  static new(): SingleHostAddr;
-  static new_with_port(port: number): SingleHostAddr;
-  static new_with_ipv4(ipv4: Ipv4): SingleHostAddr;
-  static new_with_port_ipv4(port: number, ipv4: Ipv4): SingleHostAddr;
-  static new_with_ipv6(ipv6: Ipv6): SingleHostAddr;
-  static new_with_port_ipv6(port: number, ipv6: Ipv6): SingleHostAddr;
-  static new_with_ipv4_ipv6(ipv4: Ipv4, ipv6: Ipv6): SingleHostAddr;
-  static new_with_port_ipv4_ipv6(port: number, ipv4: Ipv4, ipv6: Ipv6): SingleHostAddr;
+  static new(port?: number, ipv4?: Ipv4, ipv6?: Ipv6): SingleHostAddr;
 }
 
 export declare class SingleHostName {
@@ -1833,8 +1822,7 @@ export declare class SingleHostName {
   static from_json(json: string): SingleHostName;
   port(): number;
   dns_name(): DNSRecordAorAAAA;
-  static new(dns_name: DNSRecordAorAAAA): SingleHostName;
-  static new_with_port(port: number, dns_name: DNSRecordAorAAAA): SingleHostName;
+  static new(port: number | undefined, dns_name: DNSRecordAorAAAA): SingleHostName;
 }
 
 export declare class StakeAndVoteDelegation {
@@ -1966,8 +1954,7 @@ export declare class Transaction {
   is_valid(): boolean;
   auxiliary_data(): AuxiliaryData;
   set_is_valid(valid: boolean): void;
-  static new(body: TransactionBody, witness_set: TransactionWitnessSet): Transaction;
-  static new_with_auxiliary_data(body: TransactionBody, witness_set: TransactionWitnessSet, auxiliary_data: AuxiliaryData): Transaction;
+  static new(body: TransactionBody, witness_set: TransactionWitnessSet, auxiliary_data?: AuxiliaryData): Transaction;
 }
 
 export declare class TransactionBatch {
@@ -2043,8 +2030,7 @@ export declare class TransactionBody {
   donation(): BigNum;
   set_current_treasury_value(current_treasury_value: BigNum): void;
   current_treasury_value(): BigNum;
-  static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum): TransactionBody;
-  static new_with_ttl(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl: number): TransactionBody;
+  static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl?: number): TransactionBody;
   static new_tx_body(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum): TransactionBody;
 }
 

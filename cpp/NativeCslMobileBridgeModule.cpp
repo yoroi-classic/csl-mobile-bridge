@@ -4914,28 +4914,27 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
 
   // to_bech32(): String
   proto.setProperty(rt, "to_bech32",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 0,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32"), 1,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAddressState(rt, thisVal);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
-          return csl_bridge_address_to_bech32(st->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // to_bech32_with_prefix(): String
-  proto.setProperty(rt, "to_bech32_with_prefix",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "to_bech32_with_prefix"), 1,
-      [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto st = getThisAddressState(rt, thisVal);
-        if (count < 1 || !args[0].isString()) {
-          throw jsi::JSError(rt, "to_bech32_with_prefix(prefix) requires string");
+        std::string prefix;
+        bool has_prefix = false;
+        if (count >= 1) {
+          if (!args[0].isString()) {
+            throw jsi::JSError(rt, "to_bech32(prefix) requires string");
+          }
+          prefix = args[0].asString(rt).utf8(rt);
+          has_prefix = true;
         }
-        std::string prefix = args[0].asString(rt).utf8(rt);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
-          return csl_bridge_address_to_bech32_with_prefix(st->get(), prefix.c_str(), out, err);
-        });
+        if (has_prefix) {
+          return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+            return csl_bridge_address_to_bech32_with_prefix(st->get(), prefix.c_str(), out, err);
+          });
+        } else {
+          return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+            return csl_bridge_address_to_bech32(st->get(), out, err);
+          });
+        }
       }
     )
   );
@@ -19650,7 +19649,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 9,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 10,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new(block_number) requires number");
@@ -19660,57 +19659,15 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(slot) requires number");
         }
         auto slot = static_cast<uint32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        std::shared_ptr<BlockHashNativeState> prev_hash;
+        bool has_prev_hash = false;
+        if (count >= 3) {
+          if (!args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+          }
+          prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
+          has_prev_hash = true;
         }
-        auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
-        if (count < 4 || !args[3].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-        }
-        auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
-        if (count < 5 || !args[4].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-        }
-        auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
-        if (count < 6 || !args[5].isNumber()) {
-          throw jsi::JSError(rt, "new(block_body_size) requires number");
-        }
-        auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
-        if (count < 7 || !args[6].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-        }
-        auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
-        if (count < 8 || !args[7].isObject()) {
-          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-        }
-        auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
-        if (count < 9 || !args[8].isObject()) {
-          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-        }
-        auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
-        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_new(block_number, slot, issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_prev_hash
-  ns.setProperty(rt, "new_with_prev_hash",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_prev_hash"), 10,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_with_prev_hash(block_number) requires number");
-        }
-        auto block_number = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isNumber()) {
-          throw jsi::JSError(rt, "new_with_prev_hash(slot) requires number");
-        }
-        auto slot = static_cast<uint32_t>(args[1].asNumber());
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
-        }
-        auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
         if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
         }
@@ -19724,7 +19681,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         }
         auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
         if (count < 7 || !args[6].isNumber()) {
-          throw jsi::JSError(rt, "new_with_prev_hash(block_body_size) requires number");
+          throw jsi::JSError(rt, "new(block_body_size) requires number");
         }
         auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
         if (count < 8 || !args[7].isObject()) {
@@ -19739,16 +19696,22 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
         }
         auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
-        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-        });
+        if (has_prev_hash) {
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        } else {
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new(block_number, slot, issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        }
       }
     )
   );
 
   // new_headerbody
   ns.setProperty(rt, "new_headerbody",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 9,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody"), 10,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isNumber()) {
           throw jsi::JSError(rt, "new_headerbody(block_number) requires number");
@@ -19758,57 +19721,15 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for slot");
         }
         auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
+        std::shared_ptr<BlockHashNativeState> prev_hash;
+        bool has_prev_hash = false;
+        if (count >= 3) {
+          if (!args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
+          }
+          prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
+          has_prev_hash = true;
         }
-        auto issuer_vkey = getVkeyState(rt, args[2].asObject(rt), "issuer_vkey");
-        if (count < 4 || !args[3].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFVKey for vrf_vkey");
-        }
-        auto vrf_vkey = getVRFVKeyState(rt, args[3].asObject(rt), "vrf_vkey");
-        if (count < 5 || !args[4].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFCert for vrf_result");
-        }
-        auto vrf_result = getVRFCertState(rt, args[4].asObject(rt), "vrf_result");
-        if (count < 6 || !args[5].isNumber()) {
-          throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
-        }
-        auto block_body_size = static_cast<uint32_t>(args[5].asNumber());
-        if (count < 7 || !args[6].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for block_body_hash");
-        }
-        auto block_body_hash = getBlockHashState(rt, args[6].asObject(rt), "block_body_hash");
-        if (count < 8 || !args[7].isObject()) {
-          throw jsi::JSError(rt, "Expected OperationalCert for operational_cert");
-        }
-        auto operational_cert = getOperationalCertState(rt, args[7].asObject(rt), "operational_cert");
-        if (count < 9 || !args[8].isObject()) {
-          throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
-        }
-        auto protocol_version = getProtocolVersionState(rt, args[8].asObject(rt), "protocol_version");
-        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_new_headerbody(block_number, slot->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_headerbody_with_prev_hash
-  ns.setProperty(rt, "new_headerbody_with_prev_hash",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_headerbody_with_prev_hash"), 10,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_headerbody_with_prev_hash(block_number) requires number");
-        }
-        auto block_number = static_cast<int64_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected BigNum for slot");
-        }
-        auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
-        }
-        auto prev_hash = getBlockHashState(rt, args[2].asObject(rt), "prev_hash");
         if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "Expected Vkey for issuer_vkey");
         }
@@ -19822,7 +19743,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         }
         auto vrf_result = getVRFCertState(rt, args[5].asObject(rt), "vrf_result");
         if (count < 7 || !args[6].isNumber()) {
-          throw jsi::JSError(rt, "new_headerbody_with_prev_hash(block_body_size) requires number");
+          throw jsi::JSError(rt, "new_headerbody(block_body_size) requires number");
         }
         auto block_body_size = static_cast<uint32_t>(args[6].asNumber());
         if (count < 8 || !args[7].isObject()) {
@@ -19837,9 +19758,15 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected ProtocolVersion for protocol_version");
         }
         auto protocol_version = getProtocolVersionState(rt, args[9].asObject(rt), "protocol_version");
-        return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-        });
+        if (has_prev_hash) {
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        } else {
+          return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_header_body_new_headerbody(block_number, slot->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
+          });
+        }
       }
     )
   );
@@ -29361,7 +29288,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 8,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 9,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519KeyHash for operator_");
@@ -29395,56 +29322,24 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Relays for relays");
         }
         auto relays = getRelaysState(rt, args[7].asObject(rt), "relays");
-        return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_params_new(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_pool_metadata
-  ns.setProperty(rt, "new_with_pool_metadata",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_pool_metadata"), 9,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected Ed25519KeyHash for operator_");
+        std::shared_ptr<PoolMetadataNativeState> pool_metadata;
+        bool has_pool_metadata = false;
+        if (count >= 9) {
+          if (!args[8].isObject()) {
+            throw jsi::JSError(rt, "Expected PoolMetadata for pool_metadata");
+          }
+          pool_metadata = getPoolMetadataState(rt, args[8].asObject(rt), "pool_metadata");
+          has_pool_metadata = true;
         }
-        auto operator_ = getEd25519KeyHashState(rt, args[0].asObject(rt), "operator_");
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected VRFKeyHash for vrf_keyhash");
+        if (has_pool_metadata) {
+          return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_pool_params_new_with_pool_metadata(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), pool_metadata->get(), out, err);
+          });
+        } else {
+          return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_pool_params_new(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), out, err);
+          });
         }
-        auto vrf_keyhash = getVRFKeyHashState(rt, args[1].asObject(rt), "vrf_keyhash");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected BigNum for pledge");
-        }
-        auto pledge = getBigNumState(rt, args[2].asObject(rt), "pledge");
-        if (count < 4 || !args[3].isObject()) {
-          throw jsi::JSError(rt, "Expected BigNum for cost");
-        }
-        auto cost = getBigNumState(rt, args[3].asObject(rt), "cost");
-        if (count < 5 || !args[4].isObject()) {
-          throw jsi::JSError(rt, "Expected UnitInterval for margin");
-        }
-        auto margin = getUnitIntervalState(rt, args[4].asObject(rt), "margin");
-        if (count < 6 || !args[5].isObject()) {
-          throw jsi::JSError(rt, "Expected RewardAddress for reward_account");
-        }
-        auto reward_account = getRewardAddressState(rt, args[5].asObject(rt), "reward_account");
-        if (count < 7 || !args[6].isObject()) {
-          throw jsi::JSError(rt, "Expected Ed25519KeyHashes for pool_owners");
-        }
-        auto pool_owners = getEd25519KeyHashesState(rt, args[6].asObject(rt), "pool_owners");
-        if (count < 8 || !args[7].isObject()) {
-          throw jsi::JSError(rt, "Expected Relays for relays");
-        }
-        auto relays = getRelaysState(rt, args[7].asObject(rt), "relays");
-        if (count < 9 || !args[8].isObject()) {
-          throw jsi::JSError(rt, "Expected PoolMetadata for pool_metadata");
-        }
-        auto pool_metadata = getPoolMetadataState(rt, args[8].asObject(rt), "pool_metadata");
-        return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_params_new_with_pool_metadata(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), pool_metadata->get(), out, err);
-        });
       }
     )
   );
@@ -35557,136 +35452,80 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 0,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new(out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_port
-  ns.setProperty(rt, "new_with_port",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port"), 1,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_with_port(port) requires number");
+        uint32_t port = 0;
+        bool has_port = false;
+        if (count >= 1) {
+          if (!args[0].isNumber()) {
+            throw jsi::JSError(rt, "new(port) requires number");
+          }
+          port = static_cast<uint32_t>(args[0].asNumber());
+          has_port = true;
         }
-        auto port = static_cast<uint32_t>(args[0].asNumber());
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_port(port, out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_ipv4
-  ns.setProperty(rt, "new_with_ipv4",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ipv4"), 1,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+        std::shared_ptr<Ipv4NativeState> ipv4;
+        bool has_ipv4 = false;
+        if (count >= 2) {
+          if (!args[1].isObject()) {
+            throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+          }
+          ipv4 = getIpv4State(rt, args[1].asObject(rt), "ipv4");
+          has_ipv4 = true;
         }
-        auto ipv4 = getIpv4State(rt, args[0].asObject(rt), "ipv4");
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_ipv4(ipv4->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_port_ipv4
-  ns.setProperty(rt, "new_with_port_ipv4",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port_ipv4"), 2,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_with_port_ipv4(port) requires number");
+        std::shared_ptr<Ipv6NativeState> ipv6;
+        bool has_ipv6 = false;
+        if (count >= 3) {
+          if (!args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
+          }
+          ipv6 = getIpv6State(rt, args[2].asObject(rt), "ipv6");
+          has_ipv6 = true;
         }
-        auto port = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
+        if (has_port) {
+          if (has_ipv4) {
+            if (has_ipv6) {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_port_ipv4_ipv6(port, ipv4->get(), ipv6->get(), out, err);
+              });
+            } else {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_port_ipv4(port, ipv4->get(), out, err);
+              });
+            }
+          } else {
+            if (has_ipv6) {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_port_ipv6(port, ipv6->get(), out, err);
+              });
+            } else {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_port(port, out, err);
+              });
+            }
+          }
+        } else {
+          if (has_ipv4) {
+            if (has_ipv6) {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_ipv4_ipv6(ipv4->get(), ipv6->get(), out, err);
+              });
+            } else {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_ipv4(ipv4->get(), out, err);
+              });
+            }
+          } else {
+            if (has_ipv6) {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new_with_ipv6(ipv6->get(), out, err);
+              });
+            } else {
+              return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
+                return csl_bridge_single_host_addr_new(out, err);
+              });
+            }
+          }
         }
-        auto ipv4 = getIpv4State(rt, args[1].asObject(rt), "ipv4");
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_port_ipv4(port, ipv4->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_ipv6
-  ns.setProperty(rt, "new_with_ipv6",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ipv6"), 1,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
-        }
-        auto ipv6 = getIpv6State(rt, args[0].asObject(rt), "ipv6");
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_ipv6(ipv6->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_port_ipv6
-  ns.setProperty(rt, "new_with_port_ipv6",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port_ipv6"), 2,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_with_port_ipv6(port) requires number");
-        }
-        auto port = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
-        }
-        auto ipv6 = getIpv6State(rt, args[1].asObject(rt), "ipv6");
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_port_ipv6(port, ipv6->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_ipv4_ipv6
-  ns.setProperty(rt, "new_with_ipv4_ipv6",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ipv4_ipv6"), 2,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
-        }
-        auto ipv4 = getIpv4State(rt, args[0].asObject(rt), "ipv4");
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
-        }
-        auto ipv6 = getIpv6State(rt, args[1].asObject(rt), "ipv6");
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_ipv4_ipv6(ipv4->get(), ipv6->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_port_ipv4_ipv6
-  ns.setProperty(rt, "new_with_port_ipv4_ipv6",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port_ipv4_ipv6"), 3,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_with_port_ipv4_ipv6(port) requires number");
-        }
-        auto port = static_cast<uint32_t>(args[0].asNumber());
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
-        }
-        auto ipv4 = getIpv4State(rt, args[1].asObject(rt), "ipv4");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
-        }
-        auto ipv6 = getIpv6State(rt, args[2].asObject(rt), "ipv6");
-        return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_new_with_port_ipv4_ipv6(port, ipv4->get(), ipv6->get(), out, err);
-        });
       }
     )
   );
@@ -35878,34 +35717,30 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 1,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected DNSRecordAorAAAA for dns_name");
+        uint32_t port = 0;
+        bool has_port = false;
+        if (count >= 1) {
+          if (!args[0].isNumber()) {
+            throw jsi::JSError(rt, "new(port) requires number");
+          }
+          port = static_cast<uint32_t>(args[0].asNumber());
+          has_port = true;
         }
-        auto dns_name = getDNSRecordAorAAAAState(rt, args[0].asObject(rt), "dns_name");
-        return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_name_new(dns_name->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_port
-  ns.setProperty(rt, "new_with_port",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_port"), 2,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isNumber()) {
-          throw jsi::JSError(rt, "new_with_port(port) requires number");
-        }
-        auto port = static_cast<uint32_t>(args[0].asNumber());
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected DNSRecordAorAAAA for dns_name");
         }
         auto dns_name = getDNSRecordAorAAAAState(rt, args[1].asObject(rt), "dns_name");
-        return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_name_new_with_port(port, dns_name->get(), out, err);
-        });
+        if (has_port) {
+          return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_single_host_name_new_with_port(port, dns_name->get(), out, err);
+          });
+        } else {
+          return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_single_host_name_new(dns_name->get(), out, err);
+          });
+        }
       }
     )
   );
@@ -38083,7 +37918,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 2,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionBody for body");
@@ -38093,32 +37928,24 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected TransactionWitnessSet for witness_set");
         }
         auto witness_set = getTransactionWitnessSetState(rt, args[1].asObject(rt), "witness_set");
-        return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_new(body->get(), witness_set->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_auxiliary_data
-  ns.setProperty(rt, "new_with_auxiliary_data",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_auxiliary_data"), 3,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected TransactionBody for body");
+        std::shared_ptr<AuxiliaryDataNativeState> auxiliary_data;
+        bool has_auxiliary_data = false;
+        if (count >= 3) {
+          if (!args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected AuxiliaryData for auxiliary_data");
+          }
+          auxiliary_data = getAuxiliaryDataState(rt, args[2].asObject(rt), "auxiliary_data");
+          has_auxiliary_data = true;
         }
-        auto body = getTransactionBodyState(rt, args[0].asObject(rt), "body");
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected TransactionWitnessSet for witness_set");
+        if (has_auxiliary_data) {
+          return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_transaction_new_with_auxiliary_data(body->get(), witness_set->get(), auxiliary_data->get(), out, err);
+          });
+        } else {
+          return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_transaction_new(body->get(), witness_set->get(), out, err);
+          });
         }
-        auto witness_set = getTransactionWitnessSetState(rt, args[1].asObject(rt), "witness_set");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected AuxiliaryData for auxiliary_data");
-        }
-        auto auxiliary_data = getAuxiliaryDataState(rt, args[2].asObject(rt), "auxiliary_data");
-        return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_new_with_auxiliary_data(body->get(), witness_set->get(), auxiliary_data->get(), out, err);
-        });
       }
     )
   );
@@ -39328,7 +39155,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
 
   // new
   ns.setProperty(rt, "new",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 3,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new"), 4,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected TransactionInputs for inputs");
@@ -39342,36 +39169,24 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for fee");
         }
         auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
-        return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_body_new(inputs->get(), outputs->get(), fee->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // new_with_ttl
-  ns.setProperty(rt, "new_with_ttl",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "new_with_ttl"), 4,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected TransactionInputs for inputs");
+        uint32_t ttl = 0;
+        bool has_ttl = false;
+        if (count >= 4) {
+          if (!args[3].isNumber()) {
+            throw jsi::JSError(rt, "new(ttl) requires number");
+          }
+          ttl = static_cast<uint32_t>(args[3].asNumber());
+          has_ttl = true;
         }
-        auto inputs = getTransactionInputsState(rt, args[0].asObject(rt), "inputs");
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected TransactionOutputs for outputs");
+        if (has_ttl) {
+          return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_transaction_body_new_with_ttl(inputs->get(), outputs->get(), fee->get(), ttl, out, err);
+          });
+        } else {
+          return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_transaction_body_new(inputs->get(), outputs->get(), fee->get(), out, err);
+          });
         }
-        auto outputs = getTransactionOutputsState(rt, args[1].asObject(rt), "outputs");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected BigNum for fee");
-        }
-        auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
-        if (count < 4 || !args[3].isNumber()) {
-          throw jsi::JSError(rt, "new_with_ttl(ttl) requires number");
-        }
-        auto ttl = static_cast<uint32_t>(args[3].asNumber());
-        return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_body_new_with_ttl(inputs->get(), outputs->get(), fee->get(), ttl, out, err);
-        });
       }
     )
   );
@@ -50593,7 +50408,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
 
   // hash_script_data(): ScriptDataHash
   exports.setProperty(rt, "hash_script_data",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 2,
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data"), 3,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
           throw jsi::JSError(rt, "Expected Redeemers for redeemers");
@@ -50603,32 +50418,24 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Costmdls for cost_models");
         }
         auto cost_models = getCostmdlsState(rt, args[1].asObject(rt), "cost_models");
-        return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_hash_script_data(redeemers->get(), cost_models->get(), out, err);
-        });
-      }
-    )
-  );
-
-  // hash_script_data_with_datums(): ScriptDataHash
-  exports.setProperty(rt, "hash_script_data_with_datums",
-    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_script_data_with_datums"), 3,
-      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
-        if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "Expected Redeemers for redeemers");
+        std::shared_ptr<PlutusListNativeState> datums;
+        bool has_datums = false;
+        if (count >= 3) {
+          if (!args[2].isObject()) {
+            throw jsi::JSError(rt, "Expected PlutusList for datums");
+          }
+          datums = getPlutusListState(rt, args[2].asObject(rt), "datums");
+          has_datums = true;
         }
-        auto redeemers = getRedeemersState(rt, args[0].asObject(rt), "redeemers");
-        if (count < 2 || !args[1].isObject()) {
-          throw jsi::JSError(rt, "Expected Costmdls for cost_models");
+        if (has_datums) {
+          return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_hash_script_data_with_datums(redeemers->get(), cost_models->get(), datums->get(), out, err);
+          });
+        } else {
+          return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
+            return csl_bridge_hash_script_data(redeemers->get(), cost_models->get(), out, err);
+          });
         }
-        auto cost_models = getCostmdlsState(rt, args[1].asObject(rt), "cost_models");
-        if (count < 3 || !args[2].isObject()) {
-          throw jsi::JSError(rt, "Expected PlutusList for datums");
-        }
-        auto datums = getPlutusListState(rt, args[2].asObject(rt), "datums");
-        return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_hash_script_data_with_datums(redeemers->get(), cost_models->get(), datums->get(), out, err);
-        });
       }
     )
   );
