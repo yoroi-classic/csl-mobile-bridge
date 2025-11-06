@@ -892,14 +892,14 @@ export declare class InfoAction {
 
 export declare class Int {
   to_bytes(): Uint8Array;
-  static from_bytes(bytes: Uint8Array): number;
+  static from_bytes(bytes: Uint8Array): Int;
   to_hex(): string;
-  static from_hex(hex_str: string): number;
+  static from_hex(hex_str: string): Int;
   to_json(): string;
-  static from_json(json: string): number;
-  static new(x: BigNum): number;
-  static new_negative(x: BigNum): number;
-  static new_i32(x: number): number;
+  static from_json(json: string): Int;
+  static new(x: BigNum): Int;
+  static new_negative(x: BigNum): Int;
+  static new_i32(x: number): Int;
   is_positive(): boolean;
   as_positive(): BigNum;
   as_negative(): BigNum;
@@ -907,7 +907,7 @@ export declare class Int {
   as_i32_or_nothing(): number;
   as_i32_or_fail(): number;
   to_str(): string;
-  static from_str(string: string): number;
+  static from_str(string: string): Int;
 }
 
 export declare class Ipv4 {

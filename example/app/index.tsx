@@ -11,6 +11,11 @@ import ValueExamples from './examples/ValueExamples';
 import ProtocolParametersExamples from './examples/ProtocolParametersExamples';
 import CryptographyExamples from './examples/CryptographyExamples';
 import MetadataExamples from './examples/MetadataExamples';
+import HeaderBodyExamples from './examples/HeaderBodyExamples';
+import PoolParamsExamples from './examples/PoolParamsExamples';
+import SingleHostAddrExamples from './examples/SingleHostAddrExamples';
+import SingleHostNameExamples from './examples/SingleHostNameExamples';
+import TransactionBodyExamples from './examples/TransactionBodyExamples';
 
 export default function Index() {
   const [sections, setSections] = useState<ExampleSection[]>([]);
@@ -33,6 +38,11 @@ export default function Index() {
       newSections.push(await ProtocolParametersExamples.run());
       newSections.push(await CryptographyExamples.run());
       newSections.push(await MetadataExamples.run());
+      newSections.push(await HeaderBodyExamples.run());
+      newSections.push(await PoolParamsExamples.run());
+      newSections.push(await SingleHostAddrExamples.run());
+      newSections.push(await SingleHostNameExamples.run());
+      newSections.push(await TransactionBodyExamples.run());
       
     } catch (error) {
       console.error("Error running examples:", error);
