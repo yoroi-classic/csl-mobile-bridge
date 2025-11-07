@@ -39,6 +39,47 @@ export default class BigNumExamples {
       const fromHex = BigNum.from_hex(hex);
       results.push(`✓ From hex: ${fromHex.to_str()}`);
 
+      // Additional BigNum operations
+      const diff = product.checked_sub(bn1);
+      results.push(`✓ Subtraction: ${product.to_str()} - ${bn1.to_str()} = ${diff.to_str()}`);
+
+      const clampedDiff = product.clamped_sub(bn1);
+      results.push(`✓ Clamped subtraction: ${product.to_str()} - ${bn1.to_str()} = ${clampedDiff.to_str()}`);
+
+      const divResult = bn2.div_floor(BigNum.from_str("1000000000000"));
+      results.push(`✓ Division: ${bn2.to_str()} / 1000000000000 = ${divResult.to_str()}`);
+
+      // Max value and max function
+      const maxValue = BigNum.max_value();
+      results.push(`✓ Max value: ${maxValue.to_str()}`);
+
+      const maxOfTwo = BigNum.max(bn1, bn2);
+      results.push(`✓ Max of two: max(${bn1.to_str()}, ${bn2.to_str()}) = ${maxOfTwo.to_str()}`);
+
+      // Zero check
+      const isZero = zero.is_zero();
+      const isNonZero = bn1.is_zero();
+      results.push(`✓ Zero is zero: ${isZero}, Non-zero is zero: ${isNonZero}`);
+
+      // JSON conversion
+      const bigNumJson = bn1.to_json();
+      const bigNumFromJson = BigNum.from_json(bigNumJson);
+      results.push(`✓ BigNum from JSON: Success`);
+      results.push(`✓ BigNum JSON length: ${bigNumJson.length} characters`);
+
+      // Edge cases
+      const veryLarge = BigNum.from_str("999999999999999999999999999999");
+      results.push(`✓ Very large number: ${veryLarge.to_str()}`);
+
+      const smallNumber = BigNum.from_str("1");
+      results.push(`✓ Small number: ${smallNumber.to_str()}`);
+
+      // Bytes conversion verification
+      const originalBytes = bn1.to_bytes();
+      const reconstructed = BigNum.from_bytes(originalBytes);
+      const isSame = bn1.to_str() === reconstructed.to_str();
+      results.push(`✓ Bytes round-trip success: ${isSame}`);
+
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }

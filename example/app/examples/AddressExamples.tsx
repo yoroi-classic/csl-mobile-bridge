@@ -4,9 +4,14 @@ import {
   BaseAddress, 
   EnterpriseAddress, 
   RewardAddress,
+  PointerAddress,
+  ByronAddress,
+  MalformedAddress,
   Credential,
   PrivateKey,
-  PublicKey
+  Ed25519KeyHash,
+  Bip32PublicKey,
+  NetworkInfo
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
@@ -50,6 +55,73 @@ export default class AddressExamples {
 
       // Address validation
       results.push(`✓ Is malformed: ${address.is_malformed()}`);
+
+      // Address payment credential
+      const paymentCred = address.payment_cred();
+      results.push(`✓ Payment credential kind: ${paymentCred.kind()}`);
+      results.push(`✓ Payment credential has script hash: ${paymentCred.has_script_hash()}`);
+
+      // Address with different prefix
+      const addressWithPrefix = address.to_bech32("custom");
+      results.push(`✓ Address with custom prefix: ${addressWithPrefix}`);
+
+      // Pointer Address
+      const pointer = { slot: 100, tx_index: 0, cert_index: 0 }; // Simplified Pointer
+      const pointerAddress = PointerAddress.new(0, paymentCredential, pointer as any);
+      const pointerAddr = pointerAddress.to_address();
+      results.push(`✓ Pointer Address: ${pointerAddr.to_bech32()}`);
+      results.push(`✓ Pointer Address network ID: ${pointerAddr.network_id()}`);
+
+      // Byron Address
+      const byronKeyHash = Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(5));
+      const bip32PubKey = Bip32PublicKey.from_bytes(new Uint8Array(64).fill(6));
+      const byronAddress = ByronAddress.icarus_from_key(bip32PubKey, 764824073);
+      const byronAddr = byronAddress.to_address();
+      results.push(`✓ Byron Address: ${byronAddr.to_bech32()}`);
+      results.push(`✓ Byron Address network ID: ${byronAddr.network_id()}`);
+      results.push(`✓ Byron Address kind: ${byronAddress.byron_address_kind()}`);
+      results.push(`✓ Byron Address protocol magic: ${byronAddress.byron_protocol_magic()}`);
+
+      // Byron Address from base58
+      const byronBase58 = byronAddress.to_base58();
+      const byronFromBase58 = ByronAddress.from_base58(byronBase58);
+      results.push(`✓ Byron Address from base58: Success`);
+
+      // Byron Address validation
+      const isValidByron = ByronAddress.is_valid(byronBase58);
+      results.push(`✓ Byron Address validation: ${isValidByron}`);
+
+      // Malformed Address
+      const malformedAddr = MalformedAddress.from_address(address);
+      const originalBytes = malformedAddr.original_bytes();
+      const recoveredAddr = malformedAddr.to_address();
+      results.push(`✓ Malformed Address original bytes length: ${originalBytes.length}`);
+      results.push(`✓ Recovered Address: ${recoveredAddr.to_bech32()}`);
+
+      // Address from different networks
+      const mainnetBaseAddr = BaseAddress.new(1, paymentCredential, stakeCredential);
+      const mainnetAddr = mainnetBaseAddr.to_address();
+      results.push(`✓ Mainnet Address: ${mainnetAddr.to_bech32()}`);
+      results.push(`✓ Mainnet Network ID: ${mainnetAddr.network_id()}`);
+
+      // Address JSON conversion
+      const addressJson = address.to_json();
+      const addressFromJson = Address.from_json(addressJson);
+      results.push(`✓ Address from JSON: Success`);
+      results.push(`✓ Address JSON length: ${addressJson.length} characters`);
+
+      // Network Info examples
+      const testnetInfo = NetworkInfo.testnet_preview();
+      results.push(`✓ Testnet Preview network ID: ${testnetInfo.network_id()}`);
+      results.push(`✓ Testnet Preview protocol magic: ${testnetInfo.protocol_magic()}`);
+
+      const mainnetInfo = NetworkInfo.mainnet();
+      results.push(`✓ Mainnet network ID: ${mainnetInfo.network_id()}`);
+      results.push(`✓ Mainnet protocol magic: ${mainnetInfo.protocol_magic()}`);
+
+      const customInfo = NetworkInfo.new(2, 9999);
+      results.push(`✓ Custom network ID: ${customInfo.network_id()}`);
+      results.push(`✓ Custom protocol magic: ${customInfo.protocol_magic()}`);
 
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);

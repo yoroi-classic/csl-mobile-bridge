@@ -683,13 +683,13 @@ export declare class FixedTransaction {
   static new_from_body_bytes(raw_body: Uint8Array): FixedTransaction;
   body(): TransactionBody;
   raw_body(): Uint8Array;
-  set_body(raw_body: number): void;
-  set_witness_set(raw_witness_set: number): void;
+  set_body(raw_body: Uint8Array): void;
+  set_witness_set(raw_witness_set: Uint8Array): void;
   witness_set(): TransactionWitnessSet;
   raw_witness_set(): Uint8Array;
   set_is_valid(valid: boolean): void;
   is_valid(): boolean;
-  set_auxiliary_data(raw_auxiliary_data: number): void;
+  set_auxiliary_data(raw_auxiliary_data: Uint8Array): void;
   auxiliary_data(): AuxiliaryData;
   raw_auxiliary_data(): Uint8Array;
   transaction_hash(): TransactionHash;
@@ -1292,7 +1292,7 @@ export declare class PlutusData {
   as_list(): PlutusList;
   as_integer(): BigInt;
   as_bytes(): Uint8Array;
-  to_json(schema: string): string;
+  to_json(schema: number): string;
   static from_json(json: string, schema: number): PlutusData;
   static from_address(address: Address): PlutusData;
   as_address(network: NetworkInfo): Address;
@@ -1490,7 +1490,7 @@ export declare class PrivateKey {
   as_bytes(): Uint8Array;
   static from_extended_bytes(bytes: Uint8Array): PrivateKey;
   static from_normal_bytes(bytes: Uint8Array): PrivateKey;
-  sign(message: number): Ed25519Signature;
+  sign(message: Uint8Array): Ed25519Signature;
   to_hex(): string;
   static from_hex(hex_str: string): PrivateKey;
 }
@@ -1600,7 +1600,7 @@ export declare class PublicKey {
   to_bech32(): string;
   as_bytes(): Uint8Array;
   static from_bytes(bytes: Uint8Array): PublicKey;
-  verify(data: number, signature: Ed25519Signature): boolean;
+  verify(data: Uint8Array, signature: Ed25519Signature): boolean;
   hash(): Ed25519KeyHash;
   to_hex(): string;
   static from_hex(hex_str: string): PublicKey;
