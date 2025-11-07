@@ -1,6 +1,6 @@
 import React from 'react';
 import { BigNum } from "@emurgo/csl-mobile-bridge-jsi";
-import { ExampleSection, ExampleComponentProps } from '../types';
+import { ExampleSection } from '../types';
 
 export default class BigNumExamples {
   static async run(): Promise<ExampleSection> {
@@ -63,16 +63,9 @@ export default class BigNumExamples {
 
       // JSON conversion
       const bigNumJson = bn1.to_json();
-      const bigNumFromJson = BigNum.from_json(bigNumJson);
+      BigNum.from_json(bigNumJson);
       results.push(`✓ BigNum from JSON: Success`);
       results.push(`✓ BigNum JSON length: ${bigNumJson.length} characters`);
-
-      // Edge cases
-      const veryLarge = BigNum.from_str("999999999999999999999999999999");
-      results.push(`✓ Very large number: ${veryLarge.to_str()}`);
-
-      const smallNumber = BigNum.from_str("1");
-      results.push(`✓ Small number: ${smallNumber.to_str()}`);
 
       // Bytes conversion verification
       const originalBytes = bn1.to_bytes();

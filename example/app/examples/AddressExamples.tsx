@@ -9,9 +9,9 @@ import {
   MalformedAddress,
   Credential,
   PrivateKey,
-  Ed25519KeyHash,
   Bip32PublicKey,
-  NetworkInfo
+  NetworkInfo,
+  Pointer
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
@@ -66,14 +66,13 @@ export default class AddressExamples {
       results.push(`✓ Address with custom prefix: ${addressWithPrefix}`);
 
       // Pointer Address
-      const pointer = { slot: 100, tx_index: 0, cert_index: 0 }; // Simplified Pointer
-      const pointerAddress = PointerAddress.new(0, paymentCredential, pointer as any);
+      const pointer = Pointer.new(100, 0, 0);
+      const pointerAddress = PointerAddress.new(0, paymentCredential, pointer);
       const pointerAddr = pointerAddress.to_address();
       results.push(`✓ Pointer Address: ${pointerAddr.to_bech32()}`);
       results.push(`✓ Pointer Address network ID: ${pointerAddr.network_id()}`);
 
       // Byron Address
-      const byronKeyHash = Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(5));
       const bip32PubKey = Bip32PublicKey.from_bytes(new Uint8Array(64).fill(6));
       const byronAddress = ByronAddress.icarus_from_key(bip32PubKey, 764824073);
       const byronAddr = byronAddress.to_address();
@@ -84,7 +83,7 @@ export default class AddressExamples {
 
       // Byron Address from base58
       const byronBase58 = byronAddress.to_base58();
-      const byronFromBase58 = ByronAddress.from_base58(byronBase58);
+      ByronAddress.from_base58(byronBase58);
       results.push(`✓ Byron Address from base58: Success`);
 
       // Byron Address validation
@@ -98,15 +97,9 @@ export default class AddressExamples {
       results.push(`✓ Malformed Address original bytes length: ${originalBytes.length}`);
       results.push(`✓ Recovered Address: ${recoveredAddr.to_bech32()}`);
 
-      // Address from different networks
-      const mainnetBaseAddr = BaseAddress.new(1, paymentCredential, stakeCredential);
-      const mainnetAddr = mainnetBaseAddr.to_address();
-      results.push(`✓ Mainnet Address: ${mainnetAddr.to_bech32()}`);
-      results.push(`✓ Mainnet Network ID: ${mainnetAddr.network_id()}`);
-
       // Address JSON conversion
       const addressJson = address.to_json();
-      const addressFromJson = Address.from_json(addressJson);
+      Address.from_json(addressJson);
       results.push(`✓ Address from JSON: Success`);
       results.push(`✓ Address JSON length: ${addressJson.length} characters`);
 

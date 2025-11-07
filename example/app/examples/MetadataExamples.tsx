@@ -17,8 +17,6 @@ import {
   PlutusScripts,
   TransactionMetadatumLabels,
   AssetName,
-  Assets,
-  MultiAsset,
   ScriptHash
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
@@ -98,13 +96,13 @@ export default class MetadataExamples {
 
       // Plutus Data conversions
       const plutusHex = plutusData.to_hex();
-      const plutusFromHex = PlutusData.from_hex(plutusHex);
+      PlutusData.from_hex(plutusHex);
       results.push(`✓ Plutus data from hex: Success`);
 
       const plutusJson = plutusData.to_json(1); // Schema 1
       results.push(`✓ Plutus data JSON: ${plutusJson.substring(0, 50)}...`);
 
-      const plutusFromJson = PlutusData.from_json(plutusJson, 1);
+      PlutusData.from_json(plutusJson, 1);
       results.push(`✓ Plutus data from JSON: Success`);
 
       // Metadata operations

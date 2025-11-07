@@ -7,9 +7,9 @@ import {
   KESVKey,
   Ed25519Signature,
   ProtocolVersion,
-  Nonce,
   Vkey,
-  BlockHash
+  BlockHash,
+  BigNum
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
@@ -28,7 +28,6 @@ export default class HeaderBodyExamples {
       
       // Create VRF components
       const vrfVkey = VRFVKey.from_bytes(new Uint8Array(32).fill(4));
-      const leaderVrf = VRFCert.new(new Uint8Array(32).fill(6), new Uint8Array(32).fill(6));
       const vrfResult = VRFCert.new(new Uint8Array(32).fill(7), new Uint8Array(32).fill(7));
       
       // Create operational certificate
@@ -41,9 +40,6 @@ export default class HeaderBodyExamples {
       
       // Create protocol version
       const protocolVersion = ProtocolVersion.new(5, 0);
-      
-      // Create nonce
-      const nonce = Nonce.new_identity();
       
       // Basic HeaderBody with previous hash
       const headerBody = HeaderBody.new(
@@ -86,7 +82,37 @@ export default class HeaderBodyExamples {
       );
       
       results.push(`✓ HeaderBody without previous hash created`);
-      results.push(`✓ Previous hash: ${headerBodyWithoutPrevHash.prev_hash().to_hex()}`);
+      results.push(`✓ Previous hash is undefined: ${headerBodyWithoutPrevHash.prev_hash() === undefined}`);
+
+      // HeaderBody using new_headerbody method
+      HeaderBody.new_headerbody(
+        blockNumber,
+        BigNum.from_str(slot.toString()),
+        prevHash,
+        issuerVkey,
+        vrfVkey,
+        vrfResult,
+        blockBodySize,
+        blockBodyHash,
+        operationalCert,
+        protocolVersion,
+      );
+      results.push(`✓ HeaderBody created using new_headerbody method`);
+
+      // HeaderBody using new_headerbody method without previous hash
+      HeaderBody.new_headerbody(
+        blockNumber,
+        BigNum.from_str(slot.toString()),
+        undefined,
+        issuerVkey,
+        vrfVkey,
+        vrfResult,
+        blockBodySize,
+        blockBodyHash,
+        operationalCert,
+        protocolVersion,
+      );
+      results.push(`✓ HeaderBody created using new_headerbody method without previous hash`);
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }

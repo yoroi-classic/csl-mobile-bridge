@@ -5,7 +5,6 @@ import {
   Ed25519KeyHashes,
   Ed25519Signature,
   RewardAddress,
-  Vkey,
   BigNum,
   UnitInterval,
   Relay,
@@ -13,9 +12,7 @@ import {
   Ipv4,
   Ipv6,
   DNSRecordSRV,
-  URL,
   PoolMetadata,
-  KESSignature,
   KESVKey,
   OperationalCert,
   Credential,
@@ -30,14 +27,14 @@ export default class PoolParamsExamples {
     
     try {
       // Create basic components
-      const operator = Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(1));
-      const vrfKeyhash = Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(2));
+      const operator = Ed25519KeyHash.from_bytes(new Uint8Array(28).fill(1));
+      const vrfKeyhash = Ed25519KeyHash.from_bytes(new Uint8Array(28).fill(2));
       const pledge = BigNum.from_str("500000000000");
       const cost = BigNum.from_str("340000000000");
       const margin = UnitInterval.new(BigNum.from_str("1"), BigNum.from_str("100"));
       const rewardAccount = RewardAddress.new(0, Credential.from_keyhash(operator));
       const poolOwners = Ed25519KeyHashes.new();
-      poolOwners.add(Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(3)));
+      poolOwners.add(Ed25519KeyHash.from_bytes(new Uint8Array(28).fill(3)));
       const relays = Relays.new();
       
       // Add IPv4 relay

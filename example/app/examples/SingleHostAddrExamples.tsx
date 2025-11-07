@@ -23,7 +23,7 @@ export default class SingleHostAddrExamples {
 
       // Create IPv6 SingleHostAddr
       const ipv6 = Ipv6.new(new Uint8Array(16).fill(0x2001));
-      const ipv6SingleHostAddr = SingleHostAddr.new(port, ipv6);
+      const ipv6SingleHostAddr = SingleHostAddr.new(port, undefined, ipv6);
       
       results.push(`✓ IPv6 SingleHostAddr created`);
       results.push(`✓ IPv6 address: ${ipv6SingleHostAddr.ipv6().to_hex()}`);
@@ -61,14 +61,14 @@ export default class SingleHostAddrExamples {
 
       // Create SingleHostAddr with loopback IPv6
       const loopbackIpv6 = Ipv6.new(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]));
-      const loopbackSingleHostAddr = SingleHostAddr.new(port, loopbackIpv6);
+      const loopbackSingleHostAddr = SingleHostAddr.new(port, undefined, loopbackIpv6);
       
       results.push(`✓ Loopback IPv6 SingleHostAddr created`);
       results.push(`✓ Loopback IPv6: ${loopbackSingleHostAddr.ipv6().to_hex()}`);
 
       // Compare SingleHostAddr objects
       const sameAddr = SingleHostAddr.new(port, ipv4);
-      const differentAddr = SingleHostAddr.new(highPort, ipv6);
+      const differentAddr = SingleHostAddr.new(highPort, undefined, ipv6);
 
       results.push(`✓ Same address comparison: ${ipv4SingleHostAddr.to_hex()} === ${sameAddr.to_hex()}`);
       results.push(`✓ Different address comparison: ${ipv4SingleHostAddr.to_hex()} === ${differentAddr.to_hex()}`);

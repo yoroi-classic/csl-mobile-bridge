@@ -19,31 +19,19 @@ import {
   TransactionMetadatum,
   MetadataMap,
   Mint,
-  MultiAsset,
-  Assets,
   AssetName,
   ScriptHash,
-  ScriptDataHash,
   PlutusData,
-  ConstrPlutusData,
   Int,
-  Nonce,
-  UnitInterval,
   NetworkId,
   Ed25519KeyHashes,
-  ScriptHashes,
-  PlutusWitnesses,
-  PlutusWitness,
-  RedeemerTag,
-  Redeemers,
-  PlutusMap,
-  PlutusList,
-  BigInt,
   TransactionHash,
-  MintAssets
+  MintAssets,
+  StakeRegistration,
+  hash_auxiliary_data,
+  hash_plutus_data
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
-import { hash_auxiliary_data, hash_plutus_data, StakeRegistration } from '../../../src/BridgeTypes';
 
 export default class TransactionBodyExamples {
   static async run(): Promise<ExampleSection> {
