@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   Transaction,
-  TransactionBody,
   TransactionBuilder,
   TransactionBuilderConfigBuilder,
   TransactionOutput,
@@ -16,12 +15,6 @@ import {
   TransactionWitnessSet,
   Vkeywitnesses,
   Vkeywitness,
-  BootstrapWitnesses,
-  BootstrapWitness,
-  NativeScripts,
-  PlutusScripts,
-  PlutusData,
-  PlutusList,
   AuxiliaryData,
   GeneralTransactionMetadata,
   TransactionMetadatum,
@@ -50,7 +43,9 @@ import {
   make_icarus_bootstrap_witness,
   make_daedalus_bootstrap_witness,
   min_fee,
-  hash_auxiliary_data
+  hash_auxiliary_data,
+  ExUnitPrices,
+  UnitInterval
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
@@ -61,9 +56,21 @@ export default class TransactionExamples {
     try {
       // Create transaction builder config
       const linearFee = LinearFee.new(BigNum.from_str("44"), BigNum.from_str("155381"));
+      results.push(`✓ Linear fee created successfully`);
+      results.push(`Linear fee min_fee_a=${linearFee.coefficient().to_str()}`);
+      results.push(`Linear fee min_fee_b=${linearFee.constant().to_str()}`);
+
       const configBuilder = TransactionBuilderConfigBuilder.new();
+      configBuilder.coins_per_utxo_byte(BigNum.from_str("34482"));
+      configBuilder.ex_unit_prices(ExUnitPrices.new(
+        UnitInterval.new(BigNum.from_str("1"), BigNum.from_str("1000")),
+        UnitInterval.new(BigNum.from_str("1"), BigNum.from_str("1000")),
+      ));
       configBuilder.fee_algo(linearFee);
-      configBuilder.coins_per_utxo_byte(BigNum.from_str("44"));
+      configBuilder.key_deposit(BigNum.from_str("2000000"));
+      configBuilder.max_tx_size(16384);
+      configBuilder.max_value_size(5000);
+      configBuilder.pool_deposit(BigNum.from_str("500000000"));
       const config = configBuilder.build();
 
       // Create transaction builder
@@ -276,7 +283,6 @@ export default class TransactionExamples {
       const fullTx = advancedBuilder.build_tx();
       results.push(`✓ Full transaction built`);
       results.push(`✓ Full transaction size: ${fullTx.to_bytes().length} bytes`);
-
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }

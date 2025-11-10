@@ -9,7 +9,8 @@ import {
   ProtocolVersion,
   Vkey,
   BlockHash,
-  BigNum
+  BigNum,
+  PublicKey
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
@@ -24,12 +25,12 @@ export default class HeaderBodyExamples {
       const slot = 50000000;
       const prevHash = BlockHash.from_bytes(new Uint8Array(32).fill(1));
       const blockBodyHash = BlockHash.from_bytes(new Uint8Array(32).fill(2));
-      const issuerVkey = Vkey.from_bytes(new Uint8Array(32).fill(3));
+      const issuerVkey = Vkey.new(PublicKey.from_hex("fd794e378784ee1b79eab6ebbebb202facee2d92d40d69b7e1c7a85943f5c679"));
       
       // Create VRF components
       const vrfVkey = VRFVKey.from_bytes(new Uint8Array(32).fill(4));
-      const vrfResult = VRFCert.new(new Uint8Array(32).fill(7), new Uint8Array(32).fill(7));
-      
+      const vrfResult = VRFCert.new(new Uint8Array(32).fill(7), new Uint8Array(80).fill(7));
+
       // Create operational certificate
       const operationalCert = OperationalCert.new(
         KESVKey.from_bytes(new Uint8Array(32).fill(8)),
@@ -82,7 +83,6 @@ export default class HeaderBodyExamples {
       );
       
       results.push(`✓ HeaderBody without previous hash created`);
-      results.push(`✓ Previous hash is undefined: ${headerBodyWithoutPrevHash.prev_hash() === undefined}`);
 
       // HeaderBody using new_headerbody method
       HeaderBody.new_headerbody(
@@ -112,6 +112,7 @@ export default class HeaderBodyExamples {
         operationalCert,
         protocolVersion,
       );
+
       results.push(`✓ HeaderBody created using new_headerbody method without previous hash`);
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);

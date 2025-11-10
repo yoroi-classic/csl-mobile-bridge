@@ -90,13 +90,6 @@ export default class AddressExamples {
       const isValidByron = ByronAddress.is_valid(byronBase58);
       results.push(`✓ Byron Address validation: ${isValidByron}`);
 
-      // Malformed Address
-      const malformedAddr = MalformedAddress.from_address(address);
-      const originalBytes = malformedAddr.original_bytes();
-      const recoveredAddr = malformedAddr.to_address();
-      results.push(`✓ Malformed Address original bytes length: ${originalBytes.length}`);
-      results.push(`✓ Recovered Address: ${recoveredAddr.to_bech32()}`);
-
       // Address JSON conversion
       const addressJson = address.to_json();
       Address.from_json(addressJson);

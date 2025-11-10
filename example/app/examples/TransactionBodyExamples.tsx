@@ -12,7 +12,6 @@ import {
   Certificates,
   Withdrawals,
   RewardAddress,
-  Credential,
   Ed25519KeyHash,
   AuxiliaryData,
   GeneralTransactionMetadata,
@@ -53,7 +52,7 @@ export default class TransactionBodyExamples {
       
       // Create output
       const address = Address.from_bech32("addr1vx7j284mqe59w2mka36gf5xq0hvu8ms2989553fk5qh3prcapfpj3");
-      const value = Value.new(BigNum.from_str("1000000"));
+      const value = Value.new(BigNum.from_str("10000000"));
       const txOutput = TransactionOutput.new(address, value);
       outputs.add(txOutput);
       
@@ -68,15 +67,13 @@ export default class TransactionBodyExamples {
       results.push(`✓ Inputs count: ${txBody.inputs().len()}`);
       results.push(`✓ Outputs count: ${txBody.outputs().len()}`);
       results.push(`✓ Fee: ${txBody.fee().to_str()} lovelace`);
-      results.push(`✓ TTL: ${txBody.ttl()}`);
-      results.push(`✓ Validity start interval: ${txBody.validity_start_interval()}`);
 
       // TransactionBody with certificates
       const certificates = Certificates.new();
-      const stakeCredential = Credential.from_keyhash(
-        Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(2))
+      const rewardAddress = RewardAddress.from_address(
+        Address.from_bech32("stake1u9zjr6e37w53a474puhx606ayr3rz2l6jljrmzvlzkk3cmg0m2zw0")
       );
-      const rewardAddress = RewardAddress.new(0, stakeCredential);
+      const stakeCredential = rewardAddress.payment_cred();
       const certificate = Certificate.new_stake_registration(StakeRegistration.new(stakeCredential));
       certificates.add(certificate);
       
@@ -93,7 +90,7 @@ export default class TransactionBodyExamples {
       const withdrawals = Withdrawals.new();
       withdrawals.insert(
         rewardAddress,
-        BigNum.from_str("500000")
+        BigNum.from_str("5000000")
       );
       
       const txBodyWithWithdrawals = TransactionBody.new(
@@ -171,7 +168,7 @@ export default class TransactionBodyExamples {
 
       // TransactionBody with required signers
       const requiredSigners = Ed25519KeyHashes.new();
-      const keyHash = Ed25519KeyHash.from_bytes(new Uint8Array(32).fill(4));
+      const keyHash = Ed25519KeyHash.from_bytes(new Uint8Array(28).fill(4));
       requiredSigners.add(keyHash);
       
       const txBodyWithSigners = TransactionBody.new(
