@@ -59,13 +59,6 @@ export default class SingleHostAddrExamples {
       results.push(`✓ Localhost IPv4 SingleHostAddr created`);
       results.push(`✓ Localhost IPv4: ${localhostSingleHostAddr.ipv4().to_hex()}`);
 
-      // Create SingleHostAddr with loopback IPv6
-      const loopbackIpv6 = Ipv6.new(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]));
-      const loopbackSingleHostAddr = SingleHostAddr.new(port, undefined, loopbackIpv6);
-      
-      results.push(`✓ Loopback IPv6 SingleHostAddr created`);
-      results.push(`✓ Loopback IPv6: ${loopbackSingleHostAddr.ipv6().to_hex()}`);
-
       // Compare SingleHostAddr objects
       const sameAddr = SingleHostAddr.new(port, ipv4);
       const differentAddr = SingleHostAddr.new(highPort, undefined, ipv6);

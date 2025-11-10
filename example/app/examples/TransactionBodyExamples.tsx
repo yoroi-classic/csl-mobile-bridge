@@ -44,15 +44,15 @@ export default class TransactionBodyExamples {
       const fee = BigNum.from_str("170000");
       
       // Create input
-      const txHash = new Uint8Array(32).fill(1);
+      const txHash = "fd656fb1f4cf6fbbc36f2705568a4d3b7a970ec0b39f80cc81e1293626b77316";
       const txInput = TransactionInput.new(
-        TransactionHash.from_bytes(txHash),
+        TransactionHash.from_hex(txHash),
         0
       );
       inputs.add(txInput);
       
       // Create output
-      const address = Address.from_bech32("addr1qy9prvx8zfwakmn3xvjlggedec3pz08m0dcspkysfss7uq");
+      const address = Address.from_bech32("addr1vx7j284mqe59w2mka36gf5xq0hvu8ms2989553fk5qh3prcapfpj3");
       const value = Value.new(BigNum.from_str("1000000"));
       const txOutput = TransactionOutput.new(address, value);
       outputs.add(txOutput);

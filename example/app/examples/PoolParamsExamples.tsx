@@ -7,17 +7,20 @@ import {
   RewardAddress,
   BigNum,
   UnitInterval,
+  URL,
   Relay,
   Relays,
   Ipv4,
   Ipv6,
   DNSRecordSRV,
   PoolMetadata,
+  PoolMetadataHash,
   KESVKey,
   OperationalCert,
   Credential,
   SingleHostAddr,
-  MultiHostName
+  MultiHostName,
+  VRFKeyHash,
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
@@ -28,7 +31,7 @@ export default class PoolParamsExamples {
     try {
       // Create basic components
       const operator = Ed25519KeyHash.from_bytes(new Uint8Array(28).fill(1));
-      const vrfKeyhash = Ed25519KeyHash.from_bytes(new Uint8Array(28).fill(2));
+      const vrfKeyhash = VRFKeyHash.from_bytes(new Uint8Array(32).fill(2));
       const pledge = BigNum.from_str("500000000000");
       const cost = BigNum.from_str("340000000000");
       const margin = UnitInterval.new(BigNum.from_str("1"), BigNum.from_str("100"));
@@ -44,7 +47,7 @@ export default class PoolParamsExamples {
       
       // Add IPv6 relay
       const ipv6 = Ipv6.new(new Uint8Array(16).fill(0x2001));
-      const ipv6Relay = Relay.new_single_host_addr(SingleHostAddr.new(3002, ipv6));
+      const ipv6Relay = Relay.new_single_host_addr(SingleHostAddr.new(3002, undefined,ipv6));
       relays.add(ipv6Relay);
       
       // Add DNS relay
@@ -53,7 +56,10 @@ export default class PoolParamsExamples {
       relays.add(dnsRelay);
       
       // Create pool metadata
-      const poolMetadata = PoolMetadata.from_bytes(new Uint8Array(32).fill(4));
+      const poolMetadata = PoolMetadata.new(
+        URL.new("https://example.com/poolmeta.json"),
+        PoolMetadataHash.from_bytes(new Uint8Array(32).fill(4))
+      );
 
       // Create PoolParams
       const poolParams = PoolParams.new(

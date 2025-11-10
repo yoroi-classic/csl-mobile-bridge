@@ -22204,7 +22204,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         auto slot = static_cast<uint32_t>(args[1].asNumber());
         std::shared_ptr<BlockHashNativeState> prev_hash;
         bool has_prev_hash = false;
-        if (count >= 3) {
+        if (count >= 3 && !args[2].isUndefined() && !args[2].isNull()) {
           if (!args[2].isObject()) {
             throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
           }
@@ -22266,7 +22266,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         auto slot = getBigNumState(rt, args[1].asObject(rt), "slot");
         std::shared_ptr<BlockHashNativeState> prev_hash;
         bool has_prev_hash = false;
-        if (count >= 3) {
+        if (count >= 3 && !args[2].isUndefined() && !args[2].isNull()) {
           if (!args[2].isObject()) {
             throw jsi::JSError(rt, "Expected BlockHash for prev_hash");
           }
@@ -33337,7 +33337,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         auto relays = getRelaysState(rt, args[7].asObject(rt), "relays");
         std::shared_ptr<PoolMetadataNativeState> pool_metadata;
         bool has_pool_metadata = false;
-        if (count >= 9) {
+        if (count >= 9 && !args[8].isUndefined() && !args[8].isNull()) {
           if (!args[8].isObject()) {
             throw jsi::JSError(rt, "Expected PoolMetadata for pool_metadata");
           }
@@ -40388,7 +40388,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         }
         std::shared_ptr<Ipv4NativeState> ipv4;
         bool has_ipv4 = false;
-        if (count >= 2) {
+        if (count >= 2 && !args[1].isUndefined() && !args[1].isNull()) {
           if (!args[1].isObject()) {
             throw jsi::JSError(rt, "Expected Ipv4 for ipv4");
           }
@@ -40397,7 +40397,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         }
         std::shared_ptr<Ipv6NativeState> ipv6;
         bool has_ipv6 = false;
-        if (count >= 3) {
+        if (count >= 3 && !args[2].isUndefined() && !args[2].isNull()) {
           if (!args[2].isObject()) {
             throw jsi::JSError(rt, "Expected Ipv6 for ipv6");
           }
@@ -43203,7 +43203,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         auto witness_set = getTransactionWitnessSetState(rt, args[1].asObject(rt), "witness_set");
         std::shared_ptr<AuxiliaryDataNativeState> auxiliary_data;
         bool has_auxiliary_data = false;
-        if (count >= 3) {
+        if (count >= 3 && !args[2].isUndefined() && !args[2].isNull()) {
           if (!args[2].isObject()) {
             throw jsi::JSError(rt, "Expected AuxiliaryData for auxiliary_data");
           }
@@ -57023,7 +57023,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto cost_models = getCostmdlsState(rt, args[1].asObject(rt), "cost_models");
         std::shared_ptr<PlutusListNativeState> datums;
         bool has_datums = false;
-        if (count >= 3) {
+        if (count >= 3 && !args[2].isUndefined() && !args[2].isNull()) {
           if (!args[2].isObject()) {
             throw jsi::JSError(rt, "Expected PlutusList for datums");
           }
