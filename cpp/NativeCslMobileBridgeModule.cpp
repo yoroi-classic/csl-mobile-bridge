@@ -53,33 +53,34 @@ static jsi::Object callCslArray(jsi::Runtime& rt, std::function<bool(DataPtr*, C
   if (!fn(&data.ptr, &err.ptr)) {
     throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
   }
-  // Create a Uint8Array from the data
+  if (data.ptr.len == 0) {
+    auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
+    if (Uint8ArrayCtor.isFunction(rt)) {
+      return Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, 0.0).asObject(rt);
+    }
+    return jsi::Array(rt, 0);
+  }
   auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
-  if (!Uint8ArrayCtor.isFunction(rt)) {
-    // Fallback to regular Array if Uint8Array is not available
-    jsi::Array arr(rt, data.ptr.len);
-    for (size_t i = 0; i < data.ptr.len; ++i) {
-      arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(data.ptr.ptr[i])));
+  if (Uint8ArrayCtor.isFunction(rt)) {
+    auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(data.ptr.len));
+    auto uint8Array = uint8ArrayVal.asObject(rt);
+    if (uint8Array.isArray(rt)) {
+      auto arr = uint8Array.asArray(rt);
+      for (size_t i = 0; i < data.ptr.len; ++i) {
+        arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(data.ptr.ptr[i])));
+      }
+    } else {
+      for (size_t i = 0; i < data.ptr.len; ++i) {
+        uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(data.ptr.ptr[i])));
+      }
     }
-    return arr;
+    return uint8Array;
   }
-  // Create Uint8Array with the data length
-  auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(data.ptr.len));
-  auto uint8Array = uint8ArrayVal.asObject(rt);
-  // Copy data into Uint8Array
-  // Note: Uint8Array is array-like, so we can try using asArray() first
-  if (uint8Array.isArray(rt)) {
-    auto arr = uint8Array.asArray(rt);
-    for (size_t i = 0; i < data.ptr.len; ++i) {
-      arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(data.ptr.ptr[i])));
-    }
-  } else {
-    // Fallback: use setProperty with string index
-    for (size_t i = 0; i < data.ptr.len; ++i) {
-      uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(data.ptr.ptr[i])));
-    }
+  jsi::Array arr(rt, data.ptr.len);
+  for (size_t i = 0; i < data.ptr.len; ++i) {
+    arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(data.ptr.ptr[i])));
   }
-  return uint8Array;
+  return arr;
 }
 
 static jsi::String callCslString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn) {
@@ -5001,47 +5002,51 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         auto __obj_data = args[0].asObject(rt);
         std::vector<uint8_t> data;
         size_t __n_data = 0;
+        bool __is_array_data = false;
         bool __is_uint8array_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_data = __obj_data.isArray(rt);
+        if (__is_array_data) {
+          auto __arr_data = __obj_data.asArray(rt);
+          __n_data = __arr_data.length(rt);
+          if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_data = true;
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __arr_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_data && __obj_data.isArray(rt)) {
-          auto __arr_data = __obj_data.asArray(rt);
-          __n_data = __arr_data.length(rt);
-        }
-        if (__n_data == 0) {
-          throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
-        }
-        data.reserve(__n_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_data.isArray(rt)) {
-              __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_data == 0) {
+            throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
         }
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_bytes(data.data(), static_cast<uintptr_t>(data.size()), out, err);
@@ -5230,47 +5235,51 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -5443,47 +5452,51 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -5645,47 +5658,51 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -5734,47 +5751,51 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         auto __obj_name = args[0].asObject(rt);
         std::vector<uint8_t> name;
         size_t __n_name = 0;
+        bool __is_array_name = false;
         bool __is_uint8array_name = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_name.hasProperty(rt, "buffer") && __obj_name.hasProperty(rt, "byteLength")) {
+
+        __is_array_name = __obj_name.isArray(rt);
+        if (__is_array_name) {
+          auto __arr_name = __obj_name.asArray(rt);
+          __n_name = __arr_name.length(rt);
+          if (__obj_name.hasProperty(rt, "buffer") && __obj_name.hasProperty(rt, "byteLength")) {
+            __is_uint8array_name = true;
+          }
+          name.reserve(__n_name);
+          for (size_t __i = 0; __i < __n_name; ++__i) {
+            auto __v = __arr_name.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            name.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_name.hasProperty(rt, "buffer") && __obj_name.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_name.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_name = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_name = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_name && __obj_name.isArray(rt)) {
-          auto __arr_name = __obj_name.asArray(rt);
-          __n_name = __arr_name.length(rt);
-        }
-        if (__n_name == 0) {
-          throw jsi::JSError(rt, "new(name) requires Uint8Array");
-        }
-        name.reserve(__n_name);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_name; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_name) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_name.isArray(rt)) {
-              __v = __obj_name.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_name.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_name == 0) {
+            throw jsi::JSError(rt, "new(name) requires Uint8Array");
+          }
+          name.reserve(__n_name);
+          for (size_t __i = 0; __i < __n_name; ++__i) {
+            auto __v = __obj_name.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_name.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            name.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          name.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(name) requires Uint8Array");
         }
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_new(name.data(), static_cast<uintptr_t>(name.size()), out, err);
@@ -5942,47 +5963,51 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -6205,47 +6230,51 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -6528,47 +6557,51 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -6733,47 +6766,51 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -7384,47 +7421,51 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -7753,47 +7794,51 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -8074,47 +8119,51 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_128_xprv: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_128_xprv: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_128_xprv(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_128_xprv(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_128_xprv: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_128_xprv: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_128_xprv: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_128_xprv: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_128_xprv(bytes) requires Uint8Array");
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_128_xprv(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -8144,47 +8193,51 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -8218,47 +8271,51 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_entropy = args[0].asObject(rt);
         std::vector<uint8_t> entropy;
         size_t __n_entropy = 0;
+        bool __is_array_entropy = false;
         bool __is_uint8array_entropy = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_entropy.hasProperty(rt, "buffer") && __obj_entropy.hasProperty(rt, "byteLength")) {
+
+        __is_array_entropy = __obj_entropy.isArray(rt);
+        if (__is_array_entropy) {
+          auto __arr_entropy = __obj_entropy.asArray(rt);
+          __n_entropy = __arr_entropy.length(rt);
+          if (__obj_entropy.hasProperty(rt, "buffer") && __obj_entropy.hasProperty(rt, "byteLength")) {
+            __is_uint8array_entropy = true;
+          }
+          entropy.reserve(__n_entropy);
+          for (size_t __i = 0; __i < __n_entropy; ++__i) {
+            auto __v = __arr_entropy.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
+            }
+            entropy.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_entropy.hasProperty(rt, "buffer") && __obj_entropy.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_entropy.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_entropy = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_entropy = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_entropy && __obj_entropy.isArray(rt)) {
-          auto __arr_entropy = __obj_entropy.asArray(rt);
-          __n_entropy = __arr_entropy.length(rt);
-        }
-        if (__n_entropy == 0) {
-          throw jsi::JSError(rt, "from_bip39_entropy(entropy) requires Uint8Array");
-        }
-        entropy.reserve(__n_entropy);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_entropy; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_entropy) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_entropy.isArray(rt)) {
-              __v = __obj_entropy.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_entropy.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_entropy == 0) {
+            throw jsi::JSError(rt, "from_bip39_entropy(entropy) requires Uint8Array");
+          }
+          entropy.reserve(__n_entropy);
+          for (size_t __i = 0; __i < __n_entropy; ++__i) {
+            auto __v = __obj_entropy.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_entropy.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
+            }
+            entropy.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
-          }
-          entropy.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bip39_entropy(entropy) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "from_bip39_entropy(password) requires Uint8Array");
@@ -8266,47 +8323,51 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_password = args[1].asObject(rt);
         std::vector<uint8_t> password;
         size_t __n_password = 0;
+        bool __is_array_password = false;
         bool __is_uint8array_password = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_password.hasProperty(rt, "buffer") && __obj_password.hasProperty(rt, "byteLength")) {
+
+        __is_array_password = __obj_password.isArray(rt);
+        if (__is_array_password) {
+          auto __arr_password = __obj_password.asArray(rt);
+          __n_password = __arr_password.length(rt);
+          if (__obj_password.hasProperty(rt, "buffer") && __obj_password.hasProperty(rt, "byteLength")) {
+            __is_uint8array_password = true;
+          }
+          password.reserve(__n_password);
+          for (size_t __i = 0; __i < __n_password; ++__i) {
+            auto __v = __arr_password.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
+            }
+            password.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_password.hasProperty(rt, "buffer") && __obj_password.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_password.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_password = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_password = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_password && __obj_password.isArray(rt)) {
-          auto __arr_password = __obj_password.asArray(rt);
-          __n_password = __arr_password.length(rt);
-        }
-        if (__n_password == 0) {
-          throw jsi::JSError(rt, "from_bip39_entropy(password) requires Uint8Array");
-        }
-        password.reserve(__n_password);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_password; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_password) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_password.isArray(rt)) {
-              __v = __obj_password.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_password.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_password == 0) {
+            throw jsi::JSError(rt, "from_bip39_entropy(password) requires Uint8Array");
+          }
+          password.reserve(__n_password);
+          for (size_t __i = 0; __i < __n_password; ++__i) {
+            auto __v = __obj_password.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_password.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
+            }
+            password.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bip39_entropy: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bip39_entropy: byte out of range 0..255");
-          }
-          password.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bip39_entropy(password) requires Uint8Array");
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_bip39_entropy(entropy.data(), static_cast<uintptr_t>(entropy.size()), password.data(), static_cast<uintptr_t>(password.size()), out, err);
@@ -8481,47 +8542,51 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -8731,47 +8796,51 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -8956,47 +9025,51 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -9194,47 +9267,51 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -9291,47 +9368,51 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         auto __obj_chain_code = args[2].asObject(rt);
         std::vector<uint8_t> chain_code;
         size_t __n_chain_code = 0;
+        bool __is_array_chain_code = false;
         bool __is_uint8array_chain_code = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_chain_code.hasProperty(rt, "buffer") && __obj_chain_code.hasProperty(rt, "byteLength")) {
+
+        __is_array_chain_code = __obj_chain_code.isArray(rt);
+        if (__is_array_chain_code) {
+          auto __arr_chain_code = __obj_chain_code.asArray(rt);
+          __n_chain_code = __arr_chain_code.length(rt);
+          if (__obj_chain_code.hasProperty(rt, "buffer") && __obj_chain_code.hasProperty(rt, "byteLength")) {
+            __is_uint8array_chain_code = true;
+          }
+          chain_code.reserve(__n_chain_code);
+          for (size_t __i = 0; __i < __n_chain_code; ++__i) {
+            auto __v = __arr_chain_code.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            chain_code.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_chain_code.hasProperty(rt, "buffer") && __obj_chain_code.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_chain_code.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_chain_code = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_chain_code = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_chain_code && __obj_chain_code.isArray(rt)) {
-          auto __arr_chain_code = __obj_chain_code.asArray(rt);
-          __n_chain_code = __arr_chain_code.length(rt);
-        }
-        if (__n_chain_code == 0) {
-          throw jsi::JSError(rt, "new(chain_code) requires Uint8Array");
-        }
-        chain_code.reserve(__n_chain_code);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_chain_code; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_chain_code) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_chain_code.isArray(rt)) {
-              __v = __obj_chain_code.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_chain_code.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_chain_code == 0) {
+            throw jsi::JSError(rt, "new(chain_code) requires Uint8Array");
+          }
+          chain_code.reserve(__n_chain_code);
+          for (size_t __i = 0; __i < __n_chain_code; ++__i) {
+            auto __v = __obj_chain_code.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_chain_code.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            chain_code.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          chain_code.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(chain_code) requires Uint8Array");
         }
         if (count < 4 || !args[3].isObject()) {
           throw jsi::JSError(rt, "new(attributes) requires Uint8Array");
@@ -9339,47 +9420,51 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         auto __obj_attributes = args[3].asObject(rt);
         std::vector<uint8_t> attributes;
         size_t __n_attributes = 0;
+        bool __is_array_attributes = false;
         bool __is_uint8array_attributes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_attributes.hasProperty(rt, "buffer") && __obj_attributes.hasProperty(rt, "byteLength")) {
+
+        __is_array_attributes = __obj_attributes.isArray(rt);
+        if (__is_array_attributes) {
+          auto __arr_attributes = __obj_attributes.asArray(rt);
+          __n_attributes = __arr_attributes.length(rt);
+          if (__obj_attributes.hasProperty(rt, "buffer") && __obj_attributes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_attributes = true;
+          }
+          attributes.reserve(__n_attributes);
+          for (size_t __i = 0; __i < __n_attributes; ++__i) {
+            auto __v = __arr_attributes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            attributes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_attributes.hasProperty(rt, "buffer") && __obj_attributes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_attributes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_attributes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_attributes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_attributes && __obj_attributes.isArray(rt)) {
-          auto __arr_attributes = __obj_attributes.asArray(rt);
-          __n_attributes = __arr_attributes.length(rt);
-        }
-        if (__n_attributes == 0) {
-          throw jsi::JSError(rt, "new(attributes) requires Uint8Array");
-        }
-        attributes.reserve(__n_attributes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_attributes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_attributes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_attributes.isArray(rt)) {
-              __v = __obj_attributes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_attributes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_attributes == 0) {
+            throw jsi::JSError(rt, "new(attributes) requires Uint8Array");
+          }
+          attributes.reserve(__n_attributes);
+          for (size_t __i = 0; __i < __n_attributes; ++__i) {
+            auto __v = __obj_attributes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_attributes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            attributes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          attributes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(attributes) requires Uint8Array");
         }
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_new(vkey->get(), signature->get(), chain_code.data(), static_cast<uintptr_t>(chain_code.size()), attributes.data(), static_cast<uintptr_t>(attributes.size()), out, err);
@@ -9547,47 +9632,51 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -9802,47 +9891,51 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -10284,47 +10377,51 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -10807,47 +10904,51 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -11440,47 +11541,51 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -11683,47 +11788,51 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -11945,47 +12054,51 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -12178,47 +12291,51 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -12414,47 +12531,51 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -12658,47 +12779,51 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -12937,47 +13062,51 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -13220,47 +13349,51 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -13458,47 +13591,51 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -13671,47 +13808,51 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -13888,47 +14029,51 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -14147,47 +14292,51 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -14457,47 +14606,51 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -14716,47 +14869,51 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -14986,47 +15143,51 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -15510,47 +15671,51 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -15847,47 +16012,51 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -16136,47 +16305,51 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -16404,47 +16577,51 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -16635,47 +16812,51 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -16956,47 +17137,51 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -17189,47 +17374,51 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -17434,47 +17623,51 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -17606,47 +17799,51 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto __obj_raw_body = args[0].asObject(rt);
         std::vector<uint8_t> raw_body;
         size_t __n_raw_body = 0;
+        bool __is_array_raw_body = false;
         bool __is_uint8array_raw_body = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_body = __obj_raw_body.isArray(rt);
+        if (__is_array_raw_body) {
+          auto __arr_raw_body = __obj_raw_body.asArray(rt);
+          __n_raw_body = __arr_raw_body.length(rt);
+          if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_body = true;
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "set_body: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "set_body: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_body.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_body = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_body = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_body && __obj_raw_body.isArray(rt)) {
-          auto __arr_raw_body = __obj_raw_body.asArray(rt);
-          __n_raw_body = __arr_raw_body.length(rt);
-        }
-        if (__n_raw_body == 0) {
-          throw jsi::JSError(rt, "set_body(raw_body) requires Uint8Array");
-        }
-        raw_body.reserve(__n_raw_body);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_body; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_body) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_body.isArray(rt)) {
-              __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_body == 0) {
+            throw jsi::JSError(rt, "set_body(raw_body) requires Uint8Array");
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "set_body: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "set_body: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "set_body: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "set_body: byte out of range 0..255");
-          }
-          raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "set_body(raw_body) requires Uint8Array");
         }
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_set_body(st->get(), raw_body.data(), static_cast<uintptr_t>(raw_body.size()), &err.ptr)) {
@@ -17668,47 +17865,51 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto __obj_raw_witness_set = args[0].asObject(rt);
         std::vector<uint8_t> raw_witness_set;
         size_t __n_raw_witness_set = 0;
+        bool __is_array_raw_witness_set = false;
         bool __is_uint8array_raw_witness_set = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_witness_set = __obj_raw_witness_set.isArray(rt);
+        if (__is_array_raw_witness_set) {
+          auto __arr_raw_witness_set = __obj_raw_witness_set.asArray(rt);
+          __n_raw_witness_set = __arr_raw_witness_set.length(rt);
+          if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_witness_set = true;
+          }
+          raw_witness_set.reserve(__n_raw_witness_set);
+          for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
+            auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "set_witness_set: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "set_witness_set: byte out of range 0..255");
+            }
+            raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_witness_set.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_witness_set = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_witness_set = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_witness_set && __obj_raw_witness_set.isArray(rt)) {
-          auto __arr_raw_witness_set = __obj_raw_witness_set.asArray(rt);
-          __n_raw_witness_set = __arr_raw_witness_set.length(rt);
-        }
-        if (__n_raw_witness_set == 0) {
-          throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires Uint8Array");
-        }
-        raw_witness_set.reserve(__n_raw_witness_set);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_witness_set) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_witness_set.isArray(rt)) {
-              __v = __obj_raw_witness_set.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_witness_set.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_witness_set == 0) {
+            throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires Uint8Array");
+          }
+          raw_witness_set.reserve(__n_raw_witness_set);
+          for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
+            auto __v = __obj_raw_witness_set.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "set_witness_set: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_witness_set.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "set_witness_set: byte out of range 0..255");
+            }
+            raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "set_witness_set: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "set_witness_set: byte out of range 0..255");
-          }
-          raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires Uint8Array");
         }
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_set_witness_set(st->get(), raw_witness_set.data(), static_cast<uintptr_t>(raw_witness_set.size()), &err.ptr)) {
@@ -17786,47 +17987,51 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto __obj_raw_auxiliary_data = args[0].asObject(rt);
         std::vector<uint8_t> raw_auxiliary_data;
         size_t __n_raw_auxiliary_data = 0;
+        bool __is_array_raw_auxiliary_data = false;
         bool __is_uint8array_raw_auxiliary_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_auxiliary_data.hasProperty(rt, "buffer") && __obj_raw_auxiliary_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_auxiliary_data = __obj_raw_auxiliary_data.isArray(rt);
+        if (__is_array_raw_auxiliary_data) {
+          auto __arr_raw_auxiliary_data = __obj_raw_auxiliary_data.asArray(rt);
+          __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
+          if (__obj_raw_auxiliary_data.hasProperty(rt, "buffer") && __obj_raw_auxiliary_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_auxiliary_data = true;
+          }
+          raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
+          for (size_t __i = 0; __i < __n_raw_auxiliary_data; ++__i) {
+            auto __v = __arr_raw_auxiliary_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "set_auxiliary_data: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "set_auxiliary_data: byte out of range 0..255");
+            }
+            raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_auxiliary_data.hasProperty(rt, "buffer") && __obj_raw_auxiliary_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_auxiliary_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_auxiliary_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_auxiliary_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_auxiliary_data && __obj_raw_auxiliary_data.isArray(rt)) {
-          auto __arr_raw_auxiliary_data = __obj_raw_auxiliary_data.asArray(rt);
-          __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
-        }
-        if (__n_raw_auxiliary_data == 0) {
-          throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires Uint8Array");
-        }
-        raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_auxiliary_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_auxiliary_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_auxiliary_data.isArray(rt)) {
-              __v = __obj_raw_auxiliary_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_auxiliary_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_auxiliary_data == 0) {
+            throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires Uint8Array");
+          }
+          raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
+          for (size_t __i = 0; __i < __n_raw_auxiliary_data; ++__i) {
+            auto __v = __obj_raw_auxiliary_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "set_auxiliary_data: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_auxiliary_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "set_auxiliary_data: byte out of range 0..255");
+            }
+            raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "set_auxiliary_data: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "set_auxiliary_data: byte out of range 0..255");
-          }
-          raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires Uint8Array");
         }
         ScopedCharPtr err;
         if (!csl_bridge_fixed_transaction_set_auxiliary_data(st->get(), raw_auxiliary_data.data(), static_cast<uintptr_t>(raw_auxiliary_data.size()), &err.ptr)) {
@@ -17997,47 +18202,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -18071,47 +18280,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_raw_body = args[0].asObject(rt);
         std::vector<uint8_t> raw_body;
         size_t __n_raw_body = 0;
+        bool __is_array_raw_body = false;
         bool __is_uint8array_raw_body = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_body = __obj_raw_body.isArray(rt);
+        if (__is_array_raw_body) {
+          auto __arr_raw_body = __obj_raw_body.asArray(rt);
+          __n_raw_body = __arr_raw_body.length(rt);
+          if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_body = true;
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_body.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_body = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_body = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_body && __obj_raw_body.isArray(rt)) {
-          auto __arr_raw_body = __obj_raw_body.asArray(rt);
-          __n_raw_body = __arr_raw_body.length(rt);
-        }
-        if (__n_raw_body == 0) {
-          throw jsi::JSError(rt, "new(raw_body) requires Uint8Array");
-        }
-        raw_body.reserve(__n_raw_body);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_body; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_body) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_body.isArray(rt)) {
-              __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_body == 0) {
+            throw jsi::JSError(rt, "new(raw_body) requires Uint8Array");
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(raw_body) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "new(raw_witness_set) requires Uint8Array");
@@ -18119,47 +18332,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_raw_witness_set = args[1].asObject(rt);
         std::vector<uint8_t> raw_witness_set;
         size_t __n_raw_witness_set = 0;
+        bool __is_array_raw_witness_set = false;
         bool __is_uint8array_raw_witness_set = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_witness_set = __obj_raw_witness_set.isArray(rt);
+        if (__is_array_raw_witness_set) {
+          auto __arr_raw_witness_set = __obj_raw_witness_set.asArray(rt);
+          __n_raw_witness_set = __arr_raw_witness_set.length(rt);
+          if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_witness_set = true;
+          }
+          raw_witness_set.reserve(__n_raw_witness_set);
+          for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
+            auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_witness_set.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_witness_set = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_witness_set = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_witness_set && __obj_raw_witness_set.isArray(rt)) {
-          auto __arr_raw_witness_set = __obj_raw_witness_set.asArray(rt);
-          __n_raw_witness_set = __arr_raw_witness_set.length(rt);
-        }
-        if (__n_raw_witness_set == 0) {
-          throw jsi::JSError(rt, "new(raw_witness_set) requires Uint8Array");
-        }
-        raw_witness_set.reserve(__n_raw_witness_set);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_witness_set) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_witness_set.isArray(rt)) {
-              __v = __obj_raw_witness_set.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_witness_set.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_witness_set == 0) {
+            throw jsi::JSError(rt, "new(raw_witness_set) requires Uint8Array");
+          }
+          raw_witness_set.reserve(__n_raw_witness_set);
+          for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
+            auto __v = __obj_raw_witness_set.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_witness_set.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(raw_witness_set) requires Uint8Array");
         }
         if (count < 3 || !args[2].isBool()) {
           throw jsi::JSError(rt, "new(is_valid) requires bool");
@@ -18182,47 +18399,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_raw_body = args[0].asObject(rt);
         std::vector<uint8_t> raw_body;
         size_t __n_raw_body = 0;
+        bool __is_array_raw_body = false;
         bool __is_uint8array_raw_body = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_body = __obj_raw_body.isArray(rt);
+        if (__is_array_raw_body) {
+          auto __arr_raw_body = __obj_raw_body.asArray(rt);
+          __n_raw_body = __arr_raw_body.length(rt);
+          if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_body = true;
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_body.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_body = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_body = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_body && __obj_raw_body.isArray(rt)) {
-          auto __arr_raw_body = __obj_raw_body.asArray(rt);
-          __n_raw_body = __arr_raw_body.length(rt);
-        }
-        if (__n_raw_body == 0) {
-          throw jsi::JSError(rt, "new_with_auxiliary(raw_body) requires Uint8Array");
-        }
-        raw_body.reserve(__n_raw_body);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_body; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_body) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_body.isArray(rt)) {
-              __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_body == 0) {
+            throw jsi::JSError(rt, "new_with_auxiliary(raw_body) requires Uint8Array");
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
-          }
-          raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_with_auxiliary(raw_body) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires Uint8Array");
@@ -18230,47 +18451,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_raw_witness_set = args[1].asObject(rt);
         std::vector<uint8_t> raw_witness_set;
         size_t __n_raw_witness_set = 0;
+        bool __is_array_raw_witness_set = false;
         bool __is_uint8array_raw_witness_set = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_witness_set = __obj_raw_witness_set.isArray(rt);
+        if (__is_array_raw_witness_set) {
+          auto __arr_raw_witness_set = __obj_raw_witness_set.asArray(rt);
+          __n_raw_witness_set = __arr_raw_witness_set.length(rt);
+          if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_witness_set = true;
+          }
+          raw_witness_set.reserve(__n_raw_witness_set);
+          for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
+            auto __v = __arr_raw_witness_set.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
+            }
+            raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_witness_set.hasProperty(rt, "buffer") && __obj_raw_witness_set.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_witness_set.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_witness_set = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_witness_set = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_witness_set && __obj_raw_witness_set.isArray(rt)) {
-          auto __arr_raw_witness_set = __obj_raw_witness_set.asArray(rt);
-          __n_raw_witness_set = __arr_raw_witness_set.length(rt);
-        }
-        if (__n_raw_witness_set == 0) {
-          throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires Uint8Array");
-        }
-        raw_witness_set.reserve(__n_raw_witness_set);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_witness_set) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_witness_set.isArray(rt)) {
-              __v = __obj_raw_witness_set.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_witness_set.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_witness_set == 0) {
+            throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires Uint8Array");
+          }
+          raw_witness_set.reserve(__n_raw_witness_set);
+          for (size_t __i = 0; __i < __n_raw_witness_set; ++__i) {
+            auto __v = __obj_raw_witness_set.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_witness_set.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
+            }
+            raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
-          }
-          raw_witness_set.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_with_auxiliary(raw_witness_set) requires Uint8Array");
         }
         if (count < 3 || !args[2].isObject()) {
           throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires Uint8Array");
@@ -18278,47 +18503,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_raw_auxiliary_data = args[2].asObject(rt);
         std::vector<uint8_t> raw_auxiliary_data;
         size_t __n_raw_auxiliary_data = 0;
+        bool __is_array_raw_auxiliary_data = false;
         bool __is_uint8array_raw_auxiliary_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_auxiliary_data.hasProperty(rt, "buffer") && __obj_raw_auxiliary_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_auxiliary_data = __obj_raw_auxiliary_data.isArray(rt);
+        if (__is_array_raw_auxiliary_data) {
+          auto __arr_raw_auxiliary_data = __obj_raw_auxiliary_data.asArray(rt);
+          __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
+          if (__obj_raw_auxiliary_data.hasProperty(rt, "buffer") && __obj_raw_auxiliary_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_auxiliary_data = true;
+          }
+          raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
+          for (size_t __i = 0; __i < __n_raw_auxiliary_data; ++__i) {
+            auto __v = __arr_raw_auxiliary_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
+            }
+            raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_auxiliary_data.hasProperty(rt, "buffer") && __obj_raw_auxiliary_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_auxiliary_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_auxiliary_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_auxiliary_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_auxiliary_data && __obj_raw_auxiliary_data.isArray(rt)) {
-          auto __arr_raw_auxiliary_data = __obj_raw_auxiliary_data.asArray(rt);
-          __n_raw_auxiliary_data = __arr_raw_auxiliary_data.length(rt);
-        }
-        if (__n_raw_auxiliary_data == 0) {
-          throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires Uint8Array");
-        }
-        raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_auxiliary_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_auxiliary_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_auxiliary_data.isArray(rt)) {
-              __v = __obj_raw_auxiliary_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_auxiliary_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_auxiliary_data == 0) {
+            throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires Uint8Array");
+          }
+          raw_auxiliary_data.reserve(__n_raw_auxiliary_data);
+          for (size_t __i = 0; __i < __n_raw_auxiliary_data; ++__i) {
+            auto __v = __obj_raw_auxiliary_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_auxiliary_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
+            }
+            raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_auxiliary: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_auxiliary: byte out of range 0..255");
-          }
-          raw_auxiliary_data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_with_auxiliary(raw_auxiliary_data) requires Uint8Array");
         }
         if (count < 4 || !args[3].isBool()) {
           throw jsi::JSError(rt, "new_with_auxiliary(is_valid) requires bool");
@@ -18341,47 +18570,51 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto __obj_raw_body = args[0].asObject(rt);
         std::vector<uint8_t> raw_body;
         size_t __n_raw_body = 0;
+        bool __is_array_raw_body = false;
         bool __is_uint8array_raw_body = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+
+        __is_array_raw_body = __obj_raw_body.isArray(rt);
+        if (__is_array_raw_body) {
+          auto __arr_raw_body = __obj_raw_body.asArray(rt);
+          __n_raw_body = __arr_raw_body.length(rt);
+          if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
+            __is_uint8array_raw_body = true;
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __arr_raw_body.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_from_body_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_from_body_bytes: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_raw_body.hasProperty(rt, "buffer") && __obj_raw_body.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_raw_body.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_raw_body = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_raw_body = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_raw_body && __obj_raw_body.isArray(rt)) {
-          auto __arr_raw_body = __obj_raw_body.asArray(rt);
-          __n_raw_body = __arr_raw_body.length(rt);
-        }
-        if (__n_raw_body == 0) {
-          throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires Uint8Array");
-        }
-        raw_body.reserve(__n_raw_body);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_raw_body; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_raw_body) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_raw_body.isArray(rt)) {
-              __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_raw_body == 0) {
+            throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires Uint8Array");
+          }
+          raw_body.reserve(__n_raw_body);
+          for (size_t __i = 0; __i < __n_raw_body; ++__i) {
+            auto __v = __obj_raw_body.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_from_body_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_raw_body.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_from_body_bytes: byte out of range 0..255");
+            }
+            raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_from_body_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_from_body_bytes: byte out of range 0..255");
-          }
-          raw_body.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires Uint8Array");
         }
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_new_from_body_bytes(raw_body.data(), static_cast<uintptr_t>(raw_body.size()), out, err);
@@ -18513,47 +18746,51 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_bodies_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -18699,47 +18936,51 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -18898,47 +19139,51 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
         auto __obj_data = args[0].asObject(rt);
         std::vector<uint8_t> data;
         size_t __n_data = 0;
+        bool __is_array_data = false;
         bool __is_uint8array_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_data = __obj_data.isArray(rt);
+        if (__is_array_data) {
+          auto __arr_data = __obj_data.asArray(rt);
+          __n_data = __arr_data.length(rt);
+          if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_data = true;
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __arr_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_data && __obj_data.isArray(rt)) {
-          auto __arr_data = __obj_data.asArray(rt);
-          __n_data = __arr_data.length(rt);
-        }
-        if (__n_data == 0) {
-          throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
-        }
-        data.reserve(__n_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_data.isArray(rt)) {
-              __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_data == 0) {
+            throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
         }
         return callCslFixedTxWitnessesSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_tx_witnesses_set_from_bytes(data.data(), static_cast<uintptr_t>(data.size()), out, err);
@@ -19048,47 +19293,51 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_versioned_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -19285,47 +19534,51 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -19490,47 +19743,51 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -19684,47 +19941,51 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -19922,47 +20183,51 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -20159,47 +20424,51 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -20470,47 +20739,51 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -20791,47 +21064,51 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -21175,47 +21452,51 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -21423,47 +21704,51 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -21822,47 +22107,51 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -22304,47 +22593,51 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -22566,47 +22859,51 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -22655,47 +22952,51 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         auto __obj_data = args[0].asObject(rt);
         std::vector<uint8_t> data;
         size_t __n_data = 0;
+        bool __is_array_data = false;
         bool __is_uint8array_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_data = __obj_data.isArray(rt);
+        if (__is_array_data) {
+          auto __arr_data = __obj_data.asArray(rt);
+          __n_data = __arr_data.length(rt);
+          if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_data = true;
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __arr_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_data && __obj_data.isArray(rt)) {
-          auto __arr_data = __obj_data.asArray(rt);
-          __n_data = __arr_data.length(rt);
-        }
-        if (__n_data == 0) {
-          throw jsi::JSError(rt, "new(data) requires Uint8Array");
-        }
-        data.reserve(__n_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_data.isArray(rt)) {
-              __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_data == 0) {
+            throw jsi::JSError(rt, "new(data) requires Uint8Array");
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(data) requires Uint8Array");
         }
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_new(data.data(), static_cast<uintptr_t>(data.size()), out, err);
@@ -22827,47 +23128,51 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -22916,47 +23221,51 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         auto __obj_data = args[0].asObject(rt);
         std::vector<uint8_t> data;
         size_t __n_data = 0;
+        bool __is_array_data = false;
         bool __is_uint8array_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_data = __obj_data.isArray(rt);
+        if (__is_array_data) {
+          auto __arr_data = __obj_data.asArray(rt);
+          __n_data = __arr_data.length(rt);
+          if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_data = true;
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __arr_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_data && __obj_data.isArray(rt)) {
-          auto __arr_data = __obj_data.asArray(rt);
-          __n_data = __arr_data.length(rt);
-        }
-        if (__n_data == 0) {
-          throw jsi::JSError(rt, "new(data) requires Uint8Array");
-        }
-        data.reserve(__n_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_data.isArray(rt)) {
-              __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_data == 0) {
+            throw jsi::JSError(rt, "new(data) requires Uint8Array");
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(data) requires Uint8Array");
         }
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_new(data.data(), static_cast<uintptr_t>(data.size()), out, err);
@@ -23052,47 +23361,51 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslKESSignature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_signature_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -23216,47 +23529,51 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -23420,47 +23737,51 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -23766,47 +24087,51 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslLegacyDaedalusPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_legacy_daedalus_private_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -24096,47 +24421,51 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -24437,47 +24766,51 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -24763,47 +25096,51 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -25035,47 +25372,51 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -25930,47 +26271,51 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -26170,47 +26515,51 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -26497,47 +26846,51 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -26710,47 +27063,51 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -27025,47 +27382,51 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -27499,47 +27860,51 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -27703,47 +28068,51 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -28098,47 +28467,51 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -28334,47 +28707,51 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -28562,47 +28939,51 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -28662,47 +29043,51 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         auto __obj_hash = args[0].asObject(rt);
         std::vector<uint8_t> hash;
         size_t __n_hash = 0;
+        bool __is_array_hash = false;
         bool __is_uint8array_hash = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_hash.hasProperty(rt, "buffer") && __obj_hash.hasProperty(rt, "byteLength")) {
+
+        __is_array_hash = __obj_hash.isArray(rt);
+        if (__is_array_hash) {
+          auto __arr_hash = __obj_hash.asArray(rt);
+          __n_hash = __arr_hash.length(rt);
+          if (__obj_hash.hasProperty(rt, "buffer") && __obj_hash.hasProperty(rt, "byteLength")) {
+            __is_uint8array_hash = true;
+          }
+          hash.reserve(__n_hash);
+          for (size_t __i = 0; __i < __n_hash; ++__i) {
+            auto __v = __arr_hash.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_from_hash: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_from_hash: byte out of range 0..255");
+            }
+            hash.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_hash.hasProperty(rt, "buffer") && __obj_hash.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_hash.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_hash = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_hash = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_hash && __obj_hash.isArray(rt)) {
-          auto __arr_hash = __obj_hash.asArray(rt);
-          __n_hash = __arr_hash.length(rt);
-        }
-        if (__n_hash == 0) {
-          throw jsi::JSError(rt, "new_from_hash(hash) requires Uint8Array");
-        }
-        hash.reserve(__n_hash);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_hash; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_hash) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_hash.isArray(rt)) {
-              __v = __obj_hash.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_hash.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_hash == 0) {
+            throw jsi::JSError(rt, "new_from_hash(hash) requires Uint8Array");
+          }
+          hash.reserve(__n_hash);
+          for (size_t __i = 0; __i < __n_hash; ++__i) {
+            auto __v = __obj_hash.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_from_hash: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_hash.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_from_hash: byte out of range 0..255");
+            }
+            hash.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_from_hash: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_from_hash: byte out of range 0..255");
-          }
-          hash.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_from_hash(hash) requires Uint8Array");
         }
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_new_from_hash(hash.data(), static_cast<uintptr_t>(hash.size()), out, err);
@@ -28874,47 +29259,51 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -29246,47 +29635,51 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -29606,47 +29999,51 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -29774,47 +30171,51 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30004,47 +30405,51 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30240,47 +30645,51 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30574,47 +30983,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30648,47 +31061,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "new(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "new(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30707,47 +31124,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_v2: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_v2: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "new_v2(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "new_v2(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_v2: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_v2: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_v2: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_v2: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_v2(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new_v2(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30766,47 +31187,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_v3: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_v3: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "new_v3(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "new_v3(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_v3: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_v3: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_v3: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_v3: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_v3(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new_v3(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30825,47 +31250,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_version: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_version: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "new_with_version(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "new_with_version(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_with_version: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_with_version: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_with_version: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_with_version: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_with_version(bytes) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Language for language");
@@ -30888,47 +31317,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes_v2: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes_v2: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes_v2(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes_v2(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes_v2: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes_v2: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes_v2: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes_v2: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes_v2(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes_v2(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -30947,47 +31380,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes_v3: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes_v3: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes_v3(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes_v3(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes_v3: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes_v3: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes_v3: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes_v3: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes_v3(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes_v3(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -31006,47 +31443,51 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes_with_version: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes_with_version: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes_with_version(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes_with_version(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes_with_version: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes_with_version: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes_with_version: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes_with_version: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes_with_version(bytes) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Language for language");
@@ -31376,47 +31817,51 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -32252,47 +32697,51 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -32465,47 +32914,51 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -32763,47 +33216,51 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -33023,47 +33480,51 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -33254,47 +33715,51 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -33523,47 +33988,51 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -33729,47 +34198,51 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         auto __obj_message = args[0].asObject(rt);
         std::vector<uint8_t> message;
         size_t __n_message = 0;
+        bool __is_array_message = false;
         bool __is_uint8array_message = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_message.hasProperty(rt, "buffer") && __obj_message.hasProperty(rt, "byteLength")) {
+
+        __is_array_message = __obj_message.isArray(rt);
+        if (__is_array_message) {
+          auto __arr_message = __obj_message.asArray(rt);
+          __n_message = __arr_message.length(rt);
+          if (__obj_message.hasProperty(rt, "buffer") && __obj_message.hasProperty(rt, "byteLength")) {
+            __is_uint8array_message = true;
+          }
+          message.reserve(__n_message);
+          for (size_t __i = 0; __i < __n_message; ++__i) {
+            auto __v = __arr_message.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "sign: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "sign: byte out of range 0..255");
+            }
+            message.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_message.hasProperty(rt, "buffer") && __obj_message.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_message.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_message = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_message = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_message && __obj_message.isArray(rt)) {
-          auto __arr_message = __obj_message.asArray(rt);
-          __n_message = __arr_message.length(rt);
-        }
-        if (__n_message == 0) {
-          throw jsi::JSError(rt, "sign(message) requires Uint8Array");
-        }
-        message.reserve(__n_message);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_message; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_message) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_message.isArray(rt)) {
-              __v = __obj_message.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_message.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_message == 0) {
+            throw jsi::JSError(rt, "sign(message) requires Uint8Array");
+          }
+          message.reserve(__n_message);
+          for (size_t __i = 0; __i < __n_message; ++__i) {
+            auto __v = __obj_message.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "sign: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_message.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "sign: byte out of range 0..255");
+            }
+            message.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "sign: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "sign: byte out of range 0..255");
-          }
-          message.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "sign(message) requires Uint8Array");
         }
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_sign(st->get(), message.data(), static_cast<uintptr_t>(message.size()), out, err);
@@ -33853,47 +34326,51 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_extended_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_extended_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_extended_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_extended_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_extended_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_extended_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_extended_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_extended_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_extended_bytes(bytes) requires Uint8Array");
         }
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_extended_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -33912,47 +34389,51 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_normal_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_normal_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_normal_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_normal_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_normal_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_normal_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_normal_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_normal_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_normal_bytes(bytes) requires Uint8Array");
         }
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_normal_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -34149,47 +34630,51 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -35328,47 +35813,51 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -35557,47 +36046,51 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -35739,47 +36232,51 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         auto __obj_data = args[0].asObject(rt);
         std::vector<uint8_t> data;
         size_t __n_data = 0;
+        bool __is_array_data = false;
         bool __is_uint8array_data = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+
+        __is_array_data = __obj_data.isArray(rt);
+        if (__is_array_data) {
+          auto __arr_data = __obj_data.asArray(rt);
+          __n_data = __arr_data.length(rt);
+          if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
+            __is_uint8array_data = true;
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __arr_data.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "verify: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "verify: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_data.hasProperty(rt, "buffer") && __obj_data.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_data.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_data = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_data = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_data && __obj_data.isArray(rt)) {
-          auto __arr_data = __obj_data.asArray(rt);
-          __n_data = __arr_data.length(rt);
-        }
-        if (__n_data == 0) {
-          throw jsi::JSError(rt, "verify(data) requires Uint8Array");
-        }
-        data.reserve(__n_data);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_data; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_data) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_data.isArray(rt)) {
-              __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_data == 0) {
+            throw jsi::JSError(rt, "verify(data) requires Uint8Array");
+          }
+          data.reserve(__n_data);
+          for (size_t __i = 0; __i < __n_data; ++__i) {
+            auto __v = __obj_data.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "verify: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_data.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "verify: byte out of range 0..255");
+            }
+            data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "verify: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "verify: byte out of range 0..255");
-          }
-          data.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "verify(data) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "Expected Ed25519Signature for signature");
@@ -35859,47 +36356,51 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -36206,47 +36707,51 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -36437,47 +36942,51 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -36767,47 +37276,51 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -37018,47 +37531,51 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -37301,47 +37818,51 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -37687,47 +38208,51 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -37900,47 +38425,51 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -38117,47 +38646,51 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -38326,47 +38859,51 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -38520,47 +39057,51 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -38758,47 +39299,51 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -38985,47 +39530,51 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -39206,47 +39755,51 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -39475,47 +40028,51 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -39733,47 +40290,51 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -40029,47 +40590,51 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -40299,47 +40864,51 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -40550,47 +41119,51 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -40797,47 +41370,51 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -41059,47 +41636,51 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -41333,47 +41914,51 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -41608,47 +42193,51 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -41975,47 +42564,51 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -42221,47 +42814,51 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -42509,47 +43106,51 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -42971,47 +43572,51 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -43808,47 +44413,51 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -45916,47 +46525,51 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -46132,47 +46745,51 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -46401,47 +47018,51 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -46664,47 +47285,51 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -46783,47 +47408,51 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -46994,47 +47623,51 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -47350,47 +47983,51 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -47908,47 +48545,51 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -48133,47 +48774,51 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -48673,47 +49318,51 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -48922,47 +49571,51 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -49314,47 +49967,51 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -49940,47 +50597,51 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -50169,47 +50830,51 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -50404,47 +51069,51 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -50649,47 +51318,51 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -50905,47 +51578,51 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -50994,47 +51671,51 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         auto __obj_output = args[0].asObject(rt);
         std::vector<uint8_t> output;
         size_t __n_output = 0;
+        bool __is_array_output = false;
         bool __is_uint8array_output = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_output.hasProperty(rt, "buffer") && __obj_output.hasProperty(rt, "byteLength")) {
+
+        __is_array_output = __obj_output.isArray(rt);
+        if (__is_array_output) {
+          auto __arr_output = __obj_output.asArray(rt);
+          __n_output = __arr_output.length(rt);
+          if (__obj_output.hasProperty(rt, "buffer") && __obj_output.hasProperty(rt, "byteLength")) {
+            __is_uint8array_output = true;
+          }
+          output.reserve(__n_output);
+          for (size_t __i = 0; __i < __n_output; ++__i) {
+            auto __v = __arr_output.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            output.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_output.hasProperty(rt, "buffer") && __obj_output.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_output.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_output = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_output = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_output && __obj_output.isArray(rt)) {
-          auto __arr_output = __obj_output.asArray(rt);
-          __n_output = __arr_output.length(rt);
-        }
-        if (__n_output == 0) {
-          throw jsi::JSError(rt, "new(output) requires Uint8Array");
-        }
-        output.reserve(__n_output);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_output; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_output) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_output.isArray(rt)) {
-              __v = __obj_output.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_output.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_output == 0) {
+            throw jsi::JSError(rt, "new(output) requires Uint8Array");
+          }
+          output.reserve(__n_output);
+          for (size_t __i = 0; __i < __n_output; ++__i) {
+            auto __v = __obj_output.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_output.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            output.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          output.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(output) requires Uint8Array");
         }
         if (count < 2 || !args[1].isObject()) {
           throw jsi::JSError(rt, "new(proof) requires Uint8Array");
@@ -51042,47 +51723,51 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         auto __obj_proof = args[1].asObject(rt);
         std::vector<uint8_t> proof;
         size_t __n_proof = 0;
+        bool __is_array_proof = false;
         bool __is_uint8array_proof = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_proof.hasProperty(rt, "buffer") && __obj_proof.hasProperty(rt, "byteLength")) {
+
+        __is_array_proof = __obj_proof.isArray(rt);
+        if (__is_array_proof) {
+          auto __arr_proof = __obj_proof.asArray(rt);
+          __n_proof = __arr_proof.length(rt);
+          if (__obj_proof.hasProperty(rt, "buffer") && __obj_proof.hasProperty(rt, "byteLength")) {
+            __is_uint8array_proof = true;
+          }
+          proof.reserve(__n_proof);
+          for (size_t __i = 0; __i < __n_proof; ++__i) {
+            auto __v = __arr_proof.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            proof.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_proof.hasProperty(rt, "buffer") && __obj_proof.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_proof.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_proof = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_proof = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_proof && __obj_proof.isArray(rt)) {
-          auto __arr_proof = __obj_proof.asArray(rt);
-          __n_proof = __arr_proof.length(rt);
-        }
-        if (__n_proof == 0) {
-          throw jsi::JSError(rt, "new(proof) requires Uint8Array");
-        }
-        proof.reserve(__n_proof);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_proof; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_proof) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_proof.isArray(rt)) {
-              __v = __obj_proof.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_proof.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_proof == 0) {
+            throw jsi::JSError(rt, "new(proof) requires Uint8Array");
+          }
+          proof.reserve(__n_proof);
+          for (size_t __i = 0; __i < __n_proof; ++__i) {
+            auto __v = __obj_proof.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_proof.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            proof.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "new: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "new: byte out of range 0..255");
-          }
-          proof.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "new(proof) requires Uint8Array");
         }
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_new(output.data(), static_cast<uintptr_t>(output.size()), proof.data(), static_cast<uintptr_t>(proof.size()), out, err);
@@ -51206,47 +51891,51 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -51400,47 +52089,51 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -51730,47 +52423,51 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -52006,47 +52703,51 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -52227,47 +52928,51 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -52580,47 +53285,51 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -52837,47 +53546,51 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -53076,47 +53789,51 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -53335,47 +54052,51 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -53624,47 +54345,51 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -54260,47 +54985,51 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -54558,47 +55287,51 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -54807,47 +55540,51 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -55268,47 +56005,51 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -55531,47 +56272,51 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "from_bytes: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "from_bytes: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -55982,47 +56727,51 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto __obj_bytes = args[0].asObject(rt);
         std::vector<uint8_t> bytes;
         size_t __n_bytes = 0;
+        bool __is_array_bytes = false;
         bool __is_uint8array_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_bytes = __obj_bytes.isArray(rt);
+        if (__is_array_bytes) {
+          auto __arr_bytes = __obj_bytes.asArray(rt);
+          __n_bytes = __arr_bytes.length(rt);
+          if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_bytes = true;
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __arr_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_bytes.hasProperty(rt, "buffer") && __obj_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_bytes && __obj_bytes.isArray(rt)) {
-          auto __arr_bytes = __obj_bytes.asArray(rt);
-          __n_bytes = __arr_bytes.length(rt);
-        }
-        if (__n_bytes == 0) {
-          throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires Uint8Array");
-        }
-        bytes.reserve(__n_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_bytes.isArray(rt)) {
-              __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_bytes == 0) {
+            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires Uint8Array");
+          }
+          bytes.reserve(__n_bytes);
+          for (size_t __i = 0; __i < __n_bytes; ++__i) {
+            auto __v = __obj_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: byte out of range 0..255");
+            }
+            bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum: byte out of range 0..255");
-          }
-          bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_arbitrary_bytes_as_metadatum(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
@@ -56175,47 +56924,51 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto __obj_tx_bytes = args[0].asObject(rt);
         std::vector<uint8_t> tx_bytes;
         size_t __n_tx_bytes = 0;
+        bool __is_array_tx_bytes = false;
         bool __is_uint8array_tx_bytes = false;
-        // Check if it's a Uint8Array (TypedArray) by checking for buffer and byteLength properties
-        if (__obj_tx_bytes.hasProperty(rt, "buffer") && __obj_tx_bytes.hasProperty(rt, "byteLength")) {
+
+        __is_array_tx_bytes = __obj_tx_bytes.isArray(rt);
+        if (__is_array_tx_bytes) {
+          auto __arr_tx_bytes = __obj_tx_bytes.asArray(rt);
+          __n_tx_bytes = __arr_tx_bytes.length(rt);
+          if (__obj_tx_bytes.hasProperty(rt, "buffer") && __obj_tx_bytes.hasProperty(rt, "byteLength")) {
+            __is_uint8array_tx_bytes = true;
+          }
+          tx_bytes.reserve(__n_tx_bytes);
+          for (size_t __i = 0; __i < __n_tx_bytes; ++__i) {
+            auto __v = __arr_tx_bytes.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "has_transaction_set_tag: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "has_transaction_set_tag: byte out of range 0..255");
+            }
+            tx_bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_tx_bytes.hasProperty(rt, "buffer") && __obj_tx_bytes.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_tx_bytes.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
             __n_tx_bytes = static_cast<size_t>(__byteLength_val.asNumber());
             __is_uint8array_tx_bytes = true;
           }
-        }
-        // If not Uint8Array, check if it's a regular array
-        if (!__is_uint8array_tx_bytes && __obj_tx_bytes.isArray(rt)) {
-          auto __arr_tx_bytes = __obj_tx_bytes.asArray(rt);
-          __n_tx_bytes = __arr_tx_bytes.length(rt);
-        }
-        if (__n_tx_bytes == 0) {
-          throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires Uint8Array");
-        }
-        tx_bytes.reserve(__n_tx_bytes);
-        // Extract bytes - works for both Uint8Array and regular arrays
-        for (size_t __i = 0; __i < __n_tx_bytes; ++__i) {
-          jsi::Value __v;
-          if (__is_uint8array_tx_bytes) {
-            // For Uint8Array, try asArray first (Uint8Array is array-like)
-            if (__obj_tx_bytes.isArray(rt)) {
-              __v = __obj_tx_bytes.asArray(rt).getValueAtIndex(rt, __i);
-            } else {
-              // Fallback: use getProperty with string index
-              __v = __obj_tx_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+          if (__n_tx_bytes == 0) {
+            throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires Uint8Array");
+          }
+          tx_bytes.reserve(__n_tx_bytes);
+          for (size_t __i = 0; __i < __n_tx_bytes; ++__i) {
+            auto __v = __obj_tx_bytes.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "has_transaction_set_tag: Expected Uint8Array as input");
             }
-          } else {
-            // For regular arrays, use getValueAtIndex
-            __v = __obj_tx_bytes.asArray(rt).getValueAtIndex(rt, __i);
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "has_transaction_set_tag: byte out of range 0..255");
+            }
+            tx_bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
           }
-          if (!__v.isNumber()) {
-            throw jsi::JSError(rt, "has_transaction_set_tag: Expected Uint8Array as input");
-          }
-          double __d = __v.asNumber();
-          if (__d < 0 || __d > 255) {
-            throw jsi::JSError(rt, "has_transaction_set_tag: byte out of range 0..255");
-          }
-          tx_bytes.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+        } else {
+          throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires Uint8Array");
         }
         int32_t res{}; ScopedCharPtr err;
         if (!csl_bridge_has_transaction_set_tag(tx_bytes.data(), static_cast<uintptr_t>(tx_bytes.size()), &res, &err.ptr)) {
