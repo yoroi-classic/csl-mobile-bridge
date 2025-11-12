@@ -5912,9 +5912,21 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_names_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_asset_names_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -6169,9 +6181,21 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for value");
         }
         auto value = getBigNumState(rt, args[1].asObject(rt), "value");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_assets_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_assets_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -6185,9 +6209,21 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected AssetName for key");
         }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_assets_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_assets_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -6925,9 +6961,21 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected AuxiliaryData for data");
         }
         auto data = getAuxiliaryDataState(rt, args[1].asObject(rt), "data");
-        return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_auxiliary_data_set_insert(st->get(), tx_index, data->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_auxiliary_data_set_insert(st->get(), tx_index, data->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -6941,9 +6989,21 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(tx_index) requires number");
         }
         auto tx_index = static_cast<uint32_t>(args[0].asNumber());
-        return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_auxiliary_data_set_get(st->get(), tx_index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_auxiliary_data_set_get(st->get(), tx_index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -9581,9 +9641,21 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witnesses_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_bootstrap_witnesses_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -10853,9 +10925,21 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_certificates_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -11114,9 +11198,21 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_witnesses"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_builder_get_plutus_witnesses(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_certificates_builder_get_plutus_witnesses(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -11126,9 +11222,21 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_ref_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_builder_get_ref_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_certificates_builder_get_ref_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -11138,9 +11246,21 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_native_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_builder_get_native_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_certificates_builder_get_native_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -11158,9 +11278,21 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
         }
         auto key_deposit = getBigNumState(rt, args[1].asObject(rt), "key_deposit");
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_builder_get_certificates_refund(st->get(), pool_deposit->get(), key_deposit->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_certificates_builder_get_certificates_refund(st->get(), pool_deposit->get(), key_deposit->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -11178,9 +11310,21 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
         }
         auto key_deposit = getBigNumState(rt, args[1].asObject(rt), "key_deposit");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_builder_get_certificates_deposit(st->get(), pool_deposit->get(), key_deposit->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_certificates_builder_get_certificates_deposit(st->get(), pool_deposit->get(), key_deposit->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -12732,9 +12876,21 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(operation) requires number");
         }
         auto operation = static_cast<size_t>(args[0].asNumber());
-        return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_cost_model_get(st->get(), operation, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_cost_model_get(st->get(), operation, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -12985,9 +13141,21 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected CostModel for value");
         }
         auto value = getCostModelState(rt, args[1].asObject(rt), "value");
-        return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_costmdls_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_costmdls_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -13001,9 +13169,21 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Language for key");
         }
         auto key = getLanguageState(rt, args[0].asObject(rt), "key");
-        return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_costmdls_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_costmdls_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -13540,9 +13720,21 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_credentials_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_credentials_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -16496,9 +16688,21 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_key_hashes_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_ed25519_key_hashes_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -18695,9 +18899,21 @@ static jsi::Object getOrCreateFixedTransactionBodiesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_bodies_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_fixed_transaction_bodies_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -19473,9 +19689,21 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
         }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_general_transaction_metadata_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_general_transaction_metadata_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -19489,9 +19717,21 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
           throw jsi::JSError(rt, "Expected BigNum for key");
         }
         auto key = getBigNumState(rt, args[0].asObject(rt), "key");
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_general_transaction_metadata_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_general_transaction_metadata_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -20132,9 +20372,21 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_hashes_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_genesis_hashes_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -21254,9 +21506,21 @@ static jsi::Object getOrCreateGovernanceActionIdsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_governance_action_ids_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_governance_action_ids_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -23925,9 +24189,21 @@ static jsi::Object getOrCreateLanguagesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_languages_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_languages_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -24360,9 +24636,21 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Int for delta");
         }
         auto delta = getIntState(rt, args[1].asObject(rt), "delta");
-        return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_m_i_r_to_stake_credentials_insert(st->get(), cred->get(), delta->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_m_i_r_to_stake_credentials_insert(st->get(), cred->get(), delta->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -24376,9 +24664,21 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Credential for cred");
         }
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
-        return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_m_i_r_to_stake_credentials_get(st->get(), cred->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_m_i_r_to_stake_credentials_get(st->get(), cred->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -24715,9 +25015,21 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_list_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_list_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -24945,9 +25257,21 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
         }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_map_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -24965,9 +25289,21 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
         }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_insert_str(st->get(), key.c_str(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_map_insert_str(st->get(), key.c_str(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -24985,9 +25321,21 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for value");
         }
         auto value = getTransactionMetadatumState(rt, args[1].asObject(rt), "value");
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_insert_i32(st->get(), key, value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_map_insert_i32(st->get(), key, value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25001,9 +25349,21 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected TransactionMetadatum for key");
         }
         auto key = getTransactionMetadatumState(rt, args[0].asObject(rt), "key");
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_map_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25017,9 +25377,21 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get_str(key) requires string");
         }
         std::string key = args[0].asString(rt).utf8(rt);
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_get_str(st->get(), key.c_str(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_map_get_str(st->get(), key.c_str(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25033,9 +25405,21 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get_i32(key) requires number");
         }
         auto key = static_cast<int32_t>(args[0].asNumber());
-        return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_get_i32(st->get(), key, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_metadata_map_get_i32(st->get(), key, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25287,9 +25671,21 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected MintAssets for value");
         }
         auto value = getMintAssetsState(rt, args[1].asObject(rt), "value");
-        return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25303,9 +25699,21 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected ScriptHash for key");
         }
         auto key = getScriptHashState(rt, args[0].asObject(rt), "key");
-        return callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25561,9 +25969,21 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Int for value");
         }
         auto value = getIntState(rt, args[1].asObject(rt), "value");
-        return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_assets_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_assets_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25577,9 +25997,21 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected AssetName for key");
         }
         auto key = getAssetNameState(rt, args[0].asObject(rt), "key");
-        return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_assets_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_assets_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25760,9 +26192,21 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_native_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_builder_get_native_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_builder_get_native_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25772,9 +26216,21 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_witnesses"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_builder_get_plutus_witnesses(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_builder_get_plutus_witnesses(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25784,9 +26240,21 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_ref_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_builder_get_ref_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_builder_get_ref_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -25796,9 +26264,21 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_redeemers"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisMintBuilderState(rt, thisVal);
-        return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_builder_get_redeemers(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mint_builder_get_redeemers(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -26045,9 +26525,21 @@ static jsi::Object getOrCreateMintsAssetsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mints_assets_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_mints_assets_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -26725,9 +27217,21 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Assets for assets");
         }
         auto assets = getAssetsState(rt, args[1].asObject(rt), "assets");
-        return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_asset_insert(st->get(), policy_id->get(), assets->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_multi_asset_insert(st->get(), policy_id->get(), assets->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -26741,9 +27245,21 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected ScriptHash for policy_id");
         }
         auto policy_id = getScriptHashState(rt, args[0].asObject(rt), "policy_id");
-        return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_asset_get(st->get(), policy_id->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_multi_asset_get(st->get(), policy_id->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -26785,9 +27301,21 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected AssetName for asset_name");
         }
         auto asset_name = getAssetNameState(rt, args[1].asObject(rt), "asset_name");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_asset_get_asset(st->get(), policy_id->get(), asset_name->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_multi_asset_get_asset(st->get(), policy_id->get(), asset_name->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -27349,9 +27877,21 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_required_signers"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisNativeScriptState(rt, thisVal);
-        return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_native_script_get_required_signers(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_native_script_get_required_signers(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -27762,9 +28302,21 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_native_scripts_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_native_scripts_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -30354,9 +30906,21 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_list_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_plutus_list_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -30584,9 +31148,21 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected PlutusMapValues for values");
         }
         auto values = getPlutusMapValuesState(rt, args[1].asObject(rt), "values");
-        return callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_map_insert(st->get(), key->get(), values->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_plutus_map_insert(st->get(), key->get(), values->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -30600,9 +31176,21 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected PlutusData for key");
         }
         auto key = getPlutusDataState(rt, args[0].asObject(rt), "key");
-        return callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_map_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_plutus_map_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -30796,9 +31384,21 @@ static jsi::Object getOrCreatePlutusMapValuesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_map_values_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_plutus_map_values_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -31766,9 +32366,21 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_scripts_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_plutus_scripts_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -32168,9 +32780,21 @@ static jsi::Object getOrCreatePlutusWitnessesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_witnesses_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_plutus_witnesses_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -34569,9 +35193,21 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
           throw jsi::JSError(rt, "Expected ProtocolParamUpdate for value");
         }
         auto value = getProtocolParamUpdateState(rt, args[1].asObject(rt), "value");
-        return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_proposed_protocol_parameter_updates_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_proposed_protocol_parameter_updates_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -34585,9 +35221,21 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
           throw jsi::JSError(rt, "Expected GenesisHash for key");
         }
         auto key = getGenesisHashState(rt, args[0].asObject(rt), "key");
-        return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_proposed_protocol_parameter_updates_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_proposed_protocol_parameter_updates_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -36496,9 +37144,21 @@ static jsi::Object getOrCreatePublicKeysProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_public_keys_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_public_keys_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -37199,9 +37859,21 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemers_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_redeemers_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -37767,9 +38439,21 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_relays_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_relays_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -38157,9 +38841,21 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_reward_addresses_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_reward_addresses_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -39248,9 +39944,21 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_hashes_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_script_hashes_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -43295,9 +44003,21 @@ static jsi::Object getOrCreateTransactionBatchProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_batch_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_batch_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -43390,9 +44110,21 @@ static jsi::Object getOrCreateTransactionBatchListProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionBatch(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_batch_list_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_batch_list_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionBatch(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -43521,9 +44253,21 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_bodies_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_bodies_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -44999,9 +45743,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_native_input_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_native_input_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_native_input_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45011,9 +45767,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_input_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_plutus_input_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_plutus_input_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45353,9 +46121,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_auxiliary_data"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_auxiliary_data(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_auxiliary_data(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45517,9 +46297,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_mint_builder"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslMintBuilder(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_mint_builder(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_mint_builder(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslMintBuilder(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45551,9 +46343,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_mint"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_mint(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_mint(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslMint(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45563,9 +46367,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_mint_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_mint_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_mint_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45705,9 +46521,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_extra_witness_datums"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_extra_witness_datums(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_extra_witness_datums(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45735,9 +46563,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_donation"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_donation(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_donation(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45765,9 +46605,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_current_treasury_value"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_current_treasury_value(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_current_treasury_value(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45777,9 +46629,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_reference_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_reference_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_reference_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45789,9 +46653,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_explicit_input"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_explicit_input(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_explicit_input(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45801,9 +46677,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_implicit_input"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_implicit_input(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_implicit_input(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45813,9 +46701,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_total_input"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_total_input(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_total_input(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45825,9 +46725,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_total_output"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_total_output(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_total_output(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45837,9 +46749,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_explicit_output"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_explicit_output(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_explicit_output(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45849,9 +46773,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_deposit"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_deposit(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_deposit(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -45861,9 +46797,21 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_fee_if_set"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_builder_get_fee_if_set(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_builder_get_fee_if_set(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -46955,9 +47903,21 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_inputs_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_inputs_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -47572,9 +48532,21 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_labels_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_metadatum_labels_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -48494,9 +49466,21 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_outputs_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_outputs_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -48960,9 +49944,21 @@ static jsi::Object getOrCreateTransactionUnspentOutputsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_unspent_outputs_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_unspent_outputs_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -49520,9 +50516,21 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_witness_sets_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_transaction_witness_sets_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -49735,9 +50743,21 @@ static jsi::Object getOrCreateTreasuryWithdrawalsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected RewardAddress for key");
         }
         auto key = getRewardAddressState(rt, args[0].asObject(rt), "key");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_treasury_withdrawals_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_treasury_withdrawals_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -50330,9 +51350,21 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_ref_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_tx_inputs_builder_get_ref_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_tx_inputs_builder_get_ref_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -50342,9 +51374,21 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_native_input_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_tx_inputs_builder_get_native_input_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_tx_inputs_builder_get_native_input_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -50354,9 +51398,21 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_input_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_tx_inputs_builder_get_plutus_input_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_tx_inputs_builder_get_plutus_input_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -53098,9 +54154,21 @@ static jsi::Object getOrCreateVkeysProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkeys_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_vkeys_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -53495,9 +54563,21 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkeywitnesses_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_vkeywitnesses_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -54561,9 +55641,21 @@ static jsi::Object getOrCreateVotersProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voters_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voters_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -54764,9 +55856,21 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_witnesses"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_builder_get_plutus_witnesses(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_builder_get_plutus_witnesses(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -54776,9 +55880,21 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_ref_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_builder_get_ref_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_builder_get_ref_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -54788,9 +55904,21 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_native_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_builder_get_native_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_builder_get_native_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -55226,9 +56354,21 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected GovernanceActionId for governance_action_id");
         }
         auto governance_action_id = getGovernanceActionIdState(rt, args[1].asObject(rt), "governance_action_id");
-        return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedures_get(st->get(), voter->get(), governance_action_id->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_procedures_get(st->get(), voter->get(), governance_action_id->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -55238,9 +56378,21 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_voters"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProceduresState(rt, thisVal);
-        return callCslVoters(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedures_get_voters(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_procedures_get_voters(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslVoters(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -55254,9 +56406,21 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected Voter for voter");
         }
         auto voter = getVoterState(rt, args[0].asObject(rt), "voter");
-        return callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedures_get_governance_action_ids_by_voter(st->get(), voter->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_procedures_get_governance_action_ids_by_voter(st->get(), voter->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -55744,9 +56908,21 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_witnesses"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposal_builder_get_plutus_witnesses(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_proposal_builder_get_plutus_witnesses(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -55756,9 +56932,21 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_ref_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisVotingProposalBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposal_builder_get_ref_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_proposal_builder_get_ref_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -55924,9 +57112,21 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "get(index) requires number");
         }
         auto index = static_cast<size_t>(args[0].asNumber());
-        return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposals_get(st->get(), index, out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_voting_proposals_get(st->get(), index, &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56211,9 +57411,21 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for value");
         }
         auto value = getBigNumState(rt, args[1].asObject(rt), "value");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_insert(st->get(), key->get(), value->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_withdrawals_insert(st->get(), key->get(), value->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56227,9 +57439,21 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected RewardAddress for key");
         }
         auto key = getRewardAddressState(rt, args[0].asObject(rt), "key");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_get(st->get(), key->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_withdrawals_get(st->get(), key->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56494,9 +57718,21 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_plutus_witnesses"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_builder_get_plutus_witnesses(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_withdrawals_builder_get_plutus_witnesses(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56506,9 +57742,21 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_ref_inputs"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_builder_get_ref_inputs(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_withdrawals_builder_get_ref_inputs(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56518,9 +57766,21 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_native_scripts"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_builder_get_native_scripts(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_withdrawals_builder_get_native_scripts(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56530,9 +57790,21 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "get_total_withdrawals"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_builder_get_total_withdrawals(st->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_withdrawals_builder_get_total_withdrawals(st->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56884,9 +58156,21 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
         }
         auto key_deposit = getBigNumState(rt, args[2].asObject(rt), "key_deposit");
-        return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_get_deposit(txbody->get(), pool_deposit->get(), key_deposit->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_get_deposit(txbody->get(), pool_deposit->get(), key_deposit->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
@@ -56907,9 +58191,21 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected BigNum for key_deposit");
         }
         auto key_deposit = getBigNumState(rt, args[2].asObject(rt), "key_deposit");
-        return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_get_implicit_input(txbody->get(), pool_deposit->get(), key_deposit->get(), out, err);
-        });
+        RPtr result{nullptr};
+        ScopedCharPtr err;
+        if (!csl_bridge_get_implicit_input(txbody->get(), pool_deposit->get(), key_deposit->get(), &result, &err.ptr)) {
+          if (!err.ptr) {
+            return jsi::Value::null();
+          }
+          throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+        }
+        if (result._0 == nullptr) {
+          return jsi::Value::null();
+        }
+        return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
+          *out = result;
+          return true;
+        }));
       }
     )
   );
