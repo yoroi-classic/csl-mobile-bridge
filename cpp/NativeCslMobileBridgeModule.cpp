@@ -5049,7 +5049,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
         }
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_address_from_bytes(data.data(), static_cast<uintptr_t>(data.size()), out, err);
+          return csl_bridge_address_from_bytes(data.data(), static_cast<size_t>(data.size()), out, err);
         });
       }
     )
@@ -5282,7 +5282,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_anchor_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_anchor_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -5499,7 +5499,7 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_anchor_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_anchor_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -5705,7 +5705,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_name_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_asset_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -5798,7 +5798,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(name) requires Uint8Array");
         }
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_name_new(name.data(), static_cast<uintptr_t>(name.size()), out, err);
+          return csl_bridge_asset_name_new(name.data(), static_cast<size_t>(name.size()), out, err);
         });
       }
     )
@@ -6010,7 +6010,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_names_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_asset_names_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -6277,7 +6277,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_assets_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_assets_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -6604,7 +6604,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_auxiliary_data_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_auxiliary_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -6813,7 +6813,7 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_auxiliary_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_auxiliary_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -7468,7 +7468,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_big_int_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_big_int_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -7841,7 +7841,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_big_num_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_big_num_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -8166,7 +8166,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_128_xprv(bytes) requires Uint8Array");
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_private_key_from_128_xprv(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_bip32_private_key_from_128_xprv(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -8240,7 +8240,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_private_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_bip32_private_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -8370,7 +8370,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bip39_entropy(password) requires Uint8Array");
         }
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_private_key_from_bip39_entropy(entropy.data(), static_cast<uintptr_t>(entropy.size()), password.data(), static_cast<uintptr_t>(password.size()), out, err);
+          return csl_bridge_bip32_private_key_from_bip39_entropy(entropy.data(), static_cast<size_t>(entropy.size()), password.data(), static_cast<size_t>(password.size()), out, err);
         });
       }
     )
@@ -8589,7 +8589,7 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_public_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_bip32_public_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -8843,7 +8843,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -9072,7 +9072,7 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_block_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_block_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -9314,7 +9314,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witness_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_bootstrap_witness_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -9467,7 +9467,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(attributes) requires Uint8Array");
         }
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witness_new(vkey->get(), signature->get(), chain_code.data(), static_cast<uintptr_t>(chain_code.size()), attributes.data(), static_cast<uintptr_t>(attributes.size()), out, err);
+          return csl_bridge_bootstrap_witness_new(vkey->get(), signature->get(), chain_code.data(), static_cast<size_t>(chain_code.size()), attributes.data(), static_cast<size_t>(attributes.size()), out, err);
         });
       }
     )
@@ -9679,7 +9679,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witnesses_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_bootstrap_witnesses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -9938,7 +9938,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_byron_address_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_byron_address_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -10424,7 +10424,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificate_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_certificate_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -10951,7 +10951,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_certificates_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -11588,7 +11588,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_committee_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_committee_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -11835,7 +11835,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_committee_cold_resign_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_committee_cold_resign_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -12101,7 +12101,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_committee_hot_auth_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_committee_hot_auth_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -12338,7 +12338,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_constitution_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_constitution_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -12578,7 +12578,7 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_constr_plutus_data_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_constr_plutus_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -12826,7 +12826,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_cost_model_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_cost_model_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -13109,7 +13109,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_costmdls_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_costmdls_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -13396,7 +13396,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_credential_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_credential_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -13638,7 +13638,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_credentials_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_credentials_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -13855,7 +13855,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_n_s_record_aor_a_a_a_a_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_n_s_record_aor_a_a_a_a_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -14076,7 +14076,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_n_s_record_s_r_v_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_n_s_record_s_r_v_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -14339,7 +14339,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -14653,7 +14653,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_deregistration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_deregistration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -14916,7 +14916,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_registration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -15190,7 +15190,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_update_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -15718,7 +15718,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_voting_thresholds_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_voting_thresholds_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -16059,7 +16059,7 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -16352,7 +16352,7 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_key_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ed25519_key_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -16624,7 +16624,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_key_hashes_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ed25519_key_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -16859,7 +16859,7 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_signature_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ed25519_signature_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -17184,7 +17184,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ex_unit_prices_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ex_unit_prices_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -17421,7 +17421,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ex_units_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ex_units_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -17670,7 +17670,7 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -17846,7 +17846,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "set_body(raw_body) requires Uint8Array");
         }
         ScopedCharPtr err;
-        if (!csl_bridge_fixed_transaction_set_body(st->get(), raw_body.data(), static_cast<uintptr_t>(raw_body.size()), &err.ptr)) {
+        if (!csl_bridge_fixed_transaction_set_body(st->get(), raw_body.data(), static_cast<size_t>(raw_body.size()), &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
         }
         return jsi::Value::undefined();
@@ -17912,7 +17912,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "set_witness_set(raw_witness_set) requires Uint8Array");
         }
         ScopedCharPtr err;
-        if (!csl_bridge_fixed_transaction_set_witness_set(st->get(), raw_witness_set.data(), static_cast<uintptr_t>(raw_witness_set.size()), &err.ptr)) {
+        if (!csl_bridge_fixed_transaction_set_witness_set(st->get(), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
         }
         return jsi::Value::undefined();
@@ -18034,7 +18034,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "set_auxiliary_data(raw_auxiliary_data) requires Uint8Array");
         }
         ScopedCharPtr err;
-        if (!csl_bridge_fixed_transaction_set_auxiliary_data(st->get(), raw_auxiliary_data.data(), static_cast<uintptr_t>(raw_auxiliary_data.size()), &err.ptr)) {
+        if (!csl_bridge_fixed_transaction_set_auxiliary_data(st->get(), raw_auxiliary_data.data(), static_cast<size_t>(raw_auxiliary_data.size()), &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
         }
         return jsi::Value::undefined();
@@ -18249,7 +18249,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_transaction_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -18383,7 +18383,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         }
         bool is_valid = args[2].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_new(raw_body.data(), static_cast<uintptr_t>(raw_body.size()), raw_witness_set.data(), static_cast<uintptr_t>(raw_witness_set.size()), is_valid, out, err);
+          return csl_bridge_fixed_transaction_new(raw_body.data(), static_cast<size_t>(raw_body.size()), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), is_valid, out, err);
         });
       }
     )
@@ -18554,7 +18554,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         }
         bool is_valid = args[3].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_new_with_auxiliary(raw_body.data(), static_cast<uintptr_t>(raw_body.size()), raw_witness_set.data(), static_cast<uintptr_t>(raw_witness_set.size()), raw_auxiliary_data.data(), static_cast<uintptr_t>(raw_auxiliary_data.size()), is_valid, out, err);
+          return csl_bridge_fixed_transaction_new_with_auxiliary(raw_body.data(), static_cast<size_t>(raw_body.size()), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), raw_auxiliary_data.data(), static_cast<size_t>(raw_auxiliary_data.size()), is_valid, out, err);
         });
       }
     )
@@ -18617,7 +18617,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new_from_body_bytes(raw_body) requires Uint8Array");
         }
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_new_from_body_bytes(raw_body.data(), static_cast<uintptr_t>(raw_body.size()), out, err);
+          return csl_bridge_fixed_transaction_new_from_body_bytes(raw_body.data(), static_cast<size_t>(raw_body.size()), out, err);
         });
       }
     )
@@ -18793,7 +18793,7 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_bodies_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_transaction_bodies_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -18983,7 +18983,7 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_body_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_transaction_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -19186,7 +19186,7 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(data) requires Uint8Array");
         }
         return callCslFixedTxWitnessesSet(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_tx_witnesses_set_from_bytes(data.data(), static_cast<uintptr_t>(data.size()), out, err);
+          return csl_bridge_fixed_tx_witnesses_set_from_bytes(data.data(), static_cast<size_t>(data.size()), out, err);
         });
       }
     )
@@ -19340,7 +19340,7 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_versioned_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_versioned_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -19581,7 +19581,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_general_transaction_metadata_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_general_transaction_metadata_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -19790,7 +19790,7 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_delegate_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_delegate_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -19988,7 +19988,7 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -20230,7 +20230,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_hashes_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -20471,7 +20471,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_key_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_key_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -20786,7 +20786,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_governance_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_governance_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -21111,7 +21111,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_governance_action_id_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_governance_action_id_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -21499,7 +21499,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_hard_fork_initiation_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_hard_fork_initiation_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -21751,7 +21751,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_header_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -22154,7 +22154,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_header_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -22640,7 +22640,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_int_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_int_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -22906,7 +22906,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv4_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ipv4_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -22999,7 +22999,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(data) requires Uint8Array");
         }
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv4_new(data.data(), static_cast<uintptr_t>(data.size()), out, err);
+          return csl_bridge_ipv4_new(data.data(), static_cast<size_t>(data.size()), out, err);
         });
       }
     )
@@ -23175,7 +23175,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv6_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_ipv6_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -23268,7 +23268,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(data) requires Uint8Array");
         }
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv6_new(data.data(), static_cast<uintptr_t>(data.size()), out, err);
+          return csl_bridge_ipv6_new(data.data(), static_cast<size_t>(data.size()), out, err);
         });
       }
     )
@@ -23408,7 +23408,7 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslKESSignature(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_k_e_s_signature_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_k_e_s_signature_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -23576,7 +23576,7 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_k_e_s_v_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_k_e_s_v_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -23784,7 +23784,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_language_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_language_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -24134,7 +24134,7 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslLegacyDaedalusPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_legacy_daedalus_private_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_legacy_daedalus_private_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -24468,7 +24468,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_m_i_r_to_stake_credentials_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_m_i_r_to_stake_credentials_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -24813,7 +24813,7 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_list_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_metadata_list_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -25143,7 +25143,7 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_metadata_map_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -25419,7 +25419,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_mint_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -26318,7 +26318,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_move_instantaneous_reward_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_move_instantaneous_reward_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -26562,7 +26562,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_move_instantaneous_rewards_cert_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_move_instantaneous_rewards_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -26893,7 +26893,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_asset_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_multi_asset_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -27110,7 +27110,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_host_name_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_multi_host_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -27429,7 +27429,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_native_script_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_native_script_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -27907,7 +27907,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_native_scripts_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_native_scripts_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -28115,7 +28115,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_network_id_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_network_id_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -28514,7 +28514,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_new_constitution_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_new_constitution_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -28754,7 +28754,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_no_confidence_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_no_confidence_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -28986,7 +28986,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_nonce_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_nonce_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -29090,7 +29090,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new_from_hash(hash) requires Uint8Array");
         }
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_nonce_new_from_hash(hash.data(), static_cast<uintptr_t>(hash.size()), out, err);
+          return csl_bridge_nonce_new_from_hash(hash.data(), static_cast<size_t>(hash.size()), out, err);
         });
       }
     )
@@ -29306,7 +29306,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_operational_cert_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_operational_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -29682,7 +29682,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_parameter_change_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_parameter_change_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -30046,7 +30046,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_data_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -30218,7 +30218,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_data_new_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_data_new_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -30452,7 +30452,7 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_list_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_list_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -30692,7 +30692,7 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_map_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_map_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31030,7 +31030,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31108,7 +31108,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_new(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31171,7 +31171,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new_v2(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new_v2(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_new_v2(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31234,7 +31234,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new_v3(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new_v3(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_new_v3(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31301,7 +31301,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new_with_version(bytes.data(), static_cast<uintptr_t>(bytes.size()), language->get(), out, err);
+          return csl_bridge_plutus_script_new_with_version(bytes.data(), static_cast<size_t>(bytes.size()), language->get(), out, err);
         });
       }
     )
@@ -31364,7 +31364,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes_v2(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes_v2(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_from_bytes_v2(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31427,7 +31427,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes_v3(bytes) requires Uint8Array");
         }
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes_v3(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_from_bytes_v3(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -31494,7 +31494,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes_with_version(bytes.data(), static_cast<uintptr_t>(bytes.size()), language->get(), out, err);
+          return csl_bridge_plutus_script_from_bytes_with_version(bytes.data(), static_cast<size_t>(bytes.size()), language->get(), out, err);
         });
       }
     )
@@ -31864,7 +31864,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_scripts_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_scripts_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -32744,7 +32744,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_metadata_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_pool_metadata_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -32961,7 +32961,7 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_metadata_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_pool_metadata_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -33263,7 +33263,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_params_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_pool_params_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -33527,7 +33527,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_registration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_pool_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -33762,7 +33762,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_retirement_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_pool_retirement_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -34035,7 +34035,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_voting_thresholds_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_pool_voting_thresholds_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -34245,7 +34245,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "sign(message) requires Uint8Array");
         }
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_private_key_sign(st->get(), message.data(), static_cast<uintptr_t>(message.size()), out, err);
+          return csl_bridge_private_key_sign(st->get(), message.data(), static_cast<size_t>(message.size()), out, err);
         });
       }
     )
@@ -34373,7 +34373,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_extended_bytes(bytes) requires Uint8Array");
         }
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_private_key_from_extended_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_private_key_from_extended_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -34436,7 +34436,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_normal_bytes(bytes) requires Uint8Array");
         }
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_private_key_from_normal_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_private_key_from_normal_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -34677,7 +34677,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_proposed_protocol_parameter_updates_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_proposed_protocol_parameter_updates_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -35860,7 +35860,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_protocol_param_update_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_protocol_param_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -36093,7 +36093,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_protocol_version_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_protocol_version_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -36283,7 +36283,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         }
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
         bool res = false; ScopedCharPtr err;
-        if (!csl_bridge_public_key_verify(st->get(), data.data(), static_cast<uintptr_t>(data.size()), signature->get(), &res, &err.ptr)) {
+        if (!csl_bridge_public_key_verify(st->get(), data.data(), static_cast<size_t>(data.size()), signature->get(), &res, &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
         }
         return jsi::Value(res);
@@ -36403,7 +36403,7 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_public_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_public_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -36754,7 +36754,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemer_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_redeemer_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -36989,7 +36989,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemer_tag_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_redeemer_tag_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -37323,7 +37323,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemers_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_redeemers_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -37578,7 +37578,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_relay_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_relay_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -37865,7 +37865,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_relays_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_relays_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -38255,7 +38255,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_reward_addresses_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_reward_addresses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -38472,7 +38472,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_all_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_all_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -38693,7 +38693,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_any_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_any_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -38906,7 +38906,7 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_data_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -39104,7 +39104,7 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -39346,7 +39346,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_hashes_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -39577,7 +39577,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_n_of_k_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_n_of_k_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -39802,7 +39802,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_pubkey_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_pubkey_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -40075,7 +40075,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_ref_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_script_ref_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -40337,7 +40337,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_single_host_addr_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -40637,7 +40637,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_name_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_single_host_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -40911,7 +40911,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_and_vote_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_stake_and_vote_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -41166,7 +41166,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_stake_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -41417,7 +41417,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_deregistration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_stake_deregistration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -41683,7 +41683,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_registration_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_stake_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -41961,7 +41961,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_registration_and_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_stake_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -42240,7 +42240,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_stake_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -42611,7 +42611,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_timelock_expiry_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_timelock_expiry_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -42861,7 +42861,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_timelock_start_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_timelock_start_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -43153,7 +43153,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -43619,7 +43619,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_bodies_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_bodies_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -44460,7 +44460,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_body_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -46572,7 +46572,7 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -46792,7 +46792,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_input_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_input_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -47065,7 +47065,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_inputs_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_inputs_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -47332,7 +47332,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_metadatum_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -47455,7 +47455,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_new_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_metadatum_new_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -47670,7 +47670,7 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_labels_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_metadatum_labels_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -48030,7 +48030,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_output_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_output_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -48592,7 +48592,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_outputs_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_outputs_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -48821,7 +48821,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_unspent_output_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_unspent_output_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -49365,7 +49365,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_witness_set_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_witness_set_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -49618,7 +49618,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_witness_sets_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_witness_sets_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -50014,7 +50014,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_treasury_withdrawals_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_treasury_withdrawals_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -50644,7 +50644,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_u_r_l_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_u_r_l_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -50877,7 +50877,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_unit_interval_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_unit_interval_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -51116,7 +51116,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_update_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -51365,7 +51365,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_update_committee_action_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_update_committee_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -51625,7 +51625,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_cert_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_v_r_f_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -51770,7 +51770,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "new(proof) requires Uint8Array");
         }
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_cert_new(output.data(), static_cast<uintptr_t>(output.size()), proof.data(), static_cast<uintptr_t>(proof.size()), out, err);
+          return csl_bridge_v_r_f_cert_new(output.data(), static_cast<size_t>(output.size()), proof.data(), static_cast<size_t>(proof.size()), out, err);
         });
       }
     )
@@ -51938,7 +51938,7 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_key_hash_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_v_r_f_key_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -52136,7 +52136,7 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_v_key_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_v_r_f_v_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -52470,7 +52470,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_value_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_value_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -52750,7 +52750,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_versioned_block_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_versioned_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -52975,7 +52975,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkey_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_vkey_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -53332,7 +53332,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkeywitness_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_vkeywitness_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -53593,7 +53593,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkeywitnesses_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_vkeywitnesses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -53836,7 +53836,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vote_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_vote_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -54099,7 +54099,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -54392,7 +54392,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voter_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_voter_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -55032,7 +55032,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedure_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_voting_procedure_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -55334,7 +55334,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedures_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_voting_procedures_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -55587,7 +55587,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposal_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_voting_proposal_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -56052,7 +56052,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposals_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_voting_proposals_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -56319,7 +56319,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "from_bytes(bytes) requires Uint8Array");
         }
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_from_bytes(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_withdrawals_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -56774,7 +56774,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "encode_arbitrary_bytes_as_metadatum(bytes) requires Uint8Array");
         }
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_encode_arbitrary_bytes_as_metadatum(bytes.data(), static_cast<uintptr_t>(bytes.size()), out, err);
+          return csl_bridge_encode_arbitrary_bytes_as_metadatum(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
         });
       }
     )
@@ -56971,7 +56971,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "has_transaction_set_tag(tx_bytes) requires Uint8Array");
         }
         int32_t res{}; ScopedCharPtr err;
-        if (!csl_bridge_has_transaction_set_tag(tx_bytes.data(), static_cast<uintptr_t>(tx_bytes.size()), &res, &err.ptr)) {
+        if (!csl_bridge_has_transaction_set_tag(tx_bytes.data(), static_cast<size_t>(tx_bytes.size()), &res, &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
         }
         return jsi::Value(static_cast<double>(res));

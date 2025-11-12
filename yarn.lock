@@ -1974,11 +1974,11 @@ __metadata:
 
 "@emurgo/csl-mobile-bridge-jsi@file:..::locator=%40emurgo%2Fcsl-mobile-bridge-example%40workspace%3Aexample":
   version: 1.0.0-alpha.6
-  resolution: "@emurgo/csl-mobile-bridge-jsi@file:..#..::hash=8fda20&locator=%40emurgo%2Fcsl-mobile-bridge-example%40workspace%3Aexample"
+  resolution: "@emurgo/csl-mobile-bridge-jsi@file:..#..::hash=19d38c&locator=%40emurgo%2Fcsl-mobile-bridge-example%40workspace%3Aexample"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 69191ec0b2e4f57b4345ee10113f22742724b809036a1c5ac1c92e790cedcf3abb4006563b8eb9b8b3ce22d5d42ca9a390b0246e8b2620a6e905ea927d24c151
+  checksum: 086dfd3ff69acf190c931ca4c897801bfbe82fa6da527b7781d969c9971bedf295d7c9b5c7eff042474a4b5f6683b0b0e903e905fcd95110d42e193f5d4add4f
   languageName: node
   linkType: hard
 
