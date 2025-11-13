@@ -6,7 +6,6 @@ import {
   RewardAddress,
   PointerAddress,
   ByronAddress,
-  MalformedAddress,
   Credential,
   PrivateKey,
   Bip32PublicKey,

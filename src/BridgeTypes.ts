@@ -2,11 +2,200 @@
 // This file provides type safety for the native bridge interface
 // DO NOT EDIT - Generated automatically
 
+export enum AddressKind {
+  Base = 0,
+  Pointer = 1,
+  Enterprise = 2,
+  Reward = 3,
+  Byron = 4,
+  Malformed = 5,
+}
+
+export enum BlockEra {
+  Byron = 0,
+  Shelley = 1,
+  Allegra = 2,
+  Mary = 3,
+  Alonzo = 4,
+  Babbage = 5,
+  Conway = 6,
+  Unknown = 7,
+}
+
+export enum ByronAddressType {
+  ATPubKey = 0,
+  ATScript = 1,
+  ATRedeem = 2,
+}
+
+export enum CborContainerType {
+  Array = 0,
+  Map = 1,
+}
+
+export enum CborSetType {
+  Tagged = 0,
+  Untagged = 1,
+}
+
+export enum CertificateKind {
+  StakeRegistration = 0,
+  StakeDeregistration = 1,
+  StakeDelegation = 2,
+  PoolRegistration = 3,
+  PoolRetirement = 4,
+  GenesisKeyDelegation = 5,
+  MoveInstantaneousRewardsCert = 6,
+  CommitteeHotAuth = 7,
+  CommitteeColdResign = 8,
+  DRepDeregistration = 9,
+  DRepRegistration = 10,
+  DRepUpdate = 11,
+  StakeAndVoteDelegation = 12,
+  StakeRegistrationAndDelegation = 13,
+  StakeVoteRegistrationAndDelegation = 14,
+  VoteDelegation = 15,
+  VoteRegistrationAndDelegation = 16,
+}
+
+export enum CoinSelectionStrategyCIP2 {
+  LargestFirst = 0,
+  RandomImprove = 1,
+  LargestFirstMultiAsset = 2,
+  RandomImproveMultiAsset = 3,
+}
+
+export enum CredKind {
+  Key = 0,
+  Script = 1,
+}
+
+export enum DRepKind {
+  KeyHash = 0,
+  ScriptHash = 1,
+  AlwaysAbstain = 2,
+  AlwaysNoConfidence = 3,
+}
+
+export enum GovernanceActionKind {
+  ParameterChangeAction = 0,
+  HardForkInitiationAction = 1,
+  TreasuryWithdrawalsAction = 2,
+  NoConfidenceAction = 3,
+  UpdateCommitteeAction = 4,
+  NewConstitutionAction = 5,
+  InfoAction = 6,
+}
+
+export enum LanguageKind {
+  PlutusV1 = 0,
+  PlutusV2 = 1,
+  PlutusV3 = 2,
+}
+
+export enum MIRKind {
+  ToOtherPot = 0,
+  ToStakeCredentials = 1,
+}
+
+export enum MIRPot {
+  Reserves = 0,
+  Treasury = 1,
+}
+
+export enum MetadataJsonSchema {
+  NoConversions = 0,
+  BasicConversions = 1,
+  DetailedSchema = 2,
+}
+
+export enum NativeScriptKind {
+  ScriptPubkey = 0,
+  ScriptAll = 1,
+  ScriptAny = 2,
+  ScriptNOfK = 3,
+  TimelockStart = 4,
+  TimelockExpiry = 5,
+}
+
+export enum NetworkIdKind {
+  Testnet = 0,
+  Mainnet = 1,
+}
+
+export enum PlutusDataKind {
+  ConstrPlutusData = 0,
+  Map = 1,
+  List = 2,
+  Integer = 3,
+  Bytes = 4,
+}
+
+export enum PlutusDatumSchema {
+  BasicConversions = 0,
+  DetailedSchema = 1,
+}
+
+export enum RedeemerTagKind {
+  Spend = 0,
+  Mint = 1,
+  Cert = 2,
+  Reward = 3,
+  Vote = 4,
+  VotingProposal = 5,
+}
+
+export enum RelayKind {
+  SingleHostAddr = 0,
+  SingleHostName = 1,
+  MultiHostName = 2,
+}
+
+export enum ScriptHashNamespace {
+  NativeScript = 0,
+  PlutusScript = 1,
+  PlutusScriptV2 = 2,
+  PlutusScriptV3 = 3,
+}
+
+export enum ScriptSchema {
+  Wallet = 0,
+  Node = 1,
+}
+
+export enum TransactionMetadatumKind {
+  MetadataMap = 0,
+  MetadataList = 1,
+  Int = 2,
+  Bytes = 3,
+  Text = 4,
+}
+
+export enum TransactionSetsState {
+  AllSetsHaveTag = 0,
+  AllSetsHaveNoTag = 1,
+  MixedSets = 2,
+}
+
+export enum VoteKind {
+  No = 0,
+  Yes = 1,
+  Abstain = 2,
+}
+
+export enum VoterKind {
+  ConstitutionalCommitteeHotKeyHash = 0,
+  ConstitutionalCommitteeHotScriptHash = 1,
+  DRepKeyHash = 2,
+  DRepScriptHash = 3,
+  StakingPoolKeyHash = 4,
+}
+
 export declare class Address {
   static from_bytes(data: Uint8Array): Address;
   to_json(): string;
   static from_json(json: string): Address;
-  kind(): number;
+  kind(): AddressKind;
   payment_cred(): Credential;
   is_malformed(): boolean;
   to_hex(): string;
@@ -252,7 +441,7 @@ export declare class ByronAddress {
   to_bytes(): Uint8Array;
   static from_bytes(bytes: Uint8Array): ByronAddress;
   byron_protocol_magic(): number;
-  byron_address_kind(): number;
+  byron_address_kind(): ByronAddressType;
   attributes(): Uint8Array;
   network_id(): number;
   static from_base58(s: string): ByronAddress;
@@ -288,7 +477,7 @@ export declare class Certificate {
   static new_stake_vote_registration_and_delegation(stake_vote_registration_and_delegation: StakeVoteRegistrationAndDelegation): Certificate;
   static new_vote_delegation(vote_delegation: VoteDelegation): Certificate;
   static new_vote_registration_and_delegation(vote_registration_and_delegation: VoteRegistrationAndDelegation): Certificate;
-  kind(): number;
+  kind(): CertificateKind;
   as_stake_registration(): StakeRegistration;
   as_reg_cert(): StakeRegistration;
   as_stake_deregistration(): StakeDeregistration;
@@ -442,7 +631,7 @@ export declare class Credential {
   static from_scripthash(hash: ScriptHash): Credential;
   to_keyhash(): Ed25519KeyHash;
   to_scripthash(): ScriptHash;
-  kind(): number;
+  kind(): CredKind;
   has_script_hash(): boolean;
   to_bytes(): Uint8Array;
   static from_bytes(bytes: Uint8Array): Credential;
@@ -499,7 +688,7 @@ export declare class DRep {
   static new_always_abstain(): DRep;
   static new_always_no_confidence(): DRep;
   static new_from_credential(cred: Credential): DRep;
-  kind(): number;
+  kind(): DRepKind;
   to_key_hash(): Ed25519KeyHash;
   to_script_hash(): ScriptHash;
   to_bech32(cip_129_format: boolean): string;
@@ -729,7 +918,7 @@ export declare class FixedVersionedBlock {
   static from_bytes(bytes: Uint8Array): FixedVersionedBlock;
   static from_hex(hex_str: string): FixedVersionedBlock;
   block(): FixedBlock;
-  era(): number;
+  era(): BlockEra;
 }
 
 export declare class GeneralTransactionMetadata {
@@ -804,7 +993,7 @@ export declare class GovernanceAction {
   static new_new_committee_action(new_committee_action: UpdateCommitteeAction): GovernanceAction;
   static new_new_constitution_action(new_constitution_action: NewConstitutionAction): GovernanceAction;
   static new_info_action(info_action: InfoAction): GovernanceAction;
-  kind(): number;
+  kind(): GovernanceActionKind;
   as_parameter_change_action(): ParameterChangeAction;
   as_hard_fork_initiation_action(): HardForkInitiationAction;
   as_treasury_withdrawals_action(): TreasuryWithdrawalsAction;
@@ -956,7 +1145,7 @@ export declare class Language {
   static new_plutus_v1(): Language;
   static new_plutus_v2(): Language;
   static new_plutus_v3(): Language;
-  kind(): number;
+  kind(): LanguageKind;
 }
 
 export declare class Languages {
@@ -1087,10 +1276,10 @@ export declare class MoveInstantaneousReward {
   static from_hex(hex_str: string): MoveInstantaneousReward;
   to_json(): string;
   static from_json(json: string): MoveInstantaneousReward;
-  static new_to_other_pot(pot: number, amount: BigNum): MoveInstantaneousReward;
-  static new_to_stake_creds(pot: number, amounts: MIRToStakeCredentials): MoveInstantaneousReward;
-  pot(): number;
-  kind(): number;
+  static new_to_other_pot(pot: MIRPot, amount: BigNum): MoveInstantaneousReward;
+  static new_to_stake_creds(pot: MIRPot, amounts: MIRToStakeCredentials): MoveInstantaneousReward;
+  pot(): MIRPot;
+  kind(): MIRKind;
   as_to_other_pot(): BigNum;
   as_to_stake_creds(): MIRToStakeCredentials;
 }
@@ -1148,7 +1337,7 @@ export declare class NativeScript {
   static new_script_n_of_k(script_n_of_k: ScriptNOfK): NativeScript;
   static new_timelock_start(timelock_start: TimelockStart): NativeScript;
   static new_timelock_expiry(timelock_expiry: TimelockExpiry): NativeScript;
-  kind(): number;
+  kind(): NativeScriptKind;
   as_script_pubkey(): ScriptPubkey;
   as_script_all(): ScriptAll;
   as_script_any(): ScriptAny;
@@ -1187,7 +1376,7 @@ export declare class NetworkId {
   static from_json(json: string): NetworkId;
   static testnet(): NetworkId;
   static mainnet(): NetworkId;
-  kind(): number;
+  kind(): NetworkIdKind;
 }
 
 export declare class NetworkInfo {
@@ -1286,14 +1475,14 @@ export declare class PlutusData {
   static new_list(list: PlutusList): PlutusData;
   static new_integer(integer: BigInt): PlutusData;
   static new_bytes(bytes: Uint8Array): PlutusData;
-  kind(): number;
+  kind(): PlutusDataKind;
   as_constr_plutus_data(): ConstrPlutusData;
   as_map(): PlutusMap;
   as_list(): PlutusList;
   as_integer(): BigInt;
   as_bytes(): Uint8Array;
-  to_json(schema: number): string;
-  static from_json(json: string, schema: number): PlutusData;
+  to_json(schema: PlutusDatumSchema): string;
+  static from_json(json: string, schema: PlutusDatumSchema): PlutusData;
   static from_address(address: Address): PlutusData;
   as_address(network: NetworkInfo): Address;
 }
@@ -1640,7 +1829,7 @@ export declare class RedeemerTag {
   static new_reward(): RedeemerTag;
   static new_vote(): RedeemerTag;
   static new_voting_proposal(): RedeemerTag;
-  kind(): number;
+  kind(): RedeemerTagKind;
 }
 
 export declare class Redeemers {
@@ -1654,7 +1843,7 @@ export declare class Redeemers {
   len(): number;
   get(index: number): Redeemer;
   add(elem: Redeemer): void;
-  get_container_type(): number;
+  get_container_type(): CborContainerType;
   total_ex_units(): ExUnits;
 }
 
@@ -1668,7 +1857,7 @@ export declare class Relay {
   static new_single_host_addr(single_host_addr: SingleHostAddr): Relay;
   static new_single_host_name(single_host_name: SingleHostName): Relay;
   static new_multi_host_name(multi_host_name: MultiHostName): Relay;
-  kind(): number;
+  kind(): RelayKind;
   as_single_host_addr(): SingleHostAddr;
   as_single_host_name(): SingleHostName;
   as_multi_host_name(): MultiHostName;
@@ -2035,7 +2224,7 @@ export declare class TransactionBody {
 }
 
 export declare class TransactionBuilder {
-  add_inputs_from(inputs: TransactionUnspentOutputs, strategy: number): void;
+  add_inputs_from(inputs: TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2): void;
   set_inputs(inputs: TxInputsBuilder): void;
   set_collateral(collateral: TxInputsBuilder): void;
   set_collateral_return(collateral_return: TransactionOutput): void;
@@ -2051,8 +2240,8 @@ export declare class TransactionBuilder {
   add_plutus_script_input(witness: PlutusWitness, input: TransactionInput, amount: Value): void;
   add_bootstrap_input(hash: ByronAddress, input: TransactionInput, amount: Value): void;
   add_regular_input(address: Address, input: TransactionInput, amount: Value): void;
-  add_inputs_from_and_change(inputs: TransactionUnspentOutputs, strategy: number, change_config: ChangeConfig): boolean;
-  add_inputs_from_and_change_with_collateral_return(inputs: TransactionUnspentOutputs, strategy: number, change_config: ChangeConfig, collateral_percentage: BigNum): void;
+  add_inputs_from_and_change(inputs: TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2, change_config: ChangeConfig): boolean;
+  add_inputs_from_and_change_with_collateral_return(inputs: TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2, change_config: ChangeConfig, collateral_percentage: BigNum): void;
   get_native_input_scripts(): NativeScripts;
   get_plutus_input_scripts(): PlutusWitnesses;
   fee_for_input(address: Address, input: TransactionInput, amount: Value): BigNum;
@@ -2080,7 +2269,7 @@ export declare class TransactionBuilder {
   set_metadata(metadata: GeneralTransactionMetadata): void;
   add_metadatum(key: BigNum, val: TransactionMetadatum): void;
   add_json_metadatum(key: BigNum, val: string): void;
-  add_json_metadatum_with_schema(key: BigNum, val: string, schema: number): void;
+  add_json_metadatum_with_schema(key: BigNum, val: string, schema: MetadataJsonSchema): void;
   set_mint_builder(mint_builder: MintBuilder): void;
   remove_mint_builder(): void;
   get_mint_builder(): MintBuilder;
@@ -2185,7 +2374,7 @@ export declare class TransactionMetadatum {
   static new_int(int_value: Int): TransactionMetadatum;
   static new_bytes(bytes: Uint8Array): TransactionMetadatum;
   static new_text(text: string): TransactionMetadatum;
-  kind(): number;
+  kind(): TransactionMetadatumKind;
   as_map(): MetadataMap;
   as_list(): MetadataList;
   as_int(): number;
@@ -2223,7 +2412,7 @@ export declare class TransactionOutput {
   has_data_hash(): boolean;
   has_script_ref(): boolean;
   static new(address: Address, amount: Value): TransactionOutput;
-  serialization_format(): number;
+  serialization_format(): CborContainerType;
 }
 
 export declare class TransactionOutputAmountBuilder {
@@ -2466,7 +2655,7 @@ export declare class VersionedBlock {
   static from_json(json: string): VersionedBlock;
   static new(block: Block, era_code: number): VersionedBlock;
   block(): Block;
-  era(): number;
+  era(): BlockEra;
 }
 
 export declare class Vkey {
@@ -2549,7 +2738,7 @@ export declare class Voter {
   static new_constitutional_committee_hot_credential(cred: Credential): Voter;
   static new_drep_credential(cred: Credential): Voter;
   static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter;
-  kind(): number;
+  kind(): VoterKind;
   to_constitutional_committee_hot_credential(): Credential;
   to_drep_credential(): Credential;
   to_stake_pool_key_hash(): Ed25519KeyHash;
@@ -2585,9 +2774,9 @@ export declare class VotingProcedure {
   static from_hex(hex_str: string): VotingProcedure;
   to_json(): string;
   static from_json(json: string): VotingProcedure;
-  static new(vote: number): VotingProcedure;
-  static new_with_anchor(vote: number, anchor: Anchor): VotingProcedure;
-  vote_kind(): number;
+  static new(vote: VoteKind): VotingProcedure;
+  static new_with_anchor(vote: VoteKind, anchor: Anchor): VotingProcedure;
+  vote_kind(): VoteKind;
   anchor(): Anchor;
 }
 
@@ -2675,17 +2864,17 @@ export declare class WithdrawalsBuilder {
 export declare function calculate_ex_units_ceil_cost(ex_units: ExUnits, ex_unit_prices: ExUnitPrices): BigNum;
 export declare function create_send_all(address: Address, utxos: TransactionUnspentOutputs, config: TransactionBuilderConfig): TransactionBatchList;
 export declare function decode_arbitrary_bytes_from_metadatum(metadata: TransactionMetadatum): Uint8Array;
-export declare function decode_metadatum_to_json_str(metadatum: TransactionMetadatum, schema: number): string;
-export declare function decode_plutus_datum_to_json_str(datum: PlutusData, schema: number): string;
+export declare function decode_metadatum_to_json_str(metadatum: TransactionMetadatum, schema: MetadataJsonSchema): string;
+export declare function decode_plutus_datum_to_json_str(datum: PlutusData, schema: PlutusDatumSchema): string;
 export declare function decrypt_with_password(password: string, data: string): string;
 export declare function encode_arbitrary_bytes_as_metadatum(bytes: Uint8Array): TransactionMetadatum;
-export declare function encode_json_str_to_metadatum(json: string, schema: number): TransactionMetadatum;
-export declare function encode_json_str_to_native_script(json: string, self_xpub: string, schema: number): NativeScript;
-export declare function encode_json_str_to_plutus_datum(json: string, schema: number): PlutusData;
+export declare function encode_json_str_to_metadatum(json: string, schema: MetadataJsonSchema): TransactionMetadatum;
+export declare function encode_json_str_to_native_script(json: string, self_xpub: string, schema: ScriptSchema): NativeScript;
+export declare function encode_json_str_to_plutus_datum(json: string, schema: PlutusDatumSchema): PlutusData;
 export declare function encrypt_with_password(password: string, salt: string, nonce: string, data: string): string;
 export declare function get_deposit(txbody: TransactionBody, pool_deposit: BigNum, key_deposit: BigNum): BigNum;
 export declare function get_implicit_input(txbody: TransactionBody, pool_deposit: BigNum, key_deposit: BigNum): Value;
-export declare function has_transaction_set_tag(tx_bytes: Uint8Array): number;
+export declare function has_transaction_set_tag(tx_bytes: Uint8Array): TransactionSetsState;
 export declare function hash_auxiliary_data(auxiliary_data: AuxiliaryData): AuxiliaryDataHash;
 export declare function hash_plutus_data(plutus_data: PlutusData): DataHash;
 export declare function hash_script_data(redeemers: Redeemers, cost_models: Costmdls, datums?: PlutusList): ScriptDataHash;
