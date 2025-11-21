@@ -92,6 +92,49 @@ static jsi::String callCslString(jsi::Runtime& rt, std::function<bool(CharPtr*, 
   return jsi::String::createFromUtf8(rt, out.ptr ? out.ptr : "");
 }
 
+static jsi::Object callCslArrayFromString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn) {
+  ScopedCharPtr out;
+  ScopedCharPtr err;
+  if (!fn(&out.ptr, &err.ptr)) {
+    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+  }
+  if (!out.ptr || strlen(out.ptr) == 0) {
+    auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
+    if (Uint8ArrayCtor.isFunction(rt)) {
+      return Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, 0.0).asObject(rt);
+    }
+    return jsi::Array(rt, 0);
+  }
+  auto atob = rt.global().getPropertyAsObject(rt, "atob");
+  if (!atob.isFunction(rt)) {
+    throw jsi::JSError(rt, "atob function not available");
+  }
+  auto base64Str = jsi::String::createFromUtf8(rt, out.ptr);
+  auto decodedStr = atob.asFunction(rt).call(rt, base64Str).asString(rt).utf8(rt);
+  size_t decodedLen = decodedStr.length();
+  auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
+  if (Uint8ArrayCtor.isFunction(rt)) {
+    auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(decodedLen));
+    auto uint8Array = uint8ArrayVal.asObject(rt);
+    if (uint8Array.isArray(rt)) {
+      auto arr = uint8Array.asArray(rt);
+      for (size_t i = 0; i < decodedLen; ++i) {
+        arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
+      }
+    } else {
+      for (size_t i = 0; i < decodedLen; ++i) {
+        uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
+      }
+    }
+    return uint8Array;
+  }
+  jsi::Array arr(rt, decodedLen);
+  for (size_t i = 0; i < decodedLen; ++i) {
+    arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
+  }
+  return arr;
+}
+
 static jsi::Object callCslAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn);
 static jsi::Object callCslAnchor(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn);
 static jsi::Object callCslAnchorDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn);
@@ -8823,7 +8866,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "invalid_transactions"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBlockState(rt, thisVal);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_invalid_transactions(st->get(), out, err);
         });
       }
@@ -8959,12 +9002,85 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
           throw jsi::JSError(rt, "Expected AuxiliaryDataSet for auxiliary_data_set");
         }
         auto auxiliary_data_set = getAuxiliaryDataSetState(rt, args[3].asObject(rt), "auxiliary_data_set");
-        if (count < 5 || !args[4].isString()) {
-          throw jsi::JSError(rt, "new(invalid_transactions) requires string");
+        if (count < 5 || !args[4].isObject()) {
+          throw jsi::JSError(rt, "new(invalid_transactions) requires Uint8Array");
         }
-        std::string invalid_transactions = args[4].asString(rt).utf8(rt);
+        auto __obj_invalid_transactions = args[4].asObject(rt);
+        std::vector<uint8_t> invalid_transactions;
+        size_t __n_invalid_transactions = 0;
+        bool __is_array_invalid_transactions = false;
+        bool __is_uint8array_invalid_transactions = false;
+
+        __is_array_invalid_transactions = __obj_invalid_transactions.isArray(rt);
+        if (__is_array_invalid_transactions) {
+          auto __arr_invalid_transactions = __obj_invalid_transactions.asArray(rt);
+          __n_invalid_transactions = __arr_invalid_transactions.length(rt);
+          if (__obj_invalid_transactions.hasProperty(rt, "buffer") && __obj_invalid_transactions.hasProperty(rt, "byteLength")) {
+            __is_uint8array_invalid_transactions = true;
+          }
+          invalid_transactions.reserve(__n_invalid_transactions);
+          for (size_t __i = 0; __i < __n_invalid_transactions; ++__i) {
+            auto __v = __arr_invalid_transactions.getValueAtIndex(rt, __i);
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            invalid_transactions.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else if (__obj_invalid_transactions.hasProperty(rt, "buffer") && __obj_invalid_transactions.hasProperty(rt, "byteLength")) {
+          auto __byteLength_val = __obj_invalid_transactions.getProperty(rt, "byteLength");
+          if (__byteLength_val.isNumber()) {
+            __n_invalid_transactions = static_cast<size_t>(__byteLength_val.asNumber());
+            __is_uint8array_invalid_transactions = true;
+          }
+          if (__n_invalid_transactions == 0) {
+            throw jsi::JSError(rt, "new(invalid_transactions) requires Uint8Array");
+          }
+          invalid_transactions.reserve(__n_invalid_transactions);
+          for (size_t __i = 0; __i < __n_invalid_transactions; ++__i) {
+            auto __v = __obj_invalid_transactions.getProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(__i)));
+            if (!__v.isNumber()) {
+              throw jsi::JSError(rt, "new: Expected Uint8Array as input");
+            }
+            double __d = __v.asNumber();
+            if (__d < 0 || __d > 255) {
+              throw jsi::JSError(rt, "new: byte out of range 0..255");
+            }
+            invalid_transactions.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+          }
+        } else {
+          throw jsi::JSError(rt, "new(invalid_transactions) requires Uint8Array");
+        }
+
+        // Convert bytes to base64 string for C bridge compatibility
+        std::string __invalid_transactions_base64;
+        if (invalid_transactions.empty()) {
+          __invalid_transactions_base64 = "";
+        } else {
+          // Use btoa to encode bytes to base64
+          auto btoa = rt.global().getPropertyAsObject(rt, "btoa");
+          if (!btoa.isFunction(rt)) {
+            throw jsi::JSError(rt, "btoa function not available");
+          }
+          // Create a Uint8Array from the bytes vector
+          auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
+          if (!Uint8ArrayCtor.isFunction(rt)) {
+            throw jsi::JSError(rt, "Uint8Array constructor not available");
+          }
+          auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(invalid_transactions.size()));
+          auto uint8Array = uint8ArrayVal.asObject(rt);
+          for (size_t i = 0; i < invalid_transactions.size(); ++i) {
+            uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(invalid_transactions[i])));
+          }
+          // Call btoa to encode
+          auto base64Val = btoa.asFunction(rt).call(rt, uint8Array);
+          __invalid_transactions_base64 = base64Val.asString(rt).utf8(rt);
+        }
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_block_new(header->get(), transaction_bodies->get(), transaction_witness_sets->get(), auxiliary_data_set->get(), invalid_transactions.c_str(), out, err);
+          return csl_bridge_block_new(header->get(), transaction_bodies->get(), transaction_witness_sets->get(), auxiliary_data_set->get(), __invalid_transactions_base64.c_str(), out, err);
         });
       }
     )
@@ -17782,7 +17898,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "invalid_transactions"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedBlockState(rt, thisVal);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_invalid_transactions(st->get(), out, err);
         });
       }

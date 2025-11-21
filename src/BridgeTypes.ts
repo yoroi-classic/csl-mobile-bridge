@@ -396,8 +396,8 @@ export declare class Block {
   transaction_bodies(): TransactionBodies;
   transaction_witness_sets(): TransactionWitnessSets;
   auxiliary_data_set(): AuxiliaryDataSet;
-  invalid_transactions(): string;
-  static new(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: string): Block;
+  invalid_transactions(): Uint8Array;
+  static new(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: Uint8Array): Block;
 }
 
 export declare class BlockHash {
@@ -858,7 +858,7 @@ export declare class FixedBlock {
   transaction_bodies(): FixedTransactionBodies;
   transaction_witness_sets(): TransactionWitnessSets;
   auxiliary_data_set(): AuxiliaryDataSet;
-  invalid_transactions(): string;
+  invalid_transactions(): Uint8Array;
   block_hash(): BlockHash;
 }
 

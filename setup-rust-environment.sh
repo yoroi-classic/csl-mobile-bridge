@@ -104,33 +104,6 @@ check_rust_version() {
     return 0
 }
 
-# Function to install Rust
-install_rust() {
-    log_info "Installing Rust..."
-    
-    # Download and run rustup installer
-    if command -v curl &> /dev/null; then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    elif command -v wget &> /dev/null; then
-        wget -qO- https://sh.rustup.rs | sh -s -- -y
-    else
-        log_error "Neither curl nor wget is available. Please install one of them and try again."
-        return 1
-    fi
-    
-    # Source the rust environment
-    source "$HOME/.cargo/env"
-    
-    # Verify installation
-    if command -v rustc &> /dev/null; then
-        log_success "Rust installed successfully"
-        return 0
-    else
-        log_error "Failed to install Rust"
-        return 1
-    fi
-}
-
 # Function to get required Rust targets
 get_required_targets() {
     local targets=()
@@ -303,10 +276,8 @@ main() {
     
     # Check and setup Rust
     if ! check_rust_installed; then
-        if ! install_rust; then
-            log_error "Failed to install Rust. Exiting."
-            exit 1
-        fi
+        log_error "Please install Rust from https://rustup.rs/ and re-run this script."
+        exit 1
     fi
     
     # Check Rust version
