@@ -1,6 +1,6 @@
 # CSL Mobile Bridge Installation Guide
 
-This guide will help you set up the CSL Mobile Bridge development environment on macOS. The CSL Mobile Bridge is a React Native library that provides JavaScript bindings for Emurgo's Cardano Serialization Library with native Rust components.
+This guide will help you set up the CSL Mobile Bridge development environment. The CSL Mobile Bridge is a React Native library that provides JavaScript bindings for Emurgo's Cardano Serialization Library with native Rust components.
 
 ## Table of Contents
 
@@ -12,7 +12,6 @@ This guide will help you set up the CSL Mobile Bridge development environment on
 - [Rust Environment Setup](#rust-environment-setup)
 - [Node.js Dependencies](#nodejs-dependencies)
 - [Running the Application](#running-the-application)
-- [Verification](#verification)
 - [Troubleshooting](#troubleshooting)
 - [Additional Resources](#additional-resources)
 
@@ -39,13 +38,6 @@ yarn example ios    # or: yarn example android
 > **Note**: If you're new to React Native development, please follow the complete guide below.
 
 ## Prerequisites
-
-### System Requirements
-
-- **macOS**: 13.0 (Ventura) or later
-- **RAM**: 8GB minimum, 16GB recommended
-- **Storage**: 10GB free space for tools and dependencies
-- **Processor**: Apple Silicon (M1/M2/M3) or Intel-based Mac
 
 ### Required Software Versions
 
@@ -456,26 +448,6 @@ xcrun simctl list devices available
 echo "=== Android Devices ==="
 $ANDROID_HOME/platform-tools/adb devices
 ```
-
-## Verification
-
-After completing the installation, verify everything is working by running the example app:
-
-```bash
-# Test iOS build
-yarn example ios
-
-# Test Android build  
-yarn example android
-```
-
-Both commands should successfully build and launch the application. If you encounter any issues, refer to the [Troubleshooting](#troubleshooting) section.
-
-### Expected Behavior
-
-- **iOS**: The iOS Simulator should launch and display the CSL Mobile Bridge example app
-- **Android**: An Android emulator or connected device should launch the example app
-- **Build Process**: You should see Rust code compilation, followed by React Native bundling
 
 ## Additional Resources
 
