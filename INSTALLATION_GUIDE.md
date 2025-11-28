@@ -2,40 +2,99 @@
 
 This guide will help you set up the CSL Mobile Bridge development environment. The CSL Mobile Bridge is a React Native library that provides JavaScript bindings for Emurgo's Cardano Serialization Library with native Rust components.
 
+## 🚀 Choose Your Setup Path
+
+### For Experienced React Native Developers
+If you already have React Native development tools installed, jump to the **[Experienced Developer Setup](#experienced-developer-setup)** section for a quick, minimal setup.
+
+### For Fresh Machine Setup
+If you're setting up a new development environment or want to ensure everything is properly configured, follow the **[Complete Fresh Machine Setup](#complete-fresh-machine-setup)** section.
+
 ## Table of Contents
 
-- [Quick Start](#quick-start)
-- [Prerequisites](#prerequisites)
-- [Development Tools Installation](#development-tools-installation)
-- [iOS Setup](#ios-setup)
-- [Android Setup](#android-setup)
-- [Rust Environment Setup](#rust-environment-setup)
-- [Node.js Dependencies](#nodejs-dependencies)
+- [Experienced Developer Setup](#experienced-developer-setup)
+- [Complete Fresh Machine Setup](#complete-fresh-machine-setup)
+  - [Prerequisites](#prerequisites)
+  - [Development Tools Installation](#development-tools-installation)
+  - [iOS Setup](#ios-setup)
+  - [Android Setup](#android-setup)
+  - [Rust Environment Setup](#rust-environment-setup)
+  - [Node.js Dependencies](#nodejs-dependencies)
 - [Running the Application](#running-the-application)
 - [Troubleshooting](#troubleshooting)
 - [Additional Resources](#additional-resources)
 
-## Quick Start
+---
 
-For experienced developers who want a minimal setup:
+## Experienced Developer Setup
+
+This section is for developers who already have React Native development tools installed and configured. Assumes you have Node.js, Yarn, Xcode, Android Studio, and basic development tools ready.
+
+### ⚡ Quick Setup (5-10 minutes)
 
 ```bash
-# 1. Install basic tools
-brew install watchman node python3
+# 1. Install Watchman (if not already installed)
+brew install watchman || echo "Watchman already installed"
 
-# 2. Install Rust and run setup
+# 2. Install/setup Rust and run automated environment setup
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.zshrc  # or ~/.bash_profile
 ./setup-rust-environment.sh
 
-# 3. Install dependencies
+# 3. Install project dependencies
 yarn install && yarn prepare
 
 # 4. Run the app
 yarn example ios    # or: yarn example android
 ```
 
-> **Note**: If you're new to React Native development, please follow the complete guide below.
+### 🔍 Prerequisites Check
+
+Verify you have the required tools installed:
+
+```bash
+# Check versions
+node --version    # >= 18.0.0
+yarn --version    # >= 3.6.1
+xcodebuild -version  # >= 14.0
+java -version     # JDK 17 recommended
+```
+
+### 🦊 Rust Setup (Required)
+
+Even experienced developers need to set up Rust for this project:
+
+```bash
+# Install Rust if not already installed
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Configure environment and install targets
+source ~/.zshrc  # or ~/.bash_profile
+./setup-rust-environment.sh
+```
+
+### ⚠️ Important Notes for Experienced Devs
+
+- **NDK Version**: This project requires NDK version `27.0.12077973` - check your Android SDK setup
+- **Rust Targets**: The setup script installs required cross-compilation targets
+- **Environment Variables**: Ensure `JAVA_HOME`, `ANDROID_HOME` are set correctly
+
+If you encounter any issues, see the [Troubleshooting](#troubleshooting) section or follow the complete setup below.
+
+---
+
+## Complete Fresh Machine Setup (Total: 2.5-4 hours)
+
+This section provides a comprehensive guide for setting up a complete development environment from scratch.
+
+### ⏱️ Time Breakdown
+- **Development Tools**: 30-45 minutes
+- **iOS Setup**: 45-90 minutes  
+- **Android Setup**: 60-90 minutes
+- **Rust Environment**: 15-20 minutes
+- **Dependencies & Testing**: 10-15 minutes
+
+> **💡 Tip**: The longest waits are for downloading Xcode (10-15GB) and Android Studio. Start these downloads early!
 
 ## Prerequisites
 
@@ -104,6 +163,8 @@ brew install git
 
 Install Xcode from the Mac App Store or download it from the [Apple Developer Portal](https://developer.apple.com/xcode/).
 
+> **Note**: Xcode is a large download (10-15GB) and may take significant time to install and configure.
+
 ### 2. Xcode Command Line Tools
 
 ```bash
@@ -135,6 +196,8 @@ Download and install Android Studio from the [official website](https://develope
 ```bash
 brew install --cask android-studio
 ```
+
+> **Note**: Android Studio is a large download (1GB+) and includes the Android SDK.
 
 ### 2. Android SDK
 
@@ -329,98 +392,9 @@ yarn example lint
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+### 🔧 Quick Diagnostic Commands
 
-#### 1. "Command not found: yarn"
-```bash
-# Ensure Yarn is installed and in PATH
-which yarn
-npm install -g yarn
-```
-
-#### 2. "Android SDK not found"
-```bash
-# Verify ANDROID_HOME environment variable
-echo $ANDROID_HOME
-ls "$ANDROID_HOME"
-
-# Reinstall Android Studio if necessary
-brew reinstall --cask android-studio
-```
-
-#### 3. "Java version incompatible"
-```bash
-# Verify Java installation
-java -version
-echo $JAVA_HOME
-
-# Reinstall Zulu JDK
-brew reinstall --cask zulu@17
-```
-
-#### 4. Rust build failures
-```bash
-# Re-run the setup script
-./setup-rust-environment.sh
-
-# Check Rust targets
-rustup target list --installed
-
-# Update Rust toolchain
-rustup update
-```
-
-#### 5. iOS build issues
-```bash
-# Clean and rebuild
-cd example
-rm -rf ios/build
-pod install --repo-update
-cd ..
-yarn example ios
-```
-
-#### 6. Android build issues
-```bash
-# Clean Android build
-cd example/android
-./gradlew clean
-cd ../..
-yarn example android
-```
-
-#### 7. NDK-related issues
-```bash
-# Check NDK installation
-ls "$ANDROID_HOME/ndk/27.0.12077973"
-echo $ANDROID_NDK_HOME
-
-# Verify NDK version
-$ANDROID_HOME/ndk/27.0.12077973/source.properties
-```
-
-#### 8. Metro bundler issues
-```bash
-# Reset Metro cache
-yarn example start --reset-cache
-
-# Clear node modules and reinstall
-rm -rf node_modules example/node_modules
-yarn install
-```
-
-### Getting Help
-
-If you encounter issues not covered in this guide:
-
-1. Check the [GitHub Issues](https://github.com/Emurgo/csl-mobile-bridge/issues)
-2. Review the [React Native Environment Setup](https://reactnative.dev/docs/environment-setup)
-3. Ensure all environment variables are correctly set
-4. Verify that all tools meet the minimum version requirements
-
-### Verification Script
-
-You can run the following commands to verify your setup:
+Run these commands first to identify common issues:
 
 ```bash
 # Check all major tools
@@ -435,18 +409,258 @@ xcodebuild -version
 echo "=== Environment Variables ==="
 echo "JAVA_HOME: $JAVA_HOME"
 echo "ANDROID_HOME: $ANDROID_HOME"
+echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
 
 # Check Rust targets
 echo "=== Rust Targets ==="
 rustup target list --installed
+```
 
-# Check iOS simulator
-echo "=== iOS Simulators ==="
+### 🚨 Common Issues by Category
+
+#### **Package Manager Issues**
+
+##### Yarn not found
+```bash
+# Ensure Yarn is installed and in PATH
+which yarn || npm install -g yarn
+
+# Verify installation
+yarn --version
+```
+
+##### Node modules corruption
+```bash
+# Clean all node modules and reinstall
+rm -rf node_modules example/node_modules
+yarn install
+
+# Reset yarn cache if needed
+yarn cache clean
+```
+
+#### **Environment Setup Issues**
+
+##### Android SDK not found
+```bash
+# Verify ANDROID_HOME environment variable
+echo $ANDROID_HOME
+ls "$ANDROID_HOME"
+
+# Reinstall Android Studio if necessary
+brew reinstall --cask android-studio
+
+# Check if SDK tools are installed
+ls "$ANDROID_HOME/platform-tools/adb"
+```
+
+##### Java version incompatible
+```bash
+# Verify Java installation
+java -version
+echo $JAVA_HOME
+
+# Switch to Zulu JDK 17 (recommended)
+brew install --cask zulu@17
+
+# Update shell configuration
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+source ~/.zshrc  # or ~/.bash_profile
+```
+
+##### Environment variables not set
+```bash
+# Add to ~/.zshrc or ~/.bash_profile
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.0.12077973"
+export PATH="$PATH:$ANDROID_HOME/platform-tools"
+
+# Reload configuration
+source ~/.zshrc  # or ~/.bash_profile
+```
+
+#### **Rust-Specific Issues**
+
+##### Rust build failures
+```bash
+# Re-run the setup script
+./setup-rust-environment.sh
+
+# Check Rust targets
+rustup target list --installed
+
+# Update Rust toolchain
+rustup update
+
+# Clean Rust cache
+cargo clean
+```
+
+##### Missing Rust targets
+```bash
+# Install missing targets manually
+rustup target add aarch64-apple-ios x86_64-apple-ios
+rustup target add aarch64-linux-android x86_64-linux-android
+
+# Verify installation
+rustup target list --installed | grep -E "(ios|android)"
+```
+
+#### **iOS-Specific Issues**
+
+##### Xcode build failures
+```bash
+# Clean and rebuild iOS project
+cd example
+rm -rf ios/build
+pod install --repo-update
+pod update
+cd ..
+yarn example ios
+
+# Check Xcode command line tools
+xcode-select --print-path
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+```
+
+##### CocoaPods issues
+```bash
+# Update CocoaPods
+sudo gem install cocoapods
+
+# Clean pod cache
+pod cache clean --all
+
+# Reinstall pods
+cd example && pod install && cd ..
+```
+
+##### iOS Simulator not working
+```bash
+# Reset simulator content and settings
+xcrun simctl erase all
+
+# List available simulators
 xcrun simctl list devices available
 
-# Check Android devices
-echo "=== Android Devices ==="
-$ANDROID_HOME/platform-tools/adb devices
+# Create new simulator if needed
+xcrun simctl create "iPhone 14" "iPhone 14" "iOS17.0"
+```
+
+#### **Android-Specific Issues**
+
+##### NDK version mismatch
+```bash
+# Check installed NDK version
+ls "$ANDROID_HOME/ndk/"
+echo $ANDROID_NDK_HOME
+
+# Install correct NDK version via Android Studio
+# Settings → Appearance & Behavior → System Settings → Android SDK → SDK Tools
+# Select NDK (Side by side) → 27.0.12077973
+
+# Verify NDK version
+$ANDROID_HOME/ndk/27.0.12077973/source.properties
+```
+
+##### Gradle build failures
+```bash
+# Clean Android build
+cd example/android
+./gradlew clean
+./gradlew build --info
+cd ../..
+
+# Clear Gradle cache
+rm -rf ~/.gradle/caches/
+
+# Reset Android project
+cd example/android
+./gradlew clean
+cd ../..
+yarn example android
+```
+
+##### Emulator issues
+```bash
+# List available emulators
+$ANDROID_HOME/emulator/emulator -list-avds
+
+# Start specific emulator
+$ANDROID_HOME/emulator/emulator -avd <emulator_name>
+
+# Cold boot emulator
+$ANDROID_HOME/emulator/emulator -avd <emulator_name> -no-snapshot
+```
+
+#### **Metro Bundler Issues**
+
+##### Metro cache corruption
+```bash
+# Reset Metro cache
+yarn example start --reset-cache
+
+# Clear Metro bundler cache
+npx react-native start --reset-cache
+
+# Clear all caches and restart
+rm -rf node_modules example/node_modules
+yarn install
+yarn example start --reset-cache
+```
+
+##### Port conflicts
+```bash
+# Kill processes on Metro port (8081)
+lsof -ti:8081 | xargs kill -9
+
+# Start Metro on different port
+yarn example start --port 8082
+```
+
+### 🆘 Getting Help
+
+#### **Primary Resources**
+1. **GitHub Issues**: [CSL Mobile Bridge Issues](https://github.com/Emurgo/csl-mobile-bridge/issues)
+2. **React Native Docs**: [Environment Setup](https://reactnative.dev/docs/environment-setup)
+3. **Rust Documentation**: [Rust Book](https://doc.rust-lang.org/book/)
+
+#### **Community Support**
+- **Discord**: Join the Cardano developer community
+- **Stack Overflow**: Tag questions with `csl-mobile-bridge` and `react-native`
+- **React Native Community**: [Official help page](https://reactnative.dev/help)
+
+#### **Before Asking for Help**
+1. Run the diagnostic commands above
+2. Check that all tools meet minimum version requirements
+3. Verify environment variables are correctly set
+4. Search existing GitHub issues for similar problems
+5. Include error logs, system info, and steps you've tried
+
+### 🔍 Advanced Debugging
+
+#### **Enable Verbose Logging**
+```bash
+# iOS verbose build
+yarn example ios --verbose
+
+# Android verbose build
+cd example/android
+./gradlew assembleDebug --info
+cd ../..
+```
+
+#### **Check System Resources**
+```bash
+# Check available disk space
+df -h
+
+# Check memory usage
+top -l 1 | head -10
+
+# Check CPU usage
+top -l 1 | grep "CPU usage"
 ```
 
 ## Additional Resources
