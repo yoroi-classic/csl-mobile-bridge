@@ -25,7 +25,7 @@ target_include_directories(
         ${BUILD_DIR}/generated/source/codegen/jni
 )
 
-# Rust/Haskell dependency (already built .so from your rust build)
+# Rust dependency (already built .so from your rust build)
 add_library(react_native_haskell_shelley SHARED IMPORTED)
 set_target_properties(
         react_native_haskell_shelley
