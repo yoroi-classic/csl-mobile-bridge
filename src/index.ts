@@ -4,6 +4,7 @@
 
 import CslMobileBridge from './NativeCslMobileBridge';
 import * as bridgeTypes from './BridgeTypes';
+export { AddressKind, BlockEra, ByronAddressType, CborContainerType, CborSetType, CertificateKind, CoinSelectionStrategyCIP2, CredKind, DRepKind, GovernanceActionKind, LanguageKind, MIRKind, MIRPot, MetadataJsonSchema, NativeScriptKind, NetworkIdKind, PlutusDataKind, PlutusDatumSchema, RedeemerTagKind, RelayKind, ScriptHashNamespace, ScriptSchema, TransactionMetadatumKind, TransactionSetsState, VoteKind, VoterKind } from './BridgeTypes';
 
 let _cslBridge: typeof bridgeTypes | null = null;
 
