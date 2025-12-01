@@ -144,7 +144,7 @@ export default class MetadataExamples {
       const textValue = textMetadatum.as_text();
       results.push(`✓ Text metadatum value: ${textValue}`);
 
-      const intValue = intMetadatum.as_int();
+      const intValue = intMetadatum.as_int().as_i32();
       results.push(`✓ Integer metadatum value: ${intValue}`);
 
       const bytesValue = bytesMetadatum.as_bytes();

@@ -318,7 +318,7 @@ export declare class BigInt {
   static from_json(json: string): BigInt;
   is_zero(): boolean;
   as_u64(): BigNum;
-  as_int(): number;
+  as_int(): Int;
   static from_str(text: string): BigInt;
   to_str(): string;
   add(other: BigInt): BigInt;
@@ -606,8 +606,8 @@ export declare class CostModel {
   to_json(): string;
   static from_json(json: string): CostModel;
   static new(): CostModel;
-  set(operation: number, cost: Int): number;
-  get(operation: number): number;
+  set(operation: number, cost: Int): Int;
+  get(operation: number): Int;
   len(): number;
 }
 
@@ -1177,8 +1177,8 @@ export declare class MIRToStakeCredentials {
   static from_json(json: string): MIRToStakeCredentials;
   static new(): MIRToStakeCredentials;
   len(): number;
-  insert(cred: Credential, delta: Int): number;
-  get(cred: Credential): number;
+  insert(cred: Credential, delta: Int): Int;
+  get(cred: Credential): Int;
   keys(): Credentials;
 }
 
@@ -1237,8 +1237,8 @@ export declare class MintAssets {
   static new(): MintAssets;
   static new_from_entry(key: AssetName, value: Int): MintAssets;
   len(): number;
-  insert(key: AssetName, value: Int): number;
-  get(key: AssetName): number;
+  insert(key: AssetName, value: Int): Int;
+  get(key: AssetName): Int;
   keys(): AssetNames;
 }
 
@@ -2377,7 +2377,7 @@ export declare class TransactionMetadatum {
   kind(): TransactionMetadatumKind;
   as_map(): MetadataMap;
   as_list(): MetadataList;
-  as_int(): number;
+  as_int(): Int;
   as_bytes(): Uint8Array;
   as_text(): string;
 }

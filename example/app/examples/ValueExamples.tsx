@@ -254,7 +254,7 @@ export default class ValueExamples {
       const mintAssetsLen = mintAssets2.len();
       results.push(`✓ MintAssets length: ${mintAssetsLen}`);
 
-      const retrievedMintAmount = mintAssets2.get(mintAssetName2);
+      const retrievedMintAmount = mintAssets2.get(mintAssetName2).as_i32();
       results.push(`✓ Retrieved mint amount: ${retrievedMintAmount}`);
 
       const mintAssetsKeys = mintAssets2.keys();
