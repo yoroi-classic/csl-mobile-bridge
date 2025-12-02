@@ -1,6 +1,6 @@
 >DISCLAIMER: the code contained in this repo is experimental and still in WIP status.
 
-# cls-mobile-bridge
+# csl-mobile-bridge
 
 https://www.npmjs.com/package/@emurgo/csl-mobile-bridge
 

@@ -42,8 +42,6 @@ def isNewArchitectureEnabled() {
   return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
 }
 
-apply plugin: "com.android.library"
-
 if (isNewArchitectureEnabled()) {
   apply plugin: "com.facebook.react"
 }
@@ -116,7 +114,7 @@ android {
             //"${project.buildDir}/generated/source/codegen/java"
           ]
       }
-      //jniLibs.srcDirs += ["${project.buildDir}/rustJniLibs/android"]
+      // jniLibs.srcDirs += ["${project.buildDir}/rustJniLibs/android"]
     }
   }
 }
@@ -132,6 +130,13 @@ cargo {
         // Support 16KB page sizes
         // https://developer.android.com/guide/practices/page-sizes#other-build-systems
         spec.environment("RUST_ANDROID_GRADLE_CC_LINK_ARG", "-Wl,-z,max-page-size=16384,-soname,lib${libname}.so")
+    }
+}
+
+afterEvaluate {
+    // Ensure Rust builds before any CMake build task
+    tasks.matching { it.name.startsWith("buildCMake") }.configureEach {
+        it.dependsOn("cargoBuild")
     }
 }
 
