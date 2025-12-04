@@ -45,7 +45,7 @@ export default function Index() {
       newSections.push(await SingleHostAddrExamples.run());
       newSections.push(await SingleHostNameExamples.run());
       newSections.push(await TransactionBodyExamples.run());
-      
+
     } catch (error) {
       console.error("Error running examples:", error);
       newSections.push({
@@ -55,7 +55,28 @@ export default function Index() {
       });
     }
 
-    setSections(newSections);
+    // Calculate total stats across all sections
+    let totalPassed = 0;
+    let totalFailed = 0;
+    for (const section of newSections) {
+      for (const result of section.results) {
+        if (result.startsWith('✓')) totalPassed++;
+        else if (result.startsWith('❌')) totalFailed++;
+      }
+    }
+
+    // Add summary section at the beginning
+    const summarySection: ExampleSection = {
+      title: "📊 Overall Test Summary",
+      results: [
+        `Total tests: ${totalPassed + totalFailed}`,
+        `✓ Passed: ${totalPassed}`,
+        `❌ Failed: ${totalFailed}`,
+        `Success rate: ${totalPassed + totalFailed > 0 ? ((totalPassed / (totalPassed + totalFailed)) * 100).toFixed(1) : 0}%`,
+      ]
+    };
+
+    setSections([summarySection, ...newSections]);
     setLoading(false);
   };
 

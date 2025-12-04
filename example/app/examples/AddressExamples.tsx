@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Address, 
-  BaseAddress, 
-  EnterpriseAddress, 
+import {
+  Address,
+  BaseAddress,
+  EnterpriseAddress,
   RewardAddress,
   PointerAddress,
   ByronAddress,
@@ -14,10 +14,19 @@ import {
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
+// Helper function to validate expected vs actual values
+function validate<T>(results: string[], name: string, expected: T, actual: T): void {
+  if (expected === actual) {
+    results.push(`✓ ${name}: expected ${expected}, actual: ${actual}`);
+  } else {
+    results.push(`❌ Error: ${name}: expected ${expected}, actual: ${actual}`);
+  }
+}
+
 export default class AddressExamples {
   static async run(): Promise<ExampleSection> {
     const results: string[] = [];
-    
+
     try {
       // Create credentials
       const privateKey = PrivateKey.generate_ed25519();
@@ -27,90 +36,102 @@ export default class AddressExamples {
       const stakeCredential = Credential.from_keyhash(keyHash);
 
       // Base Address
-      const baseAddress = BaseAddress.new(0, paymentCredential, stakeCredential);
+      const expectedNetworkId = 0;
+      const baseAddress = BaseAddress.new(expectedNetworkId, paymentCredential, stakeCredential);
       const address = baseAddress.to_address();
       results.push(`✓ Base Address: ${address.to_bech32()}`);
-      results.push(`✓ Address Network ID: ${address.network_id()}`);
-      results.push(`✓ Address Kind: ${address.kind()}`);
+      validate(results, "Address Network ID", expectedNetworkId, address.network_id());
+      validate(results, "Address Kind (BaseAddress)", 0, address.kind()); // 0 = BaseAddress
 
       // Enterprise Address
-      const enterpriseAddress = EnterpriseAddress.new(0, paymentCredential);
+      const enterpriseAddress = EnterpriseAddress.new(expectedNetworkId, paymentCredential);
       const enterpriseAddr = enterpriseAddress.to_address();
       results.push(`✓ Enterprise Address: ${enterpriseAddr.to_bech32()}`);
+      validate(results, "Enterprise Address Network ID", expectedNetworkId, enterpriseAddr.network_id());
 
       // Reward Address
-      const rewardAddress = RewardAddress.new(0, stakeCredential);
+      const rewardAddress = RewardAddress.new(expectedNetworkId, stakeCredential);
       const rewardAddr = rewardAddress.to_address();
       results.push(`✓ Reward Address: ${rewardAddr.to_bech32()}`);
+      validate(results, "Reward Address Network ID", expectedNetworkId, rewardAddr.network_id());
 
       // Address conversions
       const addrBytes = address.to_bytes();
       const addrFromBytes = Address.from_bytes(addrBytes);
-      results.push(`✓ Address from bytes: ${addrFromBytes.to_bech32()}`);
+      validate(results, "Address from bytes round-trip", address.to_bech32(), addrFromBytes.to_bech32());
 
       const addrHex = address.to_hex();
       const addrFromHex = Address.from_hex(addrHex);
-      results.push(`✓ Address from hex: ${addrFromHex.to_bech32()}`);
+      validate(results, "Address from hex round-trip", address.to_bech32(), addrFromHex.to_bech32());
 
       // Address validation
-      results.push(`✓ Is malformed: ${address.is_malformed()}`);
+      validate(results, "Is malformed", false, address.is_malformed());
 
       // Address payment credential
       const paymentCred = address.payment_cred();
-      results.push(`✓ Payment credential kind: ${paymentCred.kind()}`);
-      results.push(`✓ Payment credential has script hash: ${paymentCred.has_script_hash()}`);
+      validate(results, "Payment credential kind (KeyHash)", 0, paymentCred.kind()); // 0 = KeyHash
+      validate(results, "Payment credential has script hash", false, paymentCred.has_script_hash());
 
       // Address with different prefix
       const addressWithPrefix = address.to_bech32("custom");
-      results.push(`✓ Address with custom prefix: ${addressWithPrefix}`);
+      validate(results, "Address with custom prefix starts with 'custom'", true, addressWithPrefix.startsWith("custom"));
 
       // Pointer Address
-      const pointer = Pointer.new(100, 0, 0);
-      const pointerAddress = PointerAddress.new(0, paymentCredential, pointer);
+      const expectedSlot = 100;
+      const expectedTxIdx = 0;
+      const expectedCertIdx = 0;
+      const pointer = Pointer.new(expectedSlot, expectedTxIdx, expectedCertIdx);
+      const pointerAddress = PointerAddress.new(expectedNetworkId, paymentCredential, pointer);
       const pointerAddr = pointerAddress.to_address();
       results.push(`✓ Pointer Address: ${pointerAddr.to_bech32()}`);
-      results.push(`✓ Pointer Address network ID: ${pointerAddr.network_id()}`);
+      validate(results, "Pointer Address network ID", expectedNetworkId, pointerAddr.network_id());
 
       // Byron Address
       const bip32PubKey = Bip32PublicKey.from_bytes(new Uint8Array(64).fill(6));
-      const byronAddress = ByronAddress.icarus_from_key(bip32PubKey, 764824073);
+      const expectedProtocolMagic = 764824073;
+      const byronAddress = ByronAddress.icarus_from_key(bip32PubKey, expectedProtocolMagic);
       const byronAddr = byronAddress.to_address();
       results.push(`✓ Byron Address: ${byronAddr.to_bech32()}`);
-      results.push(`✓ Byron Address network ID: ${byronAddr.network_id()}`);
-      results.push(`✓ Byron Address kind: ${byronAddress.byron_address_kind()}`);
-      results.push(`✓ Byron Address protocol magic: ${byronAddress.byron_protocol_magic()}`);
+      validate(results, "Byron Address network ID", 1, byronAddr.network_id()); // Byron uses special network ID
+      validate(results, "Byron Address kind", 0, byronAddress.byron_address_kind()); // 0 = Icarus
+      validate(results, "Byron Address protocol magic", expectedProtocolMagic, byronAddress.byron_protocol_magic());
 
       // Byron Address from base58
       const byronBase58 = byronAddress.to_base58();
-      ByronAddress.from_base58(byronBase58);
-      results.push(`✓ Byron Address from base58: Success`);
+      const byronFromBase58 = ByronAddress.from_base58(byronBase58);
+      validate(results, "Byron Address from base58 round-trip", byronBase58, byronFromBase58.to_base58());
 
       // Byron Address validation
       const isValidByron = ByronAddress.is_valid(byronBase58);
-      results.push(`✓ Byron Address validation: ${isValidByron}`);
+      validate(results, "Byron Address validation", true, isValidByron);
 
       // Address JSON conversion
       const addressJson = address.to_json();
-      Address.from_json(addressJson);
-      results.push(`✓ Address from JSON: Success`);
-      results.push(`✓ Address JSON length: ${addressJson.length} characters`);
+      const addrFromJson = Address.from_json(addressJson);
+      validate(results, "Address from JSON round-trip", address.to_bech32(), addrFromJson.to_bech32());
 
       // Network Info examples
       const testnetInfo = NetworkInfo.testnet_preview();
-      results.push(`✓ Testnet Preview network ID: ${testnetInfo.network_id()}`);
-      results.push(`✓ Testnet Preview protocol magic: ${testnetInfo.protocol_magic()}`);
+      validate(results, "Testnet Preview network ID", 0, testnetInfo.network_id());
+      validate(results, "Testnet Preview protocol magic", 2, testnetInfo.protocol_magic());
 
       const mainnetInfo = NetworkInfo.mainnet();
-      results.push(`✓ Mainnet network ID: ${mainnetInfo.network_id()}`);
-      results.push(`✓ Mainnet protocol magic: ${mainnetInfo.protocol_magic()}`);
+      validate(results, "Mainnet network ID", 1, mainnetInfo.network_id());
+      validate(results, "Mainnet protocol magic", 764824073, mainnetInfo.protocol_magic());
 
-      const customInfo = NetworkInfo.new(2, 9999);
-      results.push(`✓ Custom network ID: ${customInfo.network_id()}`);
-      results.push(`✓ Custom protocol magic: ${customInfo.protocol_magic()}`);
+      const customNetworkId = 2;
+      const customProtocolMagic = 9999;
+      const customInfo = NetworkInfo.new(customNetworkId, customProtocolMagic);
+      validate(results, "Custom network ID", customNetworkId, customInfo.network_id());
+      validate(results, "Custom protocol magic", customProtocolMagic, customInfo.protocol_magic());
 
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    const passed = results.filter(r => r.startsWith('✓')).length;
+    const failed = results.filter(r => r.startsWith('❌')).length;
+    results.push(`\n📊 Results: ${passed} passed, ${failed} failed`);
 
     return { title: "📍 Address Examples", results };
   }

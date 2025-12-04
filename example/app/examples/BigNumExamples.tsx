@@ -2,80 +2,103 @@ import React from 'react';
 import { BigNum } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
+// Helper function to validate expected vs actual values
+function validate<T>(results: string[], name: string, expected: T, actual: T): void {
+  if (expected === actual) {
+    results.push(`✓ ${name}: expected ${expected}, actual: ${actual}`);
+  } else {
+    results.push(`❌ Error: ${name}: expected ${expected}, actual: ${actual}`);
+  }
+}
+
 export default class BigNumExamples {
   static async run(): Promise<ExampleSection> {
     const results: string[] = [];
-    
+
     try {
       // Basic creation
-      const bn1 = BigNum.from_str("12345678901234");
-      results.push(`✓ BigNum.from_str("12345678901234"): ${bn1.to_str()}`);
+      const bn1Str = "12345678901234";
+      const bn1 = BigNum.from_str(bn1Str);
+      validate(results, "BigNum.from_str", bn1Str, bn1.to_str());
 
       // Static methods
       const zero = BigNum.zero();
       const one = BigNum.one();
-      results.push(`✓ BigNum.zero(): ${zero.to_str()}`);
-      results.push(`✓ BigNum.one(): ${one.to_str()}`);
+      validate(results, "BigNum.zero()", "0", zero.to_str());
+      validate(results, "BigNum.one()", "1", one.to_str());
 
       // Arithmetic operations
-      const bn2 = BigNum.from_str("1000000000000000000");
+      const bn2Str = "1000000000000000000";
+      const bn2 = BigNum.from_str(bn2Str);
       const sum = bn1.checked_add(bn2);
-      results.push(`✓ Addition: ${bn1.to_str()} + ${bn2.to_str()} = ${sum.to_str()}`);
+      const expectedSum = "1000012345678901234";
+      validate(results, "Addition result", expectedSum, sum.to_str());
 
       const product = bn1.checked_mul(BigNum.from_str("2"));
-      results.push(`✓ Multiplication: ${bn1.to_str()} * 2 = ${product.to_str()}`);
+      const expectedProduct = "24691357802468";
+      validate(results, "Multiplication result", expectedProduct, product.to_str());
 
       // Comparison
       const isLess = bn1.less_than(product);
-      results.push(`✓ Comparison: ${bn1.to_str()} < ${product.to_str()} = ${isLess}`);
+      validate(results, "Comparison bn1 < product", true, isLess);
+
+      const bn1_2= bn1.to_str();
+      validate(results, "Bn1 still the same", bn1Str, bn1_2);
 
       // Conversions
       const hex = bn1.to_hex();
-      results.push(`✓ To hex: ${hex}`);
+      const expectedHex = "1b00000b3a73ce2ff2";
+      validate(results, "To hex", expectedHex, hex);
 
       const fromBytes = BigNum.from_bytes(bn1.to_bytes());
-      results.push(`✓ From bytes: ${fromBytes.to_str()}`);
+      validate(results, "From bytes round-trip", bn1Str, fromBytes.to_str());
 
       const fromHex = BigNum.from_hex(hex);
-      results.push(`✓ From hex: ${fromHex.to_str()}`);
+      validate(results, "From hex round-trip", bn1Str, fromHex.to_str());
 
       // Additional BigNum operations
       const diff = product.checked_sub(bn1);
-      results.push(`✓ Subtraction: ${product.to_str()} - ${bn1.to_str()} = ${diff.to_str()}`);
+      const expectedDiff = bn1Str; // product - bn1 = 2*bn1 - bn1 = bn1
+      validate(results, "Subtraction result", expectedDiff, diff.to_str());
 
       const clampedDiff = product.clamped_sub(bn1);
-      results.push(`✓ Clamped subtraction: ${product.to_str()} - ${bn1.to_str()} = ${clampedDiff.to_str()}`);
+      validate(results, "Clamped subtraction result", expectedDiff, clampedDiff.to_str());
 
       const divResult = bn2.div_floor(BigNum.from_str("1000000000000"));
-      results.push(`✓ Division: ${bn2.to_str()} / 1000000000000 = ${divResult.to_str()}`);
+      const expectedDiv = "1000000";
+      validate(results, "Division result", expectedDiv, divResult.to_str());
 
       // Max value and max function
       const maxValue = BigNum.max_value();
-      results.push(`✓ Max value: ${maxValue.to_str()}`);
+      const expectedMaxValue = "18446744073709551615";
+      validate(results, "Max value", expectedMaxValue, maxValue.to_str());
 
       const maxOfTwo = BigNum.max(bn1, bn2);
-      results.push(`✓ Max of two: max(${bn1.to_str()}, ${bn2.to_str()}) = ${maxOfTwo.to_str()}`);
+      validate(results, "Max of two", bn2Str, maxOfTwo.to_str());
 
       // Zero check
       const isZero = zero.is_zero();
       const isNonZero = bn1.is_zero();
-      results.push(`✓ Zero is zero: ${isZero}, Non-zero is zero: ${isNonZero}`);
+      validate(results, "zero.is_zero()", true, isZero);
+      validate(results, "bn1.is_zero()", false, isNonZero);
 
       // JSON conversion
       const bigNumJson = bn1.to_json();
-      BigNum.from_json(bigNumJson);
-      results.push(`✓ BigNum from JSON: Success`);
-      results.push(`✓ BigNum JSON length: ${bigNumJson.length} characters`);
+      const fromJson = BigNum.from_json(bigNumJson);
+      validate(results, "BigNum from JSON round-trip", bn1Str, fromJson.to_str());
 
       // Bytes conversion verification
       const originalBytes = bn1.to_bytes();
       const reconstructed = BigNum.from_bytes(originalBytes);
-      const isSame = bn1.to_str() === reconstructed.to_str();
-      results.push(`✓ Bytes round-trip success: ${isSame}`);
+      validate(results, "Bytes round-trip", bn1Str, reconstructed.to_str());
 
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    const passed = results.filter(r => r.startsWith('✓')).length;
+    const failed = results.filter(r => r.startsWith('❌')).length;
+    results.push(`\n📊 Results: ${passed} passed, ${failed} failed`);
 
     return { title: "🔢 BigNum Examples", results };
   }

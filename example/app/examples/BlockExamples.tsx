@@ -1,5 +1,5 @@
 import React from 'react';
-import { 
+import {
   Block,
   BlockHash,
   Header,
@@ -40,7 +40,7 @@ import { ExampleSection } from '../types';
 export default class BlockExamples {
   static async run(): Promise<ExampleSection> {
     const results: string[] = [];
-    
+
     try {
       // Create basic components for block creation
       const blockNumber = 1000;
@@ -48,7 +48,7 @@ export default class BlockExamples {
       const prevHash = BlockHash.from_bytes(new Uint8Array(32).fill(1));
       const blockBodyHash = BlockHash.from_bytes(new Uint8Array(32).fill(2));
       const issuerVkey = Vkey.new(PublicKey.from_hex("fd794e378784ee1b79eab6ebbebb202facee2d92d40d69b7e1c7a85943f5c679"));
-      
+
       // Create VRF components
       const vrfVkey = VRFVKey.from_bytes(new Uint8Array(32).fill(4));
       const vrfResult = VRFCert.new(new Uint8Array(32).fill(7), new Uint8Array(80).fill(7));
@@ -60,10 +60,10 @@ export default class BlockExamples {
         200,
         Ed25519Signature.from_bytes(new Uint8Array(64).fill(9))
       );
-      
+
       // Create protocol version
       const protocolVersion = ProtocolVersion.new(5, 0);
-      
+
       // Create HeaderBody
       const headerBody = HeaderBody.new(
         blockNumber,
@@ -84,7 +84,7 @@ export default class BlockExamples {
 
       // Create transaction bodies
       const transactionBodies = TransactionBodies.new();
-      
+
       // Create a simple transaction body
       const txHash = TransactionHash.from_hex("fd656fb1f4cf6fbbc36f2705568a4d3b7a970ec0b39f80cc81e1293626b77316");
       const txInput = TransactionInput.new(txHash, 0);
@@ -94,13 +94,13 @@ export default class BlockExamples {
         Value.new(BigNum.from_str("1000000"))
       );
       txOutputs.add(txOutput);
-      
+
       const txBody = TransactionBody.new(
         TransactionInputs.new(),
         txOutputs,
         BigNum.from_str("170000")
       );
-      
+
       transactionBodies.add(txBody);
       results.push(`✓ Transaction bodies created: ${transactionBodies.len()}`);
 
@@ -116,7 +116,7 @@ export default class BlockExamples {
       const map = MetadataMap.new();
       map.insert_str("block_example", TransactionMetadatum.new_text("CSL Mobile Bridge Block Example"));
       metadata.insert(BigNum.from_str("1"), TransactionMetadatum.new_map(map));
-      
+
       const auxData = AuxiliaryData.new();
       auxData.set_metadata(metadata);
       auxiliaryDataSet.insert(0, auxData);
@@ -134,13 +134,25 @@ export default class BlockExamples {
         auxiliaryDataSet,
         invalidTransactions
       );
-      
+
       results.push(`✓ Block created successfully`);
       results.push(`✓ Block header: ${block.header().to_hex().substring(0, 50)}...`);
       results.push(`✓ Block transaction bodies count: ${block.transaction_bodies().len()}`);
       results.push(`✓ Block transaction witness sets count: ${block.transaction_witness_sets().len()}`);
       results.push(`✓ Block auxiliary data set count: ${auxiliaryDataSet.len()}`);
       results.push(`✓ Block invalid transactions count: ${block.invalid_transactions().length}`);
+
+      const blockInvalidTransactions = block.invalid_transactions();
+
+      for (let i = 0; i < blockInvalidTransactions.length; i++) {
+        let expected = invalidTransactions[i];
+        let actual = blockInvalidTransactions[i];
+        if(expected === actual) {
+          results.push(`✓ Block invalid transaction ${i}: expected ${expected}, actual: ${actual}`);
+        } else {
+          results.push(`❌ Error:  Block invalid transaction ${i}: expected ${expected}, actual: ${actual}`);
+        }
+      }
 
       // Block conversions
       const blockBytes = block.to_bytes();
@@ -188,7 +200,7 @@ export default class BlockExamples {
       results.push(`✓ FixedBlock transaction witness sets count: ${fixedBlock.transaction_witness_sets().len()}`);
       results.push(`✓ FixedBlock auxiliary data set count: ${fixedBlock.auxiliary_data_set().len()}`);
       results.push(`✓ FixedBlock invalid transactions count: ${fixedBlock.invalid_transactions().length}`);
-      
+
       const fixedBlockHash = fixedBlock.block_hash();
       results.push(`✓ FixedBlock hash: ${fixedBlockHash.to_hex()}`);
 
@@ -265,7 +277,7 @@ export default class BlockExamples {
 
       // Complex block example with multiple transactions
       const complexTransactionBodies = TransactionBodies.new();
-      
+
       // Add multiple transactions
       for (let i = 0; i < 3; i++) {
         const txOutputs2 = TransactionOutputs.new();
@@ -274,7 +286,7 @@ export default class BlockExamples {
           Value.new(BigNum.from_str((1000000 * (i + 1)).toString()))
         );
         txOutputs2.add(txOutput2);
-        
+
         const complexTxBody = TransactionBody.new(
           TransactionInputs.new(),
           txOutputs2,
@@ -282,26 +294,26 @@ export default class BlockExamples {
         );
         complexTransactionBodies.add(complexTxBody);
       }
-      
+
       const complexTransactionWitnessSets = TransactionWitnessSets.new();
       for (let i = 0; i < 3; i++) {
         complexTransactionWitnessSets.add(TransactionWitnessSet.new());
       }
-      
+
       const complexAuxiliaryDataSet = AuxiliaryDataSet.new();
       for (let i = 0; i < 3; i++) {
         const complexMetadata = GeneralTransactionMetadata.new();
         const complexMap = MetadataMap.new();
         complexMap.insert_str(`tx_${i}`, TransactionMetadatum.new_text(`Transaction ${i} metadata`));
         complexMetadata.insert(BigNum.from_str((i + 1).toString()), TransactionMetadatum.new_map(complexMap));
-        
+
         const complexAuxData = AuxiliaryData.new();
         complexAuxData.set_metadata(complexMetadata);
         complexAuxiliaryDataSet.insert(i, complexAuxData);
       }
-      
+
       const complexInvalidTransactions = new Uint32Array([1, 2]);
-      
+
       const complexBlock = Block.new(
         header,
         complexTransactionBodies,
@@ -309,7 +321,7 @@ export default class BlockExamples {
         complexAuxiliaryDataSet,
         complexInvalidTransactions
       );
-      
+
       results.push(`✓ Complex block created`);
       results.push(`✓ Complex block transaction bodies: ${complexBlock.transaction_bodies().len()}`);
       results.push(`✓ Complex block transaction witness sets: ${complexBlock.transaction_witness_sets().len()}`);
@@ -340,6 +352,10 @@ export default class BlockExamples {
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    const passed = results.filter(r => r.startsWith('✓')).length;
+    const failed = results.filter(r => r.startsWith('❌')).length;
+    results.push(`\n📊 Results: ${passed} passed, ${failed} failed`);
 
     return { title: "🧱 Block Examples", results };
   }

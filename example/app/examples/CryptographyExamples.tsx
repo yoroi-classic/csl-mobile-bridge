@@ -1,5 +1,5 @@
 import React from 'react';
-import { 
+import {
   PrivateKey,
   PublicKey,
   ScriptHash,
@@ -13,10 +13,19 @@ import {
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
+// Helper function to validate expected vs actual values
+function validate<T>(results: string[], name: string, expected: T, actual: T): void {
+  if (expected === actual) {
+    results.push(`✓ ${name}: expected ${expected}, actual: ${actual}`);
+  } else {
+    results.push(`❌ Error: ${name}: expected ${expected}, actual: ${actual}`);
+  }
+}
+
 export default class CryptographyExamples {
   static async run(): Promise<ExampleSection> {
     const results: string[] = [];
-    
+
     try {
       // Key generation
       const privateKey = PrivateKey.generate_ed25519();
@@ -28,18 +37,20 @@ export default class CryptographyExamples {
       const keyHash = publicKey.hash();
       results.push(`✓ Key hash: ${keyHash.to_bech32("addr_vkh")}`);
 
-      // Key conversions
+      // Key conversions - with validation
       const privKeyHex = privateKey.to_hex();
-      PrivateKey.from_hex(privKeyHex);
-      results.push(`✓ Private key from hex: Success`);
+      const privKeyFromHex = PrivateKey.from_hex(privKeyHex);
+      validate(results, "Private key from hex round-trip", privKeyHex, privKeyFromHex.to_hex());
 
       const pubKeyBytes = publicKey.as_bytes();
-      PublicKey.from_bytes(pubKeyBytes);
-      results.push(`✓ Public key from bytes: Success`);
+      const pubKeyFromBytes = PublicKey.from_bytes(pubKeyBytes);
+      validate(results, "Public key from bytes round-trip", publicKey.to_hex(), pubKeyFromBytes.to_hex());
 
       // Script hash
-      const scriptHash = ScriptHash.from_bytes(new Uint8Array(28).fill(2));
-      results.push(`✓ Script hash: ${scriptHash.to_bech32("script")}`);
+      const scriptHashBytes = new Uint8Array(28).fill(2);
+      const scriptHash = ScriptHash.from_bytes(scriptHashBytes);
+      const expectedScriptHashHex = "02020202020202020202020202020202020202020202020202020202";
+      validate(results, "Script hash hex", expectedScriptHashHex, scriptHash.to_hex());
 
       // Extended Private Key
       const extendedPrivateKey = PrivateKey.generate_ed25519extended();
@@ -49,54 +60,52 @@ export default class CryptographyExamples {
 
       // Private key from bytes
       const privKeyBytes = privateKey.as_bytes();
-      PrivateKey.from_normal_bytes(privKeyBytes);
-      results.push(`✓ Private key from normal bytes: Success`);
+      const privKeyFromNormalBytes = PrivateKey.from_normal_bytes(privKeyBytes);
+      validate(results, "Private key from normal bytes round-trip", privateKey.to_hex(), privKeyFromNormalBytes.to_hex());
 
       const extendedKeyBytes = extendedPrivateKey.as_bytes();
-      PrivateKey.from_extended_bytes(extendedKeyBytes);
-      results.push(`✓ Extended private key from bytes: Success`);
+      const extendedFromBytes = PrivateKey.from_extended_bytes(extendedKeyBytes);
+      validate(results, "Extended private key from bytes round-trip", extendedPrivateKey.to_hex(), extendedFromBytes.to_hex());
 
       // Private key bech32
       const privKeyBech32 = privateKey.to_bech32();
-      PrivateKey.from_bech32(privKeyBech32);
-      results.push(`✓ Private key from bech32: Success`);
+      const privKeyFromBech32 = PrivateKey.from_bech32(privKeyBech32);
+      validate(results, "Private key from bech32 round-trip", privKeyHex, privKeyFromBech32.to_hex());
 
       // Public key verification
       const message = new Uint8Array(32).fill(1);
       const signature = privateKey.sign(message);
       const isValid = publicKey.verify(message, signature);
-      results.push(`✓ Signature verification: ${isValid}`);
+      validate(results, "Signature verification", true, isValid);
 
       // Public key from bech32
       const pubKeyBech32 = publicKey.to_bech32();
-      PublicKey.from_bech32(pubKeyBech32);
-      results.push(`✓ Public key from bech32: Success`);
+      const pubKeyFromBech32 = PublicKey.from_bech32(pubKeyBech32);
+      validate(results, "Public key from bech32 round-trip", publicKey.to_hex(), pubKeyFromBech32.to_hex());
 
       // Vkey
       const vkey = Vkey.new(publicKey);
       const vkeyPubKey = vkey.public_key();
-      results.push(`✓ Vkey created`);
-      results.push(`✓ Vkey public key hash: ${vkeyPubKey.hash().to_bech32("vkey")}`);
+      validate(results, "Vkey public key matches original", publicKey.to_hex(), vkeyPubKey.to_hex());
 
       // Vkey conversions
       const vkeyBytes = vkey.to_bytes();
-      Vkey.from_bytes(vkeyBytes);
-      results.push(`✓ Vkey from bytes: Success`);
+      const vkeyFromBytes = Vkey.from_bytes(vkeyBytes);
+      validate(results, "Vkey from bytes round-trip", vkey.to_hex(), vkeyFromBytes.to_hex());
 
       const vkeyHex = vkey.to_hex();
-      Vkey.from_hex(vkeyHex);
-      results.push(`✓ Vkey from hex: Success`);
+      const vkeyFromHex = Vkey.from_hex(vkeyHex);
+      validate(results, "Vkey from hex round-trip", vkeyHex, vkeyFromHex.to_hex());
 
       // Vkeywitness
       const vkeywitness = Vkeywitness.new(vkey, signature);
-      results.push(`✓ Vkeywitness created`);
-      results.push(`✓ Vkeywitness signature hex: ${vkeywitness.signature().to_hex()}`);
+      const witnessSignature = vkeywitness.signature();
+      validate(results, "Vkeywitness signature matches", signature.to_hex(), witnessSignature.to_hex());
 
       // Vkeywitnesses
       const vkeywitnesses = Vkeywitnesses.new();
       vkeywitnesses.add(vkeywitness);
-      results.push(`✓ Vkeywitnesses created`);
-      results.push(`✓ Vkeywitnesses count: ${vkeywitnesses.len()}`);
+      validate(results, "Vkeywitnesses count", 1, vkeywitnesses.len());
 
       // Bip32PrivateKey
       const bip32PrivateKey = Bip32PrivateKey.generate_ed25519_bip32();
@@ -106,21 +115,22 @@ export default class CryptographyExamples {
       results.push(`✓ Derived key at index 0: Success`);
 
       // Bip32PrivateKey from 128 xprv
-      Bip32PrivateKey.from_128_xprv(bip32PrivateKey.to_128_xprv());
-      results.push(`✓ Bip32 from 128 xprv: Success`);
+      const xprv128 = bip32PrivateKey.to_128_xprv();
+      const bip32From128 = Bip32PrivateKey.from_128_xprv(xprv128);
+      validate(results, "Bip32 from 128 xprv round-trip", bip32PrivateKey.to_hex(), bip32From128.to_hex());
 
       // Bip32PrivateKey conversions
       const bip32Bytes = bip32PrivateKey.as_bytes();
-      Bip32PrivateKey.from_bytes(bip32Bytes);
-      results.push(`✓ Bip32 from bytes: Success`);
+      const bip32FromBytes = Bip32PrivateKey.from_bytes(bip32Bytes);
+      validate(results, "Bip32 from bytes round-trip", bip32PrivateKey.to_hex(), bip32FromBytes.to_hex());
 
       const bip32Bech32 = bip32PrivateKey.to_bech32();
-      Bip32PrivateKey.from_bech32(bip32Bech32);
-      results.push(`✓ Bip32 from bech32: Success`);
+      const bip32FromBech32 = Bip32PrivateKey.from_bech32(bip32Bech32);
+      validate(results, "Bip32 from bech32 round-trip", bip32PrivateKey.to_hex(), bip32FromBech32.to_hex());
 
       const bip32Hex = bip32PrivateKey.to_hex();
-      Bip32PrivateKey.from_hex(bip32Hex);
-      results.push(`✓ Bip32 from hex: Success`);
+      const bip32FromHex = Bip32PrivateKey.from_hex(bip32Hex);
+      validate(results, "Bip32 from hex round-trip", bip32Hex, bip32FromHex.to_hex());
 
       // Bip32PublicKey
       const bip32PubKey = bip32PrivateKey.to_public();
@@ -130,45 +140,49 @@ export default class CryptographyExamples {
 
       // Bip32PublicKey conversions
       const pub32Bytes = bip32PubKey.as_bytes();
-      Bip32PublicKey.from_bytes(pub32Bytes);
-      results.push(`✓ Bip32 public key from bytes: Success`);
+      const pub32FromBytes = Bip32PublicKey.from_bytes(pub32Bytes);
+      validate(results, "Bip32 public key from bytes round-trip", bip32PubKey.to_hex(), pub32FromBytes.to_hex());
 
       const pub32Bech32 = bip32PubKey.to_bech32();
-      Bip32PublicKey.from_bech32(pub32Bech32);
-      results.push(`✓ Bip32 public key from bech32: Success`);
+      const pub32FromBech32 = Bip32PublicKey.from_bech32(pub32Bech32);
+      validate(results, "Bip32 public key from bech32 round-trip", bip32PubKey.to_hex(), pub32FromBech32.to_hex());
 
       const pub32Hex = bip32PubKey.to_hex();
-      Bip32PublicKey.from_hex(pub32Hex);
-      results.push(`✓ Bip32 public key from hex: Success`);
+      const pub32FromHex = Bip32PublicKey.from_hex(pub32Hex);
+      validate(results, "Bip32 public key from hex round-trip", pub32Hex, pub32FromHex.to_hex());
 
       // Ed25519Signature
       const sigBytes = signature.to_bytes();
-      Ed25519Signature.from_bytes(sigBytes);
-      results.push(`✓ Ed25519Signature from bytes: Success`);
+      const sigFromBytes = Ed25519Signature.from_bytes(sigBytes);
+      validate(results, "Ed25519Signature from bytes round-trip", signature.to_hex(), sigFromBytes.to_hex());
 
       const sigHex = signature.to_hex();
-      Ed25519Signature.from_hex(sigHex);
-      results.push(`✓ Ed25519Signature from hex: Success`);
+      const sigFromHex = Ed25519Signature.from_hex(sigHex);
+      validate(results, "Ed25519Signature from hex round-trip", sigHex, sigFromHex.to_hex());
 
       const sigBech32 = signature.to_bech32();
-      Ed25519Signature.from_bech32(sigBech32);
-      results.push(`✓ Ed25519Signature from bech32: Success`);
+      const sigFromBech32 = Ed25519Signature.from_bech32(sigBech32);
+      validate(results, "Ed25519Signature from bech32 round-trip", signature.to_hex(), sigFromBech32.to_hex());
 
       // Ed25519KeyHash conversions
       const keyHashBytes = keyHash.to_bytes();
-      Ed25519KeyHash.from_bytes(keyHashBytes);
-      results.push(`✓ Ed25519KeyHash from bytes: Success`);
+      const keyHashFromBytes = Ed25519KeyHash.from_bytes(keyHashBytes);
+      validate(results, "Ed25519KeyHash from bytes round-trip", keyHash.to_hex(), keyHashFromBytes.to_hex());
 
       const keyHashHex = keyHash.to_hex();
-      Ed25519KeyHash.from_hex(keyHashHex);
-      results.push(`✓ Ed25519KeyHash from hex: Success`);
+      const keyHashFromHex = Ed25519KeyHash.from_hex(keyHashHex);
+      validate(results, "Ed25519KeyHash from hex round-trip", keyHashHex, keyHashFromHex.to_hex());
 
       const keyHashBech32 = keyHash.to_bech32("key");
-      Ed25519KeyHash.from_bech32(keyHashBech32);
-      results.push(`✓ Ed25519KeyHash from bech32: Success`);
+      const keyHashFromBech32 = Ed25519KeyHash.from_bech32(keyHashBech32);
+      validate(results, "Ed25519KeyHash from bech32 round-trip", keyHash.to_hex(), keyHashFromBech32.to_hex());
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    const passed = results.filter(r => r.startsWith('✓')).length;
+    const failed = results.filter(r => r.startsWith('❌')).length;
+    results.push(`\n📊 Results: ${passed} passed, ${failed} failed`);
 
     return { title: "🔐 Cryptography Examples", results };
   }
