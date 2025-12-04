@@ -123,7 +123,7 @@ export default class BlockExamples {
       results.push(`✓ Auxiliary data set created: ${auxiliaryDataSet.len()}`);
 
       // Create invalid transactions array
-      const invalidTransactions = new Uint32Array([1000, 2000, 3000]);
+      const invalidTransactions = new Uint32Array([0, 2147483647, 4294967295, 123456789]);
       results.push(`✓ Invalid transactions array created: ${invalidTransactions.length} items`);
 
       // Create Block
