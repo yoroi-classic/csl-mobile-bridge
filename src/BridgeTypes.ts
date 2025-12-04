@@ -297,7 +297,7 @@ export declare class AuxiliaryDataSet {
   len(): number;
   insert(tx_index: number, data: AuxiliaryData): AuxiliaryData;
   get(tx_index: number): AuxiliaryData;
-  indices(): string;
+  indices(): Uint32Array;
 }
 
 export declare class BaseAddress {
@@ -396,8 +396,8 @@ export declare class Block {
   transaction_bodies(): TransactionBodies;
   transaction_witness_sets(): TransactionWitnessSets;
   auxiliary_data_set(): AuxiliaryDataSet;
-  invalid_transactions(): Uint8Array;
-  static new(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: Uint8Array): Block;
+  invalid_transactions(): Uint32Array;
+  static new(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: Uint32Array): Block;
 }
 
 export declare class BlockHash {
@@ -858,7 +858,7 @@ export declare class FixedBlock {
   transaction_bodies(): FixedTransactionBodies;
   transaction_witness_sets(): TransactionWitnessSets;
   auxiliary_data_set(): AuxiliaryDataSet;
-  invalid_transactions(): Uint8Array;
+  invalid_transactions(): Uint32Array;
   block_hash(): BlockHash;
 }
 
@@ -2302,7 +2302,7 @@ export declare class TransactionBuilder {
   remove_script_data_hash(): void;
   add_required_signer(key: Ed25519KeyHash): void;
   full_size(): number;
-  output_sizes(): string;
+  output_sizes(): Uint32Array;
   build(): TransactionBody;
   build_tx(): Transaction;
   build_tx_unsafe(): Transaction;

@@ -5,6 +5,7 @@ import { styles } from './styles';
 
 // Import all example classes
 import BigNumExamples from './examples/BigNumExamples';
+import BlockExamples from './examples/BlockExamples';
 import AddressExamples from './examples/AddressExamples';
 import TransactionExamples from './examples/TransactionExamples';
 import ValueExamples from './examples/ValueExamples';
@@ -32,6 +33,7 @@ export default function Index() {
     try {
       // Run all example classes
       newSections.push(await BigNumExamples.run());
+      newSections.push(await BlockExamples.run());
       newSections.push(await AddressExamples.run());
       newSections.push(await TransactionExamples.run());
       newSections.push(await ValueExamples.run());

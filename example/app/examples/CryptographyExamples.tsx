@@ -10,14 +10,6 @@ import {
   Vkey,
   Vkeywitness,
   Vkeywitnesses,
-  LegacyDaedalusPrivateKey,
-  KESSignature,
-  KESVKey,
-  VRFVKey,
-  VRFKeyHash,
-  VRFCert,
-  BootstrapWitness,
-  BootstrapWitnesses
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 
