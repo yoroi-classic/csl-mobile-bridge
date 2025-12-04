@@ -20,8 +20,7 @@ import {
   Address,
   Certificates,
   Withdrawals,
-  RewardAddress,
-  RewardAddresses
+  RewardAddress
 } from "@emurgo/csl-mobile-bridge-jsi";
 import { ExampleSection } from '../types';
 

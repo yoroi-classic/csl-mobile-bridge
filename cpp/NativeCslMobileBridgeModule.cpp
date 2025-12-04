@@ -7056,7 +7056,7 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "indices"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataSetState(rt, thisVal);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_set_indices(st->get(), out, err);
         });
       }
@@ -9003,41 +9003,29 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         }
         auto auxiliary_data_set = getAuxiliaryDataSetState(rt, args[3].asObject(rt), "auxiliary_data_set");
         if (count < 5 || !args[4].isObject()) {
-          throw jsi::JSError(rt, "new(invalid_transactions) requires Uint8Array");
+          throw jsi::JSError(rt, "new(invalid_transactions) requires Uint32Array");
         }
         auto __obj_invalid_transactions = args[4].asObject(rt);
-        std::vector<uint8_t> invalid_transactions;
+        std::vector<uint32_t> invalid_transactions;
         size_t __n_invalid_transactions = 0;
-        bool __is_array_invalid_transactions = false;
-        bool __is_uint8array_invalid_transactions = false;
-
-        __is_array_invalid_transactions = __obj_invalid_transactions.isArray(rt);
-        if (__is_array_invalid_transactions) {
+        if (__obj_invalid_transactions.isArray(rt)) {
           auto __arr_invalid_transactions = __obj_invalid_transactions.asArray(rt);
           __n_invalid_transactions = __arr_invalid_transactions.length(rt);
-          if (__obj_invalid_transactions.hasProperty(rt, "buffer") && __obj_invalid_transactions.hasProperty(rt, "byteLength")) {
-            __is_uint8array_invalid_transactions = true;
-          }
           invalid_transactions.reserve(__n_invalid_transactions);
           for (size_t __i = 0; __i < __n_invalid_transactions; ++__i) {
             auto __v = __arr_invalid_transactions.getValueAtIndex(rt, __i);
             if (!__v.isNumber()) {
               throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-            double __d = __v.asNumber();
-            if (__d < 0 || __d > 255) {
-              throw jsi::JSError(rt, "new: byte out of range 0..255");
-            }
-            invalid_transactions.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+            invalid_transactions.push_back(static_cast<uint32_t>(__v.asNumber()));
           }
         } else if (__obj_invalid_transactions.hasProperty(rt, "buffer") && __obj_invalid_transactions.hasProperty(rt, "byteLength")) {
           auto __byteLength_val = __obj_invalid_transactions.getProperty(rt, "byteLength");
           if (__byteLength_val.isNumber()) {
-            __n_invalid_transactions = static_cast<size_t>(__byteLength_val.asNumber());
-            __is_uint8array_invalid_transactions = true;
+            __n_invalid_transactions = static_cast<size_t>(__byteLength_val.asNumber()) / 4;
           }
           if (__n_invalid_transactions == 0) {
-            throw jsi::JSError(rt, "new(invalid_transactions) requires Uint8Array");
+            throw jsi::JSError(rt, "new(invalid_transactions) requires Uint32Array");
           }
           invalid_transactions.reserve(__n_invalid_transactions);
           for (size_t __i = 0; __i < __n_invalid_transactions; ++__i) {
@@ -9045,39 +9033,34 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
             if (!__v.isNumber()) {
               throw jsi::JSError(rt, "new: Expected Uint8Array as input");
             }
-            double __d = __v.asNumber();
-            if (__d < 0 || __d > 255) {
-              throw jsi::JSError(rt, "new: byte out of range 0..255");
-            }
-            invalid_transactions.push_back(static_cast<uint8_t>(static_cast<int>(__d)));
+            invalid_transactions.push_back(static_cast<uint32_t>(__v.asNumber()));
           }
         } else {
-          throw jsi::JSError(rt, "new(invalid_transactions) requires Uint8Array");
+          throw jsi::JSError(rt, "new(invalid_transactions) requires Uint32Array");
         }
-
-        // Convert bytes to base64 string for C bridge compatibility
         std::string __invalid_transactions_base64;
-        if (invalid_transactions.empty()) {
-          __invalid_transactions_base64 = "";
-        } else {
-          // Use btoa to encode bytes to base64
-          auto btoa = rt.global().getPropertyAsObject(rt, "btoa");
-          if (!btoa.isFunction(rt)) {
-            throw jsi::JSError(rt, "btoa function not available");
+        if (!invalid_transactions.empty()) {
+          std::vector<uint8_t> __bytes;
+          __bytes.reserve(invalid_transactions.size() * 4);
+          for (uint32_t __val : invalid_transactions) {
+            __bytes.push_back(static_cast<uint8_t>(__val & 0xFF));
+            __bytes.push_back(static_cast<uint8_t>((__val >> 8) & 0xFF));
+            __bytes.push_back(static_cast<uint8_t>((__val >> 16) & 0xFF));
+            __bytes.push_back(static_cast<uint8_t>((__val >> 24) & 0xFF));
           }
-          // Create a Uint8Array from the bytes vector
-          auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
-          if (!Uint8ArrayCtor.isFunction(rt)) {
-            throw jsi::JSError(rt, "Uint8Array constructor not available");
+          static const char __b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+          size_t __len = __bytes.size();
+          __invalid_transactions_base64.reserve(((__len + 2) / 3) * 4);
+          for (size_t __i = 0; __i < __len; __i += 3) {
+            uint32_t __a = __bytes[__i];
+            uint32_t __b = (__i + 1 < __len) ? __bytes[__i + 1] : 0;
+            uint32_t __c = (__i + 2 < __len) ? __bytes[__i + 2] : 0;
+            uint32_t __t = (__a << 16) | (__b << 8) | __c;
+            __invalid_transactions_base64 += __b64[(__t >> 18) & 0x3F];
+            __invalid_transactions_base64 += __b64[(__t >> 12) & 0x3F];
+            __invalid_transactions_base64 += (__i + 1 < __len) ? __b64[(__t >> 6) & 0x3F] : '=';
+            __invalid_transactions_base64 += (__i + 2 < __len) ? __b64[__t & 0x3F] : '=';
           }
-          auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(invalid_transactions.size()));
-          auto uint8Array = uint8ArrayVal.asObject(rt);
-          for (size_t i = 0; i < invalid_transactions.size(); ++i) {
-            uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(invalid_transactions[i])));
-          }
-          // Call btoa to encode
-          auto base64Val = btoa.asFunction(rt).call(rt, uint8Array);
-          __invalid_transactions_base64 = base64Val.asString(rt).utf8(rt);
         }
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_new(header->get(), transaction_bodies->get(), transaction_witness_sets->get(), auxiliary_data_set->get(), __invalid_transactions_base64.c_str(), out, err);
@@ -47059,7 +47042,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "output_sizes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_output_sizes(st->get(), out, err);
         });
       }
