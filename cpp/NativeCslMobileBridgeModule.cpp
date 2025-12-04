@@ -135,6 +135,80 @@ static jsi::Object callCslArrayFromString(jsi::Runtime& rt, std::function<bool(C
   return arr;
 }
 
+static jsi::Object callCslUint32ArrayFromString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn) {
+  ScopedCharPtr out;
+  ScopedCharPtr err;
+  if (!fn(&out.ptr, &err.ptr)) {
+    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+  }
+  // Empty case
+  if (!out.ptr || strlen(out.ptr) == 0) {
+    auto Uint32ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint32Array");
+    if (Uint32ArrayCtor.isFunction(rt)) {
+      return Uint32ArrayCtor.asFunction(rt).callAsConstructor(rt, 0.0).asObject(rt);
+    }
+    return jsi::Array(rt, 0);
+  }
+  // Decode base64 in C++ (avoid atob dependency)
+  static const int8_t b64dec[256] = {
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,62,-1,-1,-1,63,
+    52,53,54,55,56,57,58,59,60,61,-1,-1,-1,-1,-1,-1,
+    -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,
+    15,16,17,18,19,20,21,22,23,24,25,-1,-1,-1,-1,-1,
+    -1,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
+    41,42,43,44,45,46,47,48,49,50,51,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  };
+  std::vector<uint8_t> bytes;
+  const char* p = out.ptr;
+  size_t len = strlen(p);
+  bytes.reserve((len * 3) / 4);
+  for (size_t i = 0; i < len; i += 4) {
+    uint32_t a = b64dec[static_cast<unsigned char>(p[i])];
+    uint32_t b = (i + 1 < len) ? b64dec[static_cast<unsigned char>(p[i + 1])] : 0;
+    uint32_t c = (i + 2 < len && p[i + 2] != '=') ? b64dec[static_cast<unsigned char>(p[i + 2])] : 0;
+    uint32_t d = (i + 3 < len && p[i + 3] != '=') ? b64dec[static_cast<unsigned char>(p[i + 3])] : 0;
+    uint32_t t = (a << 18) | (b << 12) | (c << 6) | d;
+    bytes.push_back(static_cast<uint8_t>((t >> 16) & 0xFF));
+    if (i + 2 < len && p[i + 2] != '=') bytes.push_back(static_cast<uint8_t>((t >> 8) & 0xFF));
+    if (i + 3 < len && p[i + 3] != '=') bytes.push_back(static_cast<uint8_t>(t & 0xFF));
+  }
+  // Convert bytes to uint32 array (little-endian)
+  size_t numUint32 = bytes.size() / 4;
+  auto Uint32ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint32Array");
+  if (Uint32ArrayCtor.isFunction(rt)) {
+    auto uint32ArrayVal = Uint32ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(numUint32));
+    auto uint32Array = uint32ArrayVal.asObject(rt);
+    for (size_t i = 0; i < numUint32; ++i) {
+      uint32_t val = static_cast<uint32_t>(bytes[i * 4])
+                   | (static_cast<uint32_t>(bytes[i * 4 + 1]) << 8)
+                   | (static_cast<uint32_t>(bytes[i * 4 + 2]) << 16)
+                   | (static_cast<uint32_t>(bytes[i * 4 + 3]) << 24);
+      uint32Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(val)));
+    }
+    return uint32Array;
+  }
+  // Fallback to plain array
+  jsi::Array arr(rt, numUint32);
+  for (size_t i = 0; i < numUint32; ++i) {
+    uint32_t val = static_cast<uint32_t>(bytes[i * 4])
+                 | (static_cast<uint32_t>(bytes[i * 4 + 1]) << 8)
+                 | (static_cast<uint32_t>(bytes[i * 4 + 2]) << 16)
+                 | (static_cast<uint32_t>(bytes[i * 4 + 3]) << 24);
+    arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(val)));
+  }
+  return arr;
+}
+
 static jsi::Object callCslAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn);
 static jsi::Object callCslAnchor(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn);
 static jsi::Object callCslAnchorDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn);
@@ -7056,7 +7130,7 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "indices"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisAuxiliaryDataSetState(rt, thisVal);
-        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_set_indices(st->get(), out, err);
         });
       }
@@ -8866,7 +8940,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "invalid_transactions"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisBlockState(rt, thisVal);
-        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_invalid_transactions(st->get(), out, err);
         });
       }
@@ -17881,7 +17955,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "invalid_transactions"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisFixedBlockState(rt, thisVal);
-        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_invalid_transactions(st->get(), out, err);
         });
       }
@@ -47042,7 +47116,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "output_sizes"), 0,
       [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
         auto st = getThisTransactionBuilderState(rt, thisVal);
-        return callCslArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
+        return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_output_sizes(st->get(), out, err);
         });
       }
