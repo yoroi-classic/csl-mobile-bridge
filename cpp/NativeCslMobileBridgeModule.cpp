@@ -5268,7 +5268,7 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
         auto st = getThisAddressState(rt, thisVal);
         std::string prefix;
         bool has_prefix = false;
-        if (count >= 1) {
+        if (count >= 1 && !args[0].isUndefined() && !args[0].isNull()) {
           if (!args[0].isString()) {
             throw jsi::JSError(rt, "to_bech32(prefix) requires string");
           }
@@ -34693,7 +34693,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         int64_t port = 0;
         bool has_port = false;
-        if (count >= 1) {
+        if (count >= 1 && !args[0].isUndefined() && !args[0].isNull()) {
           if (!args[0].isNumber()) {
             throw jsi::JSError(rt, "new(port) requires number");
           }
@@ -34945,7 +34945,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         int64_t port = 0;
         bool has_port = false;
-        if (count >= 1) {
+        if (count >= 1 && !args[0].isUndefined() && !args[0].isNull()) {
           if (!args[0].isNumber()) {
             throw jsi::JSError(rt, "new(port) requires number");
           }
@@ -38288,7 +38288,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
         int64_t ttl = 0;
         bool has_ttl = false;
-        if (count >= 4) {
+        if (count >= 4 && !args[3].isUndefined() && !args[3].isNull()) {
           if (!args[3].isNumber()) {
             throw jsi::JSError(rt, "new(ttl) requires number");
           }
