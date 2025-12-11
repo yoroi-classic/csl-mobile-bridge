@@ -5170,7 +5170,7 @@ static jsi::Object makeAddressInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -5413,7 +5413,7 @@ static jsi::Object makeAnchorInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAnchor(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAnchor(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -5603,7 +5603,7 @@ static jsi::Object makeAnchorDataHashInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslAnchorDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAnchorDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -5754,7 +5754,7 @@ static jsi::Object makeAssetNameInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAssetName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAssetName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -5928,7 +5928,7 @@ static jsi::Object makeAssetNamesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAssetNames(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAssetNames(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -6146,7 +6146,7 @@ static jsi::Object makeAssetsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -6390,7 +6390,7 @@ static jsi::Object makeAuxiliaryDataInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslAuxiliaryData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAuxiliaryData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -6670,7 +6670,7 @@ static jsi::Object makeAuxiliaryDataHashInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslAuxiliaryDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAuxiliaryDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -6821,7 +6821,7 @@ static jsi::Object makeAuxiliaryDataSetInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslAuxiliaryDataSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslAuxiliaryDataSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -6984,7 +6984,7 @@ static jsi::Object makeBaseAddressInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBaseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBaseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -7138,7 +7138,7 @@ static jsi::Object makeBigIntInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBigInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBigInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -7492,7 +7492,7 @@ static jsi::Object makeBigNumInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBigNum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBigNum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -7848,7 +7848,7 @@ static jsi::Object makeBip32PrivateKeyInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslBip32PrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBip32PrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -8104,7 +8104,7 @@ static jsi::Object makeBip32PublicKeyInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslBip32PublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBip32PublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -8291,7 +8291,7 @@ static jsi::Object makeBlockInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -8529,7 +8529,7 @@ static jsi::Object makeBlockHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBlockHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBlockHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -8680,7 +8680,7 @@ static jsi::Object makeBootstrapWitnessInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslBootstrapWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBootstrapWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -8902,7 +8902,7 @@ static jsi::Object makeBootstrapWitnessesInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslBootstrapWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslBootstrapWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -9120,7 +9120,7 @@ static jsi::Object makeByronAddressInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslByronAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslByronAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -9357,7 +9357,7 @@ static jsi::Object makeCertificateInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCertificate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCertificate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -10045,7 +10045,7 @@ static jsi::Object makeCertificatesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCertificates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCertificates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -10263,7 +10263,7 @@ static jsi::Object makeCertificatesBuilderInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslCertificatesBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCertificatesBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -10564,7 +10564,7 @@ static jsi::Object makeChangeConfigInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslChangeConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslChangeConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -10693,7 +10693,7 @@ static jsi::Object makeCommitteeInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCommittee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCommittee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -10919,7 +10919,7 @@ static jsi::Object makeCommitteeColdResignInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslCommitteeColdResign(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCommitteeColdResign(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -11138,7 +11138,7 @@ static jsi::Object makeCommitteeHotAuthInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslCommitteeHotAuth(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCommitteeHotAuth(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -11342,7 +11342,7 @@ static jsi::Object makeConstitutionInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslConstitution(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslConstitution(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -11547,7 +11547,7 @@ static jsi::Object makeConstrPlutusDataInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslConstrPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslConstrPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -11710,7 +11710,7 @@ static jsi::Object makeCostModelInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCostModel(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCostModel(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -11930,7 +11930,7 @@ static jsi::Object makeCostmdlsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCostmdls(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCostmdls(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -12190,7 +12190,7 @@ static jsi::Object makeCredentialInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCredential(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCredential(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -12419,7 +12419,7 @@ static jsi::Object makeCredentialsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -12637,7 +12637,7 @@ static jsi::Object makeDNSRecordAorAAAAInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslDNSRecordAorAAAA(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDNSRecordAorAAAA(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -12811,7 +12811,7 @@ static jsi::Object makeDNSRecordSRVInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDNSRecordSRV(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDNSRecordSRV(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -12985,7 +12985,7 @@ static jsi::Object makeDRepInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDRep(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDRep(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -13268,7 +13268,7 @@ static jsi::Object makeDRepDeregistrationInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslDRepDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDRepDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -13472,7 +13472,7 @@ static jsi::Object makeDRepRegistrationInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslDRepRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDRepRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -13711,7 +13711,7 @@ static jsi::Object makeDRepUpdateInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDRepUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDRepUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -13930,7 +13930,7 @@ static jsi::Object makeDRepVotingThresholdsInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslDRepVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDRepVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -14428,7 +14428,7 @@ static jsi::Object makeDataCostInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDataCost(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDataCost(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -14521,7 +14521,7 @@ static jsi::Object makeDataHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -14672,7 +14672,7 @@ static jsi::Object makeDatumSourceInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDatumSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslDatumSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -14768,7 +14768,7 @@ static jsi::Object makeEd25519KeyHashInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslEd25519KeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslEd25519KeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -14919,7 +14919,7 @@ static jsi::Object makeEd25519KeyHashesInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslEd25519KeyHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslEd25519KeyHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -15167,7 +15167,7 @@ static jsi::Object makeEd25519SignatureInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslEd25519Signature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslEd25519Signature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -15314,7 +15314,7 @@ static jsi::Object makeEnterpriseAddressInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslEnterpriseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslEnterpriseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -15452,7 +15452,7 @@ static jsi::Object makeExUnitPricesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslExUnitPrices(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslExUnitPrices(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -15642,7 +15642,7 @@ static jsi::Object makeExUnitsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslExUnits(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslExUnits(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -15832,7 +15832,7 @@ static jsi::Object makeFixedBlockInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslFixedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslFixedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -16000,7 +16000,7 @@ static jsi::Object makeFixedTransactionInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslFixedTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslFixedTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -16453,7 +16453,7 @@ static jsi::Object makeFixedTransactionBodiesInstance(jsi::Runtime& rt, const RP
   return obj;
 }
 
-static jsi::Object callCslFixedTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslFixedTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -16620,7 +16620,7 @@ static jsi::Object makeFixedTransactionBodyInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslFixedTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslFixedTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -16752,7 +16752,7 @@ static jsi::Object makeFixedTxWitnessesSetInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslFixedTxWitnessesSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslFixedTxWitnessesSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -16893,7 +16893,7 @@ static jsi::Object makeFixedVersionedBlockInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslFixedVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslFixedVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -17015,7 +17015,7 @@ static jsi::Object makeGeneralTransactionMetadataInstance(jsi::Runtime& rt, cons
   return obj;
 }
 
-static jsi::Object callCslGeneralTransactionMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGeneralTransactionMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -17259,7 +17259,7 @@ static jsi::Object makeGenesisDelegateHashInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslGenesisDelegateHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGenesisDelegateHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -17410,7 +17410,7 @@ static jsi::Object makeGenesisHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslGenesisHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGenesisHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -17561,7 +17561,7 @@ static jsi::Object makeGenesisHashesInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslGenesisHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGenesisHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -17779,7 +17779,7 @@ static jsi::Object makeGenesisKeyDelegationInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslGenesisKeyDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGenesisKeyDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -17985,7 +17985,7 @@ static jsi::Object makeGovernanceActionInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslGovernanceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGovernanceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -18335,7 +18335,7 @@ static jsi::Object makeGovernanceActionIdInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslGovernanceActionId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGovernanceActionId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -18527,7 +18527,7 @@ static jsi::Object makeGovernanceActionIdsInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslGovernanceActionIds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslGovernanceActionIds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -18691,7 +18691,7 @@ static jsi::Object makeHardForkInitiationActionInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslHardForkInitiationAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslHardForkInitiationAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -18896,7 +18896,7 @@ static jsi::Object makeHeaderInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslHeader(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslHeader(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -19086,7 +19086,7 @@ static jsi::Object makeHeaderBodyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslHeaderBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslHeaderBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -19547,7 +19547,7 @@ static jsi::Object makeInfoActionInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslInfoAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslInfoAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -19624,7 +19624,7 @@ static jsi::Object makeIntInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -19923,7 +19923,7 @@ static jsi::Object makeIpv4Instance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslIpv4(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslIpv4(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20097,7 +20097,7 @@ static jsi::Object makeIpv6Instance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslIpv6(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslIpv6(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20271,7 +20271,7 @@ static jsi::Object makeKESSignatureInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslKESSignature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslKESSignature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20364,7 +20364,7 @@ static jsi::Object makeKESVKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslKESVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslKESVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20515,7 +20515,7 @@ static jsi::Object makeLanguageInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslLanguage(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslLanguage(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20709,7 +20709,7 @@ static jsi::Object makeLanguagesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslLanguages(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslLanguages(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20857,7 +20857,7 @@ static jsi::Object makeLegacyDaedalusPrivateKeyInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslLegacyDaedalusPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslLegacyDaedalusPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -20962,7 +20962,7 @@ static jsi::Object makeLinearFeeInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslLinearFee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslLinearFee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -21071,7 +21071,7 @@ static jsi::Object makeMIRToStakeCredentialsInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslMIRToStakeCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMIRToStakeCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -21315,7 +21315,7 @@ static jsi::Object makeMalformedAddressInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslMalformedAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMalformedAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -21420,7 +21420,7 @@ static jsi::Object makeMetadataListInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMetadataList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMetadataList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -21611,7 +21611,7 @@ static jsi::Object makeMetadataMapInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMetadataMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMetadataMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -21966,7 +21966,7 @@ static jsi::Object makeMintInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMint(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMint(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -22253,7 +22253,7 @@ static jsi::Object makeMintAssetsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMintAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -22435,7 +22435,7 @@ static jsi::Object makeMintBuilderInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMintBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -22700,7 +22700,7 @@ static jsi::Object makeMintWitnessInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMintWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -22800,7 +22800,7 @@ static jsi::Object makeMintsAssetsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintsAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMintsAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -22964,7 +22964,7 @@ static jsi::Object makeMoveInstantaneousRewardInstance(jsi::Runtime& rt, const R
   return obj;
 }
 
-static jsi::Object callCslMoveInstantaneousReward(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMoveInstantaneousReward(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -23201,7 +23201,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertInstance(jsi::Runtime& rt, co
   return obj;
 }
 
-static jsi::Object callCslMoveInstantaneousRewardsCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMoveInstantaneousRewardsCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -23375,7 +23375,7 @@ static jsi::Object makeMultiAssetInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMultiAsset(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMultiAsset(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -23691,7 +23691,7 @@ static jsi::Object makeMultiHostNameInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslMultiHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslMultiHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -23865,7 +23865,7 @@ static jsi::Object makeNativeScriptInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNativeScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNativeScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -24224,7 +24224,7 @@ static jsi::Object makeNativeScriptSourceInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslNativeScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNativeScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -24360,7 +24360,7 @@ static jsi::Object makeNativeScriptsInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslNativeScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNativeScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -24578,7 +24578,7 @@ static jsi::Object makeNetworkIdInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNetworkId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNetworkId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -24761,7 +24761,7 @@ static jsi::Object makeNetworkInfoInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNetworkInfo(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNetworkInfo(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -24907,7 +24907,7 @@ static jsi::Object makeNewConstitutionActionInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslNewConstitutionAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNewConstitutionAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -25126,7 +25126,7 @@ static jsi::Object makeNoConfidenceActionInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslNoConfidenceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNoConfidenceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -25311,7 +25311,7 @@ static jsi::Object makeNonceInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNonce(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslNonce(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -25496,7 +25496,7 @@ static jsi::Object makeOperationalCertInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslOperationalCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslOperationalCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -25722,7 +25722,7 @@ static jsi::Object makeOutputDatumInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslOutputDatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslOutputDatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -25842,7 +25842,7 @@ static jsi::Object makeParameterChangeActionInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslParameterChangeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslParameterChangeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -26101,7 +26101,7 @@ static jsi::Object makePlutusDataInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -26470,7 +26470,7 @@ static jsi::Object makePlutusListInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -26661,7 +26661,7 @@ static jsi::Object makePlutusMapInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -26878,7 +26878,7 @@ static jsi::Object makePlutusMapValuesInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslPlutusMapValues(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusMapValues(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -27015,7 +27015,7 @@ static jsi::Object makePlutusScriptInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -27303,7 +27303,7 @@ static jsi::Object makePlutusScriptSourceInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslPlutusScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -27443,7 +27443,7 @@ static jsi::Object makePlutusScriptsInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslPlutusScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -27661,7 +27661,7 @@ static jsi::Object makePlutusWitnessInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslPlutusWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -27847,7 +27847,7 @@ static jsi::Object makePlutusWitnessesInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslPlutusWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPlutusWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -27984,7 +27984,7 @@ static jsi::Object makePointerInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPointer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPointer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -28174,7 +28174,7 @@ static jsi::Object makePointerAddressInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslPointerAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPointerAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -28328,7 +28328,7 @@ static jsi::Object makePoolMetadataInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPoolMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPoolMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -28518,7 +28518,7 @@ static jsi::Object makePoolMetadataHashInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslPoolMetadataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPoolMetadataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -28669,7 +28669,7 @@ static jsi::Object makePoolParamsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPoolParams(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPoolParams(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -28982,7 +28982,7 @@ static jsi::Object makePoolRegistrationInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslPoolRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPoolRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -29156,7 +29156,7 @@ static jsi::Object makePoolRetirementInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslPoolRetirement(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPoolRetirement(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -29348,7 +29348,7 @@ static jsi::Object makePoolVotingThresholdsInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslPoolVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPoolVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -29586,7 +29586,7 @@ static jsi::Object makePrivateKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -29798,7 +29798,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesInstance(jsi::Runtime& rt
   return obj;
 }
 
-static jsi::Object callCslProposedProtocolParameterUpdates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslProposedProtocolParameterUpdates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -30042,7 +30042,7 @@ static jsi::Object makeProtocolParamUpdateInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslProtocolParamUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslProtocolParamUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -31178,7 +31178,7 @@ static jsi::Object makeProtocolVersionInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslProtocolVersion(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslProtocolVersion(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -31372,7 +31372,7 @@ static jsi::Object makePublicKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -31553,7 +31553,7 @@ static jsi::Object makePublicKeysInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPublicKeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslPublicKeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -31690,7 +31690,7 @@ static jsi::Object makeRedeemerInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRedeemer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRedeemer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -31912,7 +31912,7 @@ static jsi::Object makeRedeemerTagInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRedeemerTag(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRedeemerTag(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -32139,7 +32139,7 @@ static jsi::Object makeRedeemersInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRedeemers(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRedeemers(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -32383,7 +32383,7 @@ static jsi::Object makeRelayInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRelay(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRelay(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -32625,7 +32625,7 @@ static jsi::Object makeRelaysInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRelays(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRelays(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -32843,7 +32843,7 @@ static jsi::Object makeRewardAddressInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslRewardAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRewardAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -32981,7 +32981,7 @@ static jsi::Object makeRewardAddressesInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslRewardAddresses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslRewardAddresses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -33199,7 +33199,7 @@ static jsi::Object makeScriptAllInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptAll(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptAll(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -33373,7 +33373,7 @@ static jsi::Object makeScriptAnyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptAny(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptAny(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -33547,7 +33547,7 @@ static jsi::Object makeScriptDataHashInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslScriptDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -33698,7 +33698,7 @@ static jsi::Object makeScriptHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -33849,7 +33849,7 @@ static jsi::Object makeScriptHashesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -34067,7 +34067,7 @@ static jsi::Object makeScriptNOfKInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptNOfK(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptNOfK(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -34259,7 +34259,7 @@ static jsi::Object makeScriptPubkeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptPubkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptPubkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -34433,7 +34433,7 @@ static jsi::Object makeScriptRefInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptRef(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslScriptRef(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -34674,7 +34674,7 @@ static jsi::Object makeSingleHostAddrInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslSingleHostAddr(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslSingleHostAddr(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -34939,7 +34939,7 @@ static jsi::Object makeSingleHostNameInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslSingleHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslSingleHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -35142,7 +35142,7 @@ static jsi::Object makeStakeAndVoteDelegationInstance(jsi::Runtime& rt, const RP
   return obj;
 }
 
-static jsi::Object callCslStakeAndVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStakeAndVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -35362,7 +35362,7 @@ static jsi::Object makeStakeDelegationInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslStakeDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStakeDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -35566,7 +35566,7 @@ static jsi::Object makeStakeDeregistrationInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslStakeDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStakeDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -35785,7 +35785,7 @@ static jsi::Object makeStakeRegistrationInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslStakeRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStakeRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -36004,7 +36004,7 @@ static jsi::Object makeStakeRegistrationAndDelegationInstance(jsi::Runtime& rt, 
   return obj;
 }
 
-static jsi::Object callCslStakeRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStakeRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -36224,7 +36224,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationInstance(jsi::Runtime& 
   return obj;
 }
 
-static jsi::Object callCslStakeVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStakeVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -36460,7 +36460,7 @@ static jsi::Object makeStringsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslStrings(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslStrings(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -36585,7 +36585,7 @@ static jsi::Object makeTimelockExpiryInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslTimelockExpiry(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTimelockExpiry(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -36788,7 +36788,7 @@ static jsi::Object makeTimelockStartInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslTimelockStart(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTimelockStart(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -36991,7 +36991,7 @@ static jsi::Object makeTransactionInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -37240,7 +37240,7 @@ static jsi::Object makeTransactionBatchInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslTransactionBatch(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBatch(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -37348,7 +37348,7 @@ static jsi::Object makeTransactionBatchListInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslTransactionBatchList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBatchList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -37456,7 +37456,7 @@ static jsi::Object makeTransactionBodiesInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -37674,7 +37674,7 @@ static jsi::Object makeTransactionBodyInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -38518,7 +38518,7 @@ static jsi::Object makeTransactionBuilderInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslTransactionBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -40247,7 +40247,7 @@ static jsi::Object makeTransactionBuilderConfigInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslTransactionBuilderConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBuilderConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -40313,7 +40313,7 @@ static jsi::Object makeTransactionBuilderConfigBuilderInstance(jsi::Runtime& rt,
   return obj;
 }
 
-static jsi::Object callCslTransactionBuilderConfigBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionBuilderConfigBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -40578,7 +40578,7 @@ static jsi::Object makeTransactionHashInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslTransactionHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -40729,7 +40729,7 @@ static jsi::Object makeTransactionInputInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslTransactionInput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionInput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -40921,7 +40921,7 @@ static jsi::Object makeTransactionInputsInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslTransactionInputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionInputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -41151,7 +41151,7 @@ static jsi::Object makeTransactionMetadatumInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslTransactionMetadatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionMetadatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -41420,7 +41420,7 @@ static jsi::Object makeTransactionMetadatumLabelsInstance(jsi::Runtime& rt, cons
   return obj;
 }
 
-static jsi::Object callCslTransactionMetadatumLabels(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionMetadatumLabels(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -41611,7 +41611,7 @@ static jsi::Object makeTransactionOutputInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslTransactionOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -41947,7 +41947,7 @@ static jsi::Object makeTransactionOutputAmountBuilderInstance(jsi::Runtime& rt, 
   return obj;
 }
 
-static jsi::Object callCslTransactionOutputAmountBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionOutputAmountBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -42097,7 +42097,7 @@ static jsi::Object makeTransactionOutputBuilderInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslTransactionOutputBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionOutputBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -42250,7 +42250,7 @@ static jsi::Object makeTransactionOutputsInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslTransactionOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -42468,7 +42468,7 @@ static jsi::Object makeTransactionUnspentOutputInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslTransactionUnspentOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionUnspentOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -42658,7 +42658,7 @@ static jsi::Object makeTransactionUnspentOutputsInstance(jsi::Runtime& rt, const
   return obj;
 }
 
-static jsi::Object callCslTransactionUnspentOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionUnspentOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -42822,7 +42822,7 @@ static jsi::Object makeTransactionWitnessSetInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslTransactionWitnessSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionWitnessSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -43160,7 +43160,7 @@ static jsi::Object makeTransactionWitnessSetsInstance(jsi::Runtime& rt, const RP
   return obj;
 }
 
-static jsi::Object callCslTransactionWitnessSets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTransactionWitnessSets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -43378,7 +43378,7 @@ static jsi::Object makeTreasuryWithdrawalsInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslTreasuryWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTreasuryWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -43558,7 +43558,7 @@ static jsi::Object makeTreasuryWithdrawalsActionInstance(jsi::Runtime& rt, const
   return obj;
 }
 
-static jsi::Object callCslTreasuryWithdrawalsAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTreasuryWithdrawalsAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -43763,7 +43763,7 @@ static jsi::Object makeTxInputsBuilderInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslTxInputsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslTxInputsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -44190,7 +44190,7 @@ static jsi::Object makeURLInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslURL(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslURL(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -44364,7 +44364,7 @@ static jsi::Object makeUnitIntervalInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslUnitInterval(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslUnitInterval(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -44554,7 +44554,7 @@ static jsi::Object makeUpdateInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -44746,7 +44746,7 @@ static jsi::Object makeUpdateCommitteeActionInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslUpdateCommitteeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslUpdateCommitteeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -44971,7 +44971,7 @@ static jsi::Object makeVRFCertInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVRFCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVRFCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -45161,7 +45161,7 @@ static jsi::Object makeVRFKeyHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVRFKeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVRFKeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -45312,7 +45312,7 @@ static jsi::Object makeVRFVKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVRFVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVRFVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -45463,7 +45463,7 @@ static jsi::Object makeValueInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslValue(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslValue(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -45810,7 +45810,7 @@ static jsi::Object makeVersionedBlockInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -46002,7 +46002,7 @@ static jsi::Object makeVkeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -46176,7 +46176,7 @@ static jsi::Object makeVkeysInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVkeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVkeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -46313,7 +46313,7 @@ static jsi::Object makeVkeywitnessInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVkeywitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVkeywitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -46503,7 +46503,7 @@ static jsi::Object makeVkeywitnessesInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslVkeywitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVkeywitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -46721,7 +46721,7 @@ static jsi::Object makeVoteDelegationInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -46925,7 +46925,7 @@ static jsi::Object makeVoteRegistrationAndDelegationInstance(jsi::Runtime& rt, c
   return obj;
 }
 
-static jsi::Object callCslVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -47145,7 +47145,7 @@ static jsi::Object makeVoterInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVoter(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVoter(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -47413,7 +47413,7 @@ static jsi::Object makeVotersInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVoters(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVoters(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -47577,7 +47577,7 @@ static jsi::Object makeVotingBuilderInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslVotingBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVotingBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -47838,7 +47838,7 @@ static jsi::Object makeVotingProcedureInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslVotingProcedure(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVotingProcedure(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -48045,7 +48045,7 @@ static jsi::Object makeVotingProceduresInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslVotingProcedures(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVotingProcedures(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -48313,7 +48313,7 @@ static jsi::Object makeVotingProposalInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslVotingProposal(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVotingProposal(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -48535,7 +48535,7 @@ static jsi::Object makeVotingProposalBuilderInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslVotingProposalBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVotingProposalBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -48726,7 +48726,7 @@ static jsi::Object makeVotingProposalsInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslVotingProposals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslVotingProposals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -48974,7 +48974,7 @@ static jsi::Object makeWithdrawalsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
@@ -49218,7 +49218,7 @@ static jsi::Object makeWithdrawalsBuilderInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslWithdrawalsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
+static jsi::Object callCslWithdrawalsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location) {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
