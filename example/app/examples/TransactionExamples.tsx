@@ -20,8 +20,10 @@ import {
   Address,
   Certificates,
   Withdrawals,
-  RewardAddress
+  RewardAddress,
+  Transaction
 } from "@emurgo/csl-mobile-bridge-jsi";
+import {Buffer} from 'buffer'
 import { ExampleSection } from '../types';
 
 // Helper function to validate expected vs actual values
@@ -239,6 +241,29 @@ export default class TransactionExamples {
       validate(results, "TransactionBody certificates count", 1, certsFromTxBody?.len());
 
       validate(results, "TransactionBody TTL", TTL, txBodyFromBuilder.ttl());
+
+      const txHex =
+        '84a4008282582005ec4a4a7f4645fa66886cef2e34706907a3a7f9' +
+        'd88e0d48b313ad2cdf76fb5f008258206930f123df83e4178b0324' +
+        'ae617b2028c0b38c6ff4660583a2abf1f7b08195fe00018182582b' +
+        '82d818582183581ce3a1faa5b54bd1485a424d8f9b5e75296b328a' +
+        '2a624ef1d2f4c7b480a0001a88e5cdab1913890219042803191c20' +
+        'a102818458208fb03c3aa052f51c086c54bd4059ead2d2e426ac89' +
+        'fa4b3ce41cbfd8800b51c0584053685c27ee95dc8e2ea87e6c9e7b' +
+        '0557c7d060cc9d18ada7df3c2eec5949011c76e8647b072fe3fa83' +
+        '10894f087b097cbb15d7fbcc743100a716bf5df3c6190058202623' +
+        'fceb96b07408531a5cb259f53845a38d6b68928e7c0c7e390f0754' +
+        '5d0e6241a0f5f6';
+
+      const txDecodedFromHex = Transaction.from_hex(txHex);
+      const txDecodedFromBytesUnint8Array = Transaction.from_bytes(new Uint8Array(Buffer.from(txHex, "hex")));
+      const txDecodedFromBytesBuffer = Transaction.from_bytes(Buffer.from(txHex, "hex"));
+      const rounfTripTx = Transaction.from_bytes(txDecodedFromHex.to_bytes());
+
+      validate(results,"Transaction roundtrip", txDecodedFromHex.to_json(), rounfTripTx.to_json())
+      validate(results, "Transaction from_bytes Uint8Array", txDecodedFromHex.to_json(), txDecodedFromBytesUnint8Array.to_json())
+      validate(results, "Transaction from_bytes Buffer", txDecodedFromHex.to_json(), txDecodedFromBytesBuffer.to_json())
+
     } catch (error) {
       results.push(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     }

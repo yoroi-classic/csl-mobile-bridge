@@ -21,6 +21,17 @@ module.exports = {
   resolver: {
     ...defaultConfig.resolver,
 
+    resolveRequest: (context, moduleName, platform) => {
+      const shims = {
+        'buffer': '@craftzdog/react-native-buffer',
+      }
+      return context.resolveRequest(
+        context,
+        shims[moduleName] ?? moduleName,
+        platform,
+      )
+    },
+
     // keep deduping peer deps
     blacklistRE: exclusionList(
       modules.map(

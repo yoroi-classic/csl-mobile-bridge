@@ -11,6 +11,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@craftzdog/react-native-buffer": "6.1.0",
     "@emurgo/csl-mobile-bridge-jsi": "file:..",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
