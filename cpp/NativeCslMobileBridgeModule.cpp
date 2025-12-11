@@ -47,11 +47,12 @@ static void setPrototype(jsi::Runtime& rt, jsi::Object& obj, jsi::Object& proto)
 }
 
 // ============================ Helpers ================================
-static jsi::Object callCslArray(jsi::Runtime& rt, std::function<bool(DataPtr*, CharPtr*)> fn) {
+static jsi::Object callCslArray(jsi::Runtime& rt, std::function<bool(DataPtr*, CharPtr*)> fn, const char* location = "") {
   ScopedDataPtr data;
   ScopedCharPtr err;
   if (!fn(&data.ptr, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   if (data.ptr.len == 0) {
     auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
@@ -83,20 +84,22 @@ static jsi::Object callCslArray(jsi::Runtime& rt, std::function<bool(DataPtr*, C
   return arr;
 }
 
-static jsi::String callCslString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn) {
+static jsi::String callCslString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn, const char* location = "") {
   ScopedCharPtr out;
   ScopedCharPtr err;
   if (!fn(&out.ptr, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return jsi::String::createFromUtf8(rt, out.ptr ? out.ptr : "");
 }
 
-static jsi::Object callCslArrayFromString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn) {
+static jsi::Object callCslArrayFromString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn, const char* location = "") {
   ScopedCharPtr out;
   ScopedCharPtr err;
   if (!fn(&out.ptr, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   if (!out.ptr || strlen(out.ptr) == 0) {
     auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
@@ -135,11 +138,12 @@ static jsi::Object callCslArrayFromString(jsi::Runtime& rt, std::function<bool(C
   return arr;
 }
 
-static jsi::Object callCslUint32ArrayFromString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn) {
+static jsi::Object callCslUint32ArrayFromString(jsi::Runtime& rt, std::function<bool(CharPtr*, CharPtr*)> fn, const char* location = "") {
   ScopedCharPtr out;
   ScopedCharPtr err;
   if (!fn(&out.ptr, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   // Empty case
   if (!out.ptr || strlen(out.ptr) == 0) {
@@ -5166,11 +5170,12 @@ static jsi::Object makeAddressInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAddressInstance(rt, result);
 }
@@ -5192,7 +5197,7 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
         auto st = getThisAddressState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_address_to_json(st->get(), out, err);
-        });
+        }, "Address.to_json");
       }
     )
   );
@@ -5218,7 +5223,7 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
         auto st = getThisAddressState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_payment_cred(st->get(), out, err);
-        });
+        }, "Address.payment_cred");
       }
     )
   );
@@ -5244,7 +5249,7 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
         auto st = getThisAddressState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_address_to_hex(st->get(), out, err);
-        });
+        }, "Address.to_hex");
       }
     )
   );
@@ -5256,7 +5261,7 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
         auto st = getThisAddressState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_address_to_bytes(st->get(), out, err);
-        });
+        }, "Address.to_bytes");
       }
     )
   );
@@ -5278,11 +5283,11 @@ static jsi::Object getOrCreateAddressProto(jsi::Runtime& rt) {
         if (has_prefix) {
           return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
             return csl_bridge_address_to_bech32_with_prefix(st->get(), prefix.c_str(), out, err);
-          });
+          }, "Address.to_bech32");
         } else {
           return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
             return csl_bridge_address_to_bech32(st->get(), out, err);
-          });
+          }, "Address.to_bech32");
         }
       }
     )
@@ -5328,7 +5333,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         auto data = parseUint8Array(rt, args[0].asObject(rt), "Address.from_bytes", "data");
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_bytes(data.data(), static_cast<size_t>(data.size()), out, err);
-        });
+        }, "Address.from_bytes");
       }
     )
   );
@@ -5343,7 +5348,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_json(json.c_str(), out, err);
-        });
+        }, "Address.from_json");
       }
     )
   );
@@ -5358,7 +5363,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Address.from_hex");
       }
     )
   );
@@ -5373,7 +5378,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_address_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "Address.from_bech32");
       }
     )
   );
@@ -5408,11 +5413,12 @@ static jsi::Object makeAnchorInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAnchor(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAnchor(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAnchorInstance(rt, result);
 }
@@ -5434,7 +5440,7 @@ static jsi::Object getOrCreateAnchorProto(jsi::Runtime& rt) {
         auto st = getThisAnchorState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_anchor_to_bytes(st->get(), out, err);
-        });
+        }, "Anchor.to_bytes");
       }
     )
   );
@@ -5446,7 +5452,7 @@ static jsi::Object getOrCreateAnchorProto(jsi::Runtime& rt) {
         auto st = getThisAnchorState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_anchor_to_hex(st->get(), out, err);
-        });
+        }, "Anchor.to_hex");
       }
     )
   );
@@ -5458,7 +5464,7 @@ static jsi::Object getOrCreateAnchorProto(jsi::Runtime& rt) {
         auto st = getThisAnchorState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_anchor_to_json(st->get(), out, err);
-        });
+        }, "Anchor.to_json");
       }
     )
   );
@@ -5470,7 +5476,7 @@ static jsi::Object getOrCreateAnchorProto(jsi::Runtime& rt) {
         auto st = getThisAnchorState(rt, thisVal);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_url(st->get(), out, err);
-        });
+        }, "Anchor.url");
       }
     )
   );
@@ -5482,7 +5488,7 @@ static jsi::Object getOrCreateAnchorProto(jsi::Runtime& rt) {
         auto st = getThisAnchorState(rt, thisVal);
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_anchor_data_hash(st->get(), out, err);
-        });
+        }, "Anchor.anchor_data_hash");
       }
     )
   );
@@ -5513,7 +5519,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Anchor.from_bytes", "bytes");
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Anchor.from_bytes");
       }
     )
   );
@@ -5528,7 +5534,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Anchor.from_hex");
       }
     )
   );
@@ -5543,7 +5549,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_from_json(json.c_str(), out, err);
-        });
+        }, "Anchor.from_json");
       }
     )
   );
@@ -5562,7 +5568,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         auto anchor_data_hash = getAnchorDataHashState(rt, args[1].asObject(rt), "anchor_data_hash");
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_new(anchor_url->get(), anchor_data_hash->get(), out, err);
-        });
+        }, "Anchor.new");
       }
     )
   );
@@ -5597,11 +5603,12 @@ static jsi::Object makeAnchorDataHashInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslAnchorDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAnchorDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAnchorDataHashInstance(rt, result);
 }
@@ -5623,7 +5630,7 @@ static jsi::Object getOrCreateAnchorDataHashProto(jsi::Runtime& rt) {
         auto st = getThisAnchorDataHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_to_bytes(st->get(), out, err);
-        });
+        }, "AnchorDataHash.to_bytes");
       }
     )
   );
@@ -5639,7 +5646,7 @@ static jsi::Object getOrCreateAnchorDataHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "AnchorDataHash.to_bech32");
       }
     )
   );
@@ -5651,7 +5658,7 @@ static jsi::Object getOrCreateAnchorDataHashProto(jsi::Runtime& rt) {
         auto st = getThisAnchorDataHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_to_hex(st->get(), out, err);
-        });
+        }, "AnchorDataHash.to_hex");
       }
     )
   );
@@ -5682,7 +5689,7 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AnchorDataHash.from_bytes", "bytes");
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "AnchorDataHash.from_bytes");
       }
     )
   );
@@ -5697,7 +5704,7 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "AnchorDataHash.from_bech32");
       }
     )
   );
@@ -5712,7 +5719,7 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_anchor_data_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "AnchorDataHash.from_hex");
       }
     )
   );
@@ -5747,11 +5754,12 @@ static jsi::Object makeAssetNameInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAssetName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAssetName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAssetNameInstance(rt, result);
 }
@@ -5773,7 +5781,7 @@ static jsi::Object getOrCreateAssetNameProto(jsi::Runtime& rt) {
         auto st = getThisAssetNameState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_to_bytes(st->get(), out, err);
-        });
+        }, "AssetName.to_bytes");
       }
     )
   );
@@ -5785,7 +5793,7 @@ static jsi::Object getOrCreateAssetNameProto(jsi::Runtime& rt) {
         auto st = getThisAssetNameState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_to_hex(st->get(), out, err);
-        });
+        }, "AssetName.to_hex");
       }
     )
   );
@@ -5797,7 +5805,7 @@ static jsi::Object getOrCreateAssetNameProto(jsi::Runtime& rt) {
         auto st = getThisAssetNameState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_to_json(st->get(), out, err);
-        });
+        }, "AssetName.to_json");
       }
     )
   );
@@ -5809,7 +5817,7 @@ static jsi::Object getOrCreateAssetNameProto(jsi::Runtime& rt) {
         auto st = getThisAssetNameState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_name(st->get(), out, err);
-        });
+        }, "AssetName.name");
       }
     )
   );
@@ -5840,7 +5848,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AssetName.from_bytes", "bytes");
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "AssetName.from_bytes");
       }
     )
   );
@@ -5855,7 +5863,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "AssetName.from_hex");
       }
     )
   );
@@ -5870,7 +5878,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_from_json(json.c_str(), out, err);
-        });
+        }, "AssetName.from_json");
       }
     )
   );
@@ -5885,7 +5893,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         auto name = parseUint8Array(rt, args[0].asObject(rt), "AssetName.new", "name");
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_name_new(name.data(), static_cast<size_t>(name.size()), out, err);
-        });
+        }, "AssetName.new");
       }
     )
   );
@@ -5920,11 +5928,12 @@ static jsi::Object makeAssetNamesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAssetNames(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAssetNames(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAssetNamesInstance(rt, result);
 }
@@ -5946,7 +5955,7 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
         auto st = getThisAssetNamesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_to_bytes(st->get(), out, err);
-        });
+        }, "AssetNames.to_bytes");
       }
     )
   );
@@ -5958,7 +5967,7 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
         auto st = getThisAssetNamesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_to_hex(st->get(), out, err);
-        });
+        }, "AssetNames.to_hex");
       }
     )
   );
@@ -5970,7 +5979,7 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
         auto st = getThisAssetNamesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_to_json(st->get(), out, err);
-        });
+        }, "AssetNames.to_json");
       }
     )
   );
@@ -6012,7 +6021,7 @@ static jsi::Object getOrCreateAssetNamesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "AssetNames.get"));
       }
     )
   );
@@ -6061,7 +6070,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AssetNames.from_bytes", "bytes");
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "AssetNames.from_bytes");
       }
     )
   );
@@ -6076,7 +6085,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "AssetNames.from_hex");
       }
     )
   );
@@ -6091,7 +6100,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_from_json(json.c_str(), out, err);
-        });
+        }, "AssetNames.from_json");
       }
     )
   );
@@ -6102,7 +6111,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_asset_names_new(out, err);
-        });
+        }, "AssetNames.new");
       }
     )
   );
@@ -6137,11 +6146,12 @@ static jsi::Object makeAssetsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAssetsInstance(rt, result);
 }
@@ -6163,7 +6173,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
         auto st = getThisAssetsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_assets_to_bytes(st->get(), out, err);
-        });
+        }, "Assets.to_bytes");
       }
     )
   );
@@ -6175,7 +6185,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
         auto st = getThisAssetsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_assets_to_hex(st->get(), out, err);
-        });
+        }, "Assets.to_hex");
       }
     )
   );
@@ -6187,7 +6197,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
         auto st = getThisAssetsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_assets_to_json(st->get(), out, err);
-        });
+        }, "Assets.to_json");
       }
     )
   );
@@ -6233,7 +6243,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Assets.insert"));
       }
     )
   );
@@ -6261,7 +6271,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Assets.get"));
       }
     )
   );
@@ -6273,7 +6283,7 @@ static jsi::Object getOrCreateAssetsProto(jsi::Runtime& rt) {
         auto st = getThisAssetsState(rt, thisVal);
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_keys(st->get(), out, err);
-        });
+        }, "Assets.keys");
       }
     )
   );
@@ -6304,7 +6314,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Assets.from_bytes", "bytes");
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Assets.from_bytes");
       }
     )
   );
@@ -6319,7 +6329,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Assets.from_hex");
       }
     )
   );
@@ -6334,7 +6344,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_from_json(json.c_str(), out, err);
-        });
+        }, "Assets.from_json");
       }
     )
   );
@@ -6345,7 +6355,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_assets_new(out, err);
-        });
+        }, "Assets.new");
       }
     )
   );
@@ -6380,11 +6390,12 @@ static jsi::Object makeAuxiliaryDataInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslAuxiliaryData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAuxiliaryData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAuxiliaryDataInstance(rt, result);
 }
@@ -6406,7 +6417,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_to_bytes(st->get(), out, err);
-        });
+        }, "AuxiliaryData.to_bytes");
       }
     )
   );
@@ -6418,7 +6429,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_to_hex(st->get(), out, err);
-        });
+        }, "AuxiliaryData.to_hex");
       }
     )
   );
@@ -6430,7 +6441,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_to_json(st->get(), out, err);
-        });
+        }, "AuxiliaryData.to_json");
       }
     )
   );
@@ -6442,7 +6453,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_metadata(st->get(), out, err);
-        });
+        }, "AuxiliaryData.metadata");
       }
     )
   );
@@ -6472,7 +6483,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_native_scripts(st->get(), out, err);
-        });
+        }, "AuxiliaryData.native_scripts");
       }
     )
   );
@@ -6502,7 +6513,7 @@ static jsi::Object getOrCreateAuxiliaryDataProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataState(rt, thisVal);
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_plutus_scripts(st->get(), out, err);
-        });
+        }, "AuxiliaryData.plutus_scripts");
       }
     )
   );
@@ -6583,7 +6594,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AuxiliaryData.from_bytes", "bytes");
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "AuxiliaryData.from_bytes");
       }
     )
   );
@@ -6598,7 +6609,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "AuxiliaryData.from_hex");
       }
     )
   );
@@ -6613,7 +6624,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_from_json(json.c_str(), out, err);
-        });
+        }, "AuxiliaryData.from_json");
       }
     )
   );
@@ -6624,7 +6635,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_new(out, err);
-        });
+        }, "AuxiliaryData.new");
       }
     )
   );
@@ -6659,11 +6670,12 @@ static jsi::Object makeAuxiliaryDataHashInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslAuxiliaryDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAuxiliaryDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAuxiliaryDataHashInstance(rt, result);
 }
@@ -6685,7 +6697,7 @@ static jsi::Object getOrCreateAuxiliaryDataHashProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_to_bytes(st->get(), out, err);
-        });
+        }, "AuxiliaryDataHash.to_bytes");
       }
     )
   );
@@ -6701,7 +6713,7 @@ static jsi::Object getOrCreateAuxiliaryDataHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "AuxiliaryDataHash.to_bech32");
       }
     )
   );
@@ -6713,7 +6725,7 @@ static jsi::Object getOrCreateAuxiliaryDataHashProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_to_hex(st->get(), out, err);
-        });
+        }, "AuxiliaryDataHash.to_hex");
       }
     )
   );
@@ -6744,7 +6756,7 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AuxiliaryDataHash.from_bytes", "bytes");
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "AuxiliaryDataHash.from_bytes");
       }
     )
   );
@@ -6759,7 +6771,7 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "AuxiliaryDataHash.from_bech32");
       }
     )
   );
@@ -6774,7 +6786,7 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "AuxiliaryDataHash.from_hex");
       }
     )
   );
@@ -6809,11 +6821,12 @@ static jsi::Object makeAuxiliaryDataSetInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslAuxiliaryDataSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslAuxiliaryDataSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeAuxiliaryDataSetInstance(rt, result);
 }
@@ -6869,7 +6882,7 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
         return jsi::Value(callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "AuxiliaryDataSet.insert"));
       }
     )
   );
@@ -6897,7 +6910,7 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
         return jsi::Value(callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "AuxiliaryDataSet.get"));
       }
     )
   );
@@ -6909,7 +6922,7 @@ static jsi::Object getOrCreateAuxiliaryDataSetProto(jsi::Runtime& rt) {
         auto st = getThisAuxiliaryDataSetState(rt, thisVal);
         return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_set_indices(st->get(), out, err);
-        });
+        }, "AuxiliaryDataSet.indices");
       }
     )
   );
@@ -6936,7 +6949,7 @@ static jsi::Object makeAuxiliaryDataSetExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslAuxiliaryDataSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_auxiliary_data_set_new(out, err);
-        });
+        }, "AuxiliaryDataSet.new");
       }
     )
   );
@@ -6971,11 +6984,12 @@ static jsi::Object makeBaseAddressInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBaseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBaseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBaseAddressInstance(rt, result);
 }
@@ -6997,7 +7011,7 @@ static jsi::Object getOrCreateBaseAddressProto(jsi::Runtime& rt) {
         auto st = getThisBaseAddressState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_payment_cred(st->get(), out, err);
-        });
+        }, "BaseAddress.payment_cred");
       }
     )
   );
@@ -7009,7 +7023,7 @@ static jsi::Object getOrCreateBaseAddressProto(jsi::Runtime& rt) {
         auto st = getThisBaseAddressState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_stake_cred(st->get(), out, err);
-        });
+        }, "BaseAddress.stake_cred");
       }
     )
   );
@@ -7021,7 +7035,7 @@ static jsi::Object getOrCreateBaseAddressProto(jsi::Runtime& rt) {
         auto st = getThisBaseAddressState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_to_address(st->get(), out, err);
-        });
+        }, "BaseAddress.to_address");
       }
     )
   );
@@ -7074,7 +7088,7 @@ static jsi::Object makeBaseAddressExport(jsi::Runtime& rt) {
         auto stake = getCredentialState(rt, args[2].asObject(rt), "stake");
         return callCslBaseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_new(network, payment->get(), stake->get(), out, err);
-        });
+        }, "BaseAddress.new");
       }
     )
   );
@@ -7089,7 +7103,7 @@ static jsi::Object makeBaseAddressExport(jsi::Runtime& rt) {
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslBaseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_base_address_from_address(addr->get(), out, err);
-        });
+        }, "BaseAddress.from_address");
       }
     )
   );
@@ -7124,11 +7138,12 @@ static jsi::Object makeBigIntInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBigInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBigInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBigIntInstance(rt, result);
 }
@@ -7150,7 +7165,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_big_int_to_bytes(st->get(), out, err);
-        });
+        }, "BigInt.to_bytes");
       }
     )
   );
@@ -7162,7 +7177,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_big_int_to_hex(st->get(), out, err);
-        });
+        }, "BigInt.to_hex");
       }
     )
   );
@@ -7174,7 +7189,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_big_int_to_json(st->get(), out, err);
-        });
+        }, "BigInt.to_json");
       }
     )
   );
@@ -7200,7 +7215,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_as_u64(st->get(), out, err);
-        });
+        }, "BigInt.as_u64");
       }
     )
   );
@@ -7212,7 +7227,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_as_int(st->get(), out, err);
-        });
+        }, "BigInt.as_int");
       }
     )
   );
@@ -7224,7 +7239,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_big_int_to_str(st->get(), out, err);
-        });
+        }, "BigInt.to_str");
       }
     )
   );
@@ -7240,7 +7255,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_add(st->get(), other->get(), out, err);
-        });
+        }, "BigInt.add");
       }
     )
   );
@@ -7256,7 +7271,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_sub(st->get(), other->get(), out, err);
-        });
+        }, "BigInt.sub");
       }
     )
   );
@@ -7272,7 +7287,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_mul(st->get(), other->get(), out, err);
-        });
+        }, "BigInt.mul");
       }
     )
   );
@@ -7288,7 +7303,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto exp = static_cast<int64_t>(args[0].asNumber());
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_pow(st->get(), exp, out, err);
-        });
+        }, "BigInt.pow");
       }
     )
   );
@@ -7300,7 +7315,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_abs(st->get(), out, err);
-        });
+        }, "BigInt.abs");
       }
     )
   );
@@ -7312,7 +7327,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto st = getThisBigIntState(rt, thisVal);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_increment(st->get(), out, err);
-        });
+        }, "BigInt.increment");
       }
     )
   );
@@ -7328,7 +7343,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_div_ceil(st->get(), other->get(), out, err);
-        });
+        }, "BigInt.div_ceil");
       }
     )
   );
@@ -7344,7 +7359,7 @@ static jsi::Object getOrCreateBigIntProto(jsi::Runtime& rt) {
         auto other = getBigIntState(rt, args[0].asObject(rt), "other");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_div_floor(st->get(), other->get(), out, err);
-        });
+        }, "BigInt.div_floor");
       }
     )
   );
@@ -7375,7 +7390,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BigInt.from_bytes", "bytes");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "BigInt.from_bytes");
       }
     )
   );
@@ -7390,7 +7405,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "BigInt.from_hex");
       }
     )
   );
@@ -7405,7 +7420,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_json(json.c_str(), out, err);
-        });
+        }, "BigInt.from_json");
       }
     )
   );
@@ -7420,7 +7435,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         std::string text = args[0].asString(rt).utf8(rt);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_from_str(text.c_str(), out, err);
-        });
+        }, "BigInt.from_str");
       }
     )
   );
@@ -7431,7 +7446,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_one(out, err);
-        });
+        }, "BigInt.one");
       }
     )
   );
@@ -7442,7 +7457,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_int_zero(out, err);
-        });
+        }, "BigInt.zero");
       }
     )
   );
@@ -7477,11 +7492,12 @@ static jsi::Object makeBigNumInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBigNum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBigNum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBigNumInstance(rt, result);
 }
@@ -7503,7 +7519,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto st = getThisBigNumState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_big_num_to_bytes(st->get(), out, err);
-        });
+        }, "BigNum.to_bytes");
       }
     )
   );
@@ -7515,7 +7531,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto st = getThisBigNumState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_big_num_to_hex(st->get(), out, err);
-        });
+        }, "BigNum.to_hex");
       }
     )
   );
@@ -7527,7 +7543,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto st = getThisBigNumState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_big_num_to_json(st->get(), out, err);
-        });
+        }, "BigNum.to_json");
       }
     )
   );
@@ -7539,7 +7555,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto st = getThisBigNumState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_big_num_to_str(st->get(), out, err);
-        });
+        }, "BigNum.to_str");
       }
     )
   );
@@ -7569,7 +7585,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_div_floor(st->get(), other->get(), out, err);
-        });
+        }, "BigNum.div_floor");
       }
     )
   );
@@ -7585,7 +7601,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_checked_mul(st->get(), other->get(), out, err);
-        });
+        }, "BigNum.checked_mul");
       }
     )
   );
@@ -7601,7 +7617,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_checked_add(st->get(), other->get(), out, err);
-        });
+        }, "BigNum.checked_add");
       }
     )
   );
@@ -7617,7 +7633,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_checked_sub(st->get(), other->get(), out, err);
-        });
+        }, "BigNum.checked_sub");
       }
     )
   );
@@ -7633,7 +7649,7 @@ static jsi::Object getOrCreateBigNumProto(jsi::Runtime& rt) {
         auto other = getBigNumState(rt, args[0].asObject(rt), "other");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_clamped_sub(st->get(), other->get(), out, err);
-        });
+        }, "BigNum.clamped_sub");
       }
     )
   );
@@ -7700,7 +7716,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BigNum.from_bytes", "bytes");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "BigNum.from_bytes");
       }
     )
   );
@@ -7715,7 +7731,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "BigNum.from_hex");
       }
     )
   );
@@ -7730,7 +7746,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_json(json.c_str(), out, err);
-        });
+        }, "BigNum.from_json");
       }
     )
   );
@@ -7745,7 +7761,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         std::string string = args[0].asString(rt).utf8(rt);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_from_str(string.c_str(), out, err);
-        });
+        }, "BigNum.from_str");
       }
     )
   );
@@ -7756,7 +7772,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_zero(out, err);
-        });
+        }, "BigNum.zero");
       }
     )
   );
@@ -7767,7 +7783,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_one(out, err);
-        });
+        }, "BigNum.one");
       }
     )
   );
@@ -7778,7 +7794,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_max_value(out, err);
-        });
+        }, "BigNum.max_value");
       }
     )
   );
@@ -7797,7 +7813,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         auto b = getBigNumState(rt, args[1].asObject(rt), "b");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_big_num_max(a->get(), b->get(), out, err);
-        });
+        }, "BigNum.max");
       }
     )
   );
@@ -7832,11 +7848,12 @@ static jsi::Object makeBip32PrivateKeyInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslBip32PrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBip32PrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBip32PrivateKeyInstance(rt, result);
 }
@@ -7862,7 +7879,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto index = static_cast<int64_t>(args[0].asNumber());
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_derive(st->get(), index, out, err);
-        });
+        }, "Bip32PrivateKey.derive");
       }
     )
   );
@@ -7874,7 +7891,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_to_128_xprv(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.to_128_xprv");
       }
     )
   );
@@ -7886,7 +7903,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_to_raw_key(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.to_raw_key");
       }
     )
   );
@@ -7898,7 +7915,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_to_public(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.to_public");
       }
     )
   );
@@ -7910,7 +7927,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_as_bytes(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.as_bytes");
       }
     )
   );
@@ -7922,7 +7939,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_to_bech32(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.to_bech32");
       }
     )
   );
@@ -7934,7 +7951,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_chaincode(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.chaincode");
       }
     )
   );
@@ -7946,7 +7963,7 @@ static jsi::Object getOrCreateBip32PrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PrivateKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_to_hex(st->get(), out, err);
-        });
+        }, "Bip32PrivateKey.to_hex");
       }
     )
   );
@@ -7977,7 +7994,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Bip32PrivateKey.from_128_xprv", "bytes");
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_128_xprv(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Bip32PrivateKey.from_128_xprv");
       }
     )
   );
@@ -7988,7 +8005,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_generate_ed25519_bip32(out, err);
-        });
+        }, "Bip32PrivateKey.generate_ed25519_bip32");
       }
     )
   );
@@ -8003,7 +8020,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Bip32PrivateKey.from_bytes", "bytes");
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Bip32PrivateKey.from_bytes");
       }
     )
   );
@@ -8018,7 +8035,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_bech32(bech32_str.c_str(), out, err);
-        });
+        }, "Bip32PrivateKey.from_bech32");
       }
     )
   );
@@ -8037,7 +8054,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         auto password = parseUint8Array(rt, args[1].asObject(rt), "Bip32PrivateKey.from_bip39_entropy", "password");
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_bip39_entropy(entropy.data(), static_cast<size_t>(entropy.size()), password.data(), static_cast<size_t>(password.size()), out, err);
-        });
+        }, "Bip32PrivateKey.from_bip39_entropy");
       }
     )
   );
@@ -8052,7 +8069,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_private_key_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Bip32PrivateKey.from_hex");
       }
     )
   );
@@ -8087,11 +8104,12 @@ static jsi::Object makeBip32PublicKeyInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslBip32PublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBip32PublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBip32PublicKeyInstance(rt, result);
 }
@@ -8117,7 +8135,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
         auto index = static_cast<int64_t>(args[0].asNumber());
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_derive(st->get(), index, out, err);
-        });
+        }, "Bip32PublicKey.derive");
       }
     )
   );
@@ -8129,7 +8147,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PublicKeyState(rt, thisVal);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_to_raw_key(st->get(), out, err);
-        });
+        }, "Bip32PublicKey.to_raw_key");
       }
     )
   );
@@ -8141,7 +8159,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PublicKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_as_bytes(st->get(), out, err);
-        });
+        }, "Bip32PublicKey.as_bytes");
       }
     )
   );
@@ -8153,7 +8171,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PublicKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_to_bech32(st->get(), out, err);
-        });
+        }, "Bip32PublicKey.to_bech32");
       }
     )
   );
@@ -8165,7 +8183,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PublicKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_chaincode(st->get(), out, err);
-        });
+        }, "Bip32PublicKey.chaincode");
       }
     )
   );
@@ -8177,7 +8195,7 @@ static jsi::Object getOrCreateBip32PublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisBip32PublicKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_to_hex(st->get(), out, err);
-        });
+        }, "Bip32PublicKey.to_hex");
       }
     )
   );
@@ -8208,7 +8226,7 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Bip32PublicKey.from_bytes", "bytes");
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Bip32PublicKey.from_bytes");
       }
     )
   );
@@ -8223,7 +8241,7 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_from_bech32(bech32_str.c_str(), out, err);
-        });
+        }, "Bip32PublicKey.from_bech32");
       }
     )
   );
@@ -8238,7 +8256,7 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bip32_public_key_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Bip32PublicKey.from_hex");
       }
     )
   );
@@ -8273,11 +8291,12 @@ static jsi::Object makeBlockInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBlockInstance(rt, result);
 }
@@ -8299,7 +8318,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_block_to_bytes(st->get(), out, err);
-        });
+        }, "Block.to_bytes");
       }
     )
   );
@@ -8311,7 +8330,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_to_hex(st->get(), out, err);
-        });
+        }, "Block.to_hex");
       }
     )
   );
@@ -8323,7 +8342,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_to_json(st->get(), out, err);
-        });
+        }, "Block.to_json");
       }
     )
   );
@@ -8335,7 +8354,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_header(st->get(), out, err);
-        });
+        }, "Block.header");
       }
     )
   );
@@ -8347,7 +8366,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_transaction_bodies(st->get(), out, err);
-        });
+        }, "Block.transaction_bodies");
       }
     )
   );
@@ -8359,7 +8378,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_transaction_witness_sets(st->get(), out, err);
-        });
+        }, "Block.transaction_witness_sets");
       }
     )
   );
@@ -8371,7 +8390,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslAuxiliaryDataSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_auxiliary_data_set(st->get(), out, err);
-        });
+        }, "Block.auxiliary_data_set");
       }
     )
   );
@@ -8383,7 +8402,7 @@ static jsi::Object getOrCreateBlockProto(jsi::Runtime& rt) {
         auto st = getThisBlockState(rt, thisVal);
         return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_invalid_transactions(st->get(), out, err);
-        });
+        }, "Block.invalid_transactions");
       }
     )
   );
@@ -8414,7 +8433,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Block.from_bytes", "bytes");
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Block.from_bytes");
       }
     )
   );
@@ -8429,7 +8448,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Block.from_hex");
       }
     )
   );
@@ -8444,7 +8463,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_from_json(json.c_str(), out, err);
-        });
+        }, "Block.from_json");
       }
     )
   );
@@ -8475,7 +8494,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         auto __invalid_transactions_base64 = parseUint32ArrayToBase64(rt, args[4].asObject(rt), "Block.new", "invalid_transactions");
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_new(header->get(), transaction_bodies->get(), transaction_witness_sets->get(), auxiliary_data_set->get(), __invalid_transactions_base64.c_str(), out, err);
-        });
+        }, "Block.new");
       }
     )
   );
@@ -8510,11 +8529,12 @@ static jsi::Object makeBlockHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslBlockHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBlockHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBlockHashInstance(rt, result);
 }
@@ -8536,7 +8556,7 @@ static jsi::Object getOrCreateBlockHashProto(jsi::Runtime& rt) {
         auto st = getThisBlockHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_to_bytes(st->get(), out, err);
-        });
+        }, "BlockHash.to_bytes");
       }
     )
   );
@@ -8552,7 +8572,7 @@ static jsi::Object getOrCreateBlockHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "BlockHash.to_bech32");
       }
     )
   );
@@ -8564,7 +8584,7 @@ static jsi::Object getOrCreateBlockHashProto(jsi::Runtime& rt) {
         auto st = getThisBlockHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_to_hex(st->get(), out, err);
-        });
+        }, "BlockHash.to_hex");
       }
     )
   );
@@ -8595,7 +8615,7 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BlockHash.from_bytes", "bytes");
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "BlockHash.from_bytes");
       }
     )
   );
@@ -8610,7 +8630,7 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "BlockHash.from_bech32");
       }
     )
   );
@@ -8625,7 +8645,7 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_block_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "BlockHash.from_hex");
       }
     )
   );
@@ -8660,11 +8680,12 @@ static jsi::Object makeBootstrapWitnessInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslBootstrapWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBootstrapWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBootstrapWitnessInstance(rt, result);
 }
@@ -8686,7 +8707,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_to_bytes(st->get(), out, err);
-        });
+        }, "BootstrapWitness.to_bytes");
       }
     )
   );
@@ -8698,7 +8719,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_to_hex(st->get(), out, err);
-        });
+        }, "BootstrapWitness.to_hex");
       }
     )
   );
@@ -8710,7 +8731,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_to_json(st->get(), out, err);
-        });
+        }, "BootstrapWitness.to_json");
       }
     )
   );
@@ -8722,7 +8743,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_vkey(st->get(), out, err);
-        });
+        }, "BootstrapWitness.vkey");
       }
     )
   );
@@ -8734,7 +8755,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_signature(st->get(), out, err);
-        });
+        }, "BootstrapWitness.signature");
       }
     )
   );
@@ -8746,7 +8767,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_chain_code(st->get(), out, err);
-        });
+        }, "BootstrapWitness.chain_code");
       }
     )
   );
@@ -8758,7 +8779,7 @@ static jsi::Object getOrCreateBootstrapWitnessProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_attributes(st->get(), out, err);
-        });
+        }, "BootstrapWitness.attributes");
       }
     )
   );
@@ -8789,7 +8810,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BootstrapWitness.from_bytes", "bytes");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "BootstrapWitness.from_bytes");
       }
     )
   );
@@ -8804,7 +8825,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "BootstrapWitness.from_hex");
       }
     )
   );
@@ -8819,7 +8840,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_from_json(json.c_str(), out, err);
-        });
+        }, "BootstrapWitness.from_json");
       }
     )
   );
@@ -8846,7 +8867,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         auto attributes = parseUint8Array(rt, args[3].asObject(rt), "BootstrapWitness.new", "attributes");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witness_new(vkey->get(), signature->get(), chain_code.data(), static_cast<size_t>(chain_code.size()), attributes.data(), static_cast<size_t>(attributes.size()), out, err);
-        });
+        }, "BootstrapWitness.new");
       }
     )
   );
@@ -8881,11 +8902,12 @@ static jsi::Object makeBootstrapWitnessesInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslBootstrapWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslBootstrapWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeBootstrapWitnessesInstance(rt, result);
 }
@@ -8907,7 +8929,7 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_to_bytes(st->get(), out, err);
-        });
+        }, "BootstrapWitnesses.to_bytes");
       }
     )
   );
@@ -8919,7 +8941,7 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_to_hex(st->get(), out, err);
-        });
+        }, "BootstrapWitnesses.to_hex");
       }
     )
   );
@@ -8931,7 +8953,7 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
         auto st = getThisBootstrapWitnessesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_to_json(st->get(), out, err);
-        });
+        }, "BootstrapWitnesses.to_json");
       }
     )
   );
@@ -8973,7 +8995,7 @@ static jsi::Object getOrCreateBootstrapWitnessesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "BootstrapWitnesses.get"));
       }
     )
   );
@@ -9022,7 +9044,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BootstrapWitnesses.from_bytes", "bytes");
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "BootstrapWitnesses.from_bytes");
       }
     )
   );
@@ -9037,7 +9059,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "BootstrapWitnesses.from_hex");
       }
     )
   );
@@ -9052,7 +9074,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_from_json(json.c_str(), out, err);
-        });
+        }, "BootstrapWitnesses.from_json");
       }
     )
   );
@@ -9063,7 +9085,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_bootstrap_witnesses_new(out, err);
-        });
+        }, "BootstrapWitnesses.new");
       }
     )
   );
@@ -9098,11 +9120,12 @@ static jsi::Object makeByronAddressInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslByronAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslByronAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeByronAddressInstance(rt, result);
 }
@@ -9124,7 +9147,7 @@ static jsi::Object getOrCreateByronAddressProto(jsi::Runtime& rt) {
         auto st = getThisByronAddressState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_to_base58(st->get(), out, err);
-        });
+        }, "ByronAddress.to_base58");
       }
     )
   );
@@ -9136,7 +9159,7 @@ static jsi::Object getOrCreateByronAddressProto(jsi::Runtime& rt) {
         auto st = getThisByronAddressState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_to_bytes(st->get(), out, err);
-        });
+        }, "ByronAddress.to_bytes");
       }
     )
   );
@@ -9176,7 +9199,7 @@ static jsi::Object getOrCreateByronAddressProto(jsi::Runtime& rt) {
         auto st = getThisByronAddressState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_attributes(st->get(), out, err);
-        });
+        }, "ByronAddress.attributes");
       }
     )
   );
@@ -9202,7 +9225,7 @@ static jsi::Object getOrCreateByronAddressProto(jsi::Runtime& rt) {
         auto st = getThisByronAddressState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_to_address(st->get(), out, err);
-        });
+        }, "ByronAddress.to_address");
       }
     )
   );
@@ -9233,7 +9256,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ByronAddress.from_bytes", "bytes");
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ByronAddress.from_bytes");
       }
     )
   );
@@ -9248,7 +9271,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         std::string s = args[0].asString(rt).utf8(rt);
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_from_base58(s.c_str(), out, err);
-        });
+        }, "ByronAddress.from_base58");
       }
     )
   );
@@ -9267,7 +9290,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         auto protocol_magic = static_cast<int64_t>(args[1].asNumber());
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_icarus_from_key(key->get(), protocol_magic, out, err);
-        });
+        }, "ByronAddress.icarus_from_key");
       }
     )
   );
@@ -9299,7 +9322,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_byron_address_from_address(addr->get(), out, err);
-        });
+        }, "ByronAddress.from_address");
       }
     )
   );
@@ -9334,11 +9357,12 @@ static jsi::Object makeCertificateInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCertificate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCertificate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCertificateInstance(rt, result);
 }
@@ -9360,7 +9384,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_certificate_to_bytes(st->get(), out, err);
-        });
+        }, "Certificate.to_bytes");
       }
     )
   );
@@ -9372,7 +9396,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_certificate_to_hex(st->get(), out, err);
-        });
+        }, "Certificate.to_hex");
       }
     )
   );
@@ -9384,7 +9408,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_certificate_to_json(st->get(), out, err);
-        });
+        }, "Certificate.to_json");
       }
     )
   );
@@ -9410,7 +9434,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_stake_registration(st->get(), out, err);
-        });
+        }, "Certificate.as_stake_registration");
       }
     )
   );
@@ -9422,7 +9446,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_reg_cert(st->get(), out, err);
-        });
+        }, "Certificate.as_reg_cert");
       }
     )
   );
@@ -9434,7 +9458,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_stake_deregistration(st->get(), out, err);
-        });
+        }, "Certificate.as_stake_deregistration");
       }
     )
   );
@@ -9446,7 +9470,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_unreg_cert(st->get(), out, err);
-        });
+        }, "Certificate.as_unreg_cert");
       }
     )
   );
@@ -9458,7 +9482,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_stake_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_stake_delegation");
       }
     )
   );
@@ -9470,7 +9494,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_pool_registration(st->get(), out, err);
-        });
+        }, "Certificate.as_pool_registration");
       }
     )
   );
@@ -9482,7 +9506,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_pool_retirement(st->get(), out, err);
-        });
+        }, "Certificate.as_pool_retirement");
       }
     )
   );
@@ -9494,7 +9518,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_genesis_key_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_genesis_key_delegation");
       }
     )
   );
@@ -9506,7 +9530,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_move_instantaneous_rewards_cert(st->get(), out, err);
-        });
+        }, "Certificate.as_move_instantaneous_rewards_cert");
       }
     )
   );
@@ -9518,7 +9542,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_committee_hot_auth(st->get(), out, err);
-        });
+        }, "Certificate.as_committee_hot_auth");
       }
     )
   );
@@ -9530,7 +9554,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_committee_cold_resign(st->get(), out, err);
-        });
+        }, "Certificate.as_committee_cold_resign");
       }
     )
   );
@@ -9542,7 +9566,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_drep_deregistration(st->get(), out, err);
-        });
+        }, "Certificate.as_drep_deregistration");
       }
     )
   );
@@ -9554,7 +9578,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_drep_registration(st->get(), out, err);
-        });
+        }, "Certificate.as_drep_registration");
       }
     )
   );
@@ -9566,7 +9590,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_drep_update(st->get(), out, err);
-        });
+        }, "Certificate.as_drep_update");
       }
     )
   );
@@ -9578,7 +9602,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_stake_and_vote_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_stake_and_vote_delegation");
       }
     )
   );
@@ -9590,7 +9614,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_stake_registration_and_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_stake_registration_and_delegation");
       }
     )
   );
@@ -9602,7 +9626,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_stake_vote_registration_and_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_stake_vote_registration_and_delegation");
       }
     )
   );
@@ -9614,7 +9638,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_vote_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_vote_delegation");
       }
     )
   );
@@ -9626,7 +9650,7 @@ static jsi::Object getOrCreateCertificateProto(jsi::Runtime& rt) {
         auto st = getThisCertificateState(rt, thisVal);
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_as_vote_registration_and_delegation(st->get(), out, err);
-        });
+        }, "Certificate.as_vote_registration_and_delegation");
       }
     )
   );
@@ -9671,7 +9695,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Certificate.from_bytes", "bytes");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Certificate.from_bytes");
       }
     )
   );
@@ -9686,7 +9710,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Certificate.from_hex");
       }
     )
   );
@@ -9701,7 +9725,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_from_json(json.c_str(), out, err);
-        });
+        }, "Certificate.from_json");
       }
     )
   );
@@ -9716,7 +9740,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_registration = getStakeRegistrationState(rt, args[0].asObject(rt), "stake_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_registration(stake_registration->get(), out, err);
-        });
+        }, "Certificate.new_stake_registration");
       }
     )
   );
@@ -9731,7 +9755,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_registration = getStakeRegistrationState(rt, args[0].asObject(rt), "stake_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_reg_cert(stake_registration->get(), out, err);
-        });
+        }, "Certificate.new_reg_cert");
       }
     )
   );
@@ -9746,7 +9770,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_deregistration = getStakeDeregistrationState(rt, args[0].asObject(rt), "stake_deregistration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_deregistration(stake_deregistration->get(), out, err);
-        });
+        }, "Certificate.new_stake_deregistration");
       }
     )
   );
@@ -9761,7 +9785,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_deregistration = getStakeDeregistrationState(rt, args[0].asObject(rt), "stake_deregistration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_unreg_cert(stake_deregistration->get(), out, err);
-        });
+        }, "Certificate.new_unreg_cert");
       }
     )
   );
@@ -9776,7 +9800,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_delegation = getStakeDelegationState(rt, args[0].asObject(rt), "stake_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_delegation(stake_delegation->get(), out, err);
-        });
+        }, "Certificate.new_stake_delegation");
       }
     )
   );
@@ -9791,7 +9815,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto pool_registration = getPoolRegistrationState(rt, args[0].asObject(rt), "pool_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_pool_registration(pool_registration->get(), out, err);
-        });
+        }, "Certificate.new_pool_registration");
       }
     )
   );
@@ -9806,7 +9830,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto pool_retirement = getPoolRetirementState(rt, args[0].asObject(rt), "pool_retirement");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_pool_retirement(pool_retirement->get(), out, err);
-        });
+        }, "Certificate.new_pool_retirement");
       }
     )
   );
@@ -9821,7 +9845,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto genesis_key_delegation = getGenesisKeyDelegationState(rt, args[0].asObject(rt), "genesis_key_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_genesis_key_delegation(genesis_key_delegation->get(), out, err);
-        });
+        }, "Certificate.new_genesis_key_delegation");
       }
     )
   );
@@ -9836,7 +9860,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto move_instantaneous_rewards_cert = getMoveInstantaneousRewardsCertState(rt, args[0].asObject(rt), "move_instantaneous_rewards_cert");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_move_instantaneous_rewards_cert(move_instantaneous_rewards_cert->get(), out, err);
-        });
+        }, "Certificate.new_move_instantaneous_rewards_cert");
       }
     )
   );
@@ -9851,7 +9875,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto committee_hot_auth = getCommitteeHotAuthState(rt, args[0].asObject(rt), "committee_hot_auth");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_committee_hot_auth(committee_hot_auth->get(), out, err);
-        });
+        }, "Certificate.new_committee_hot_auth");
       }
     )
   );
@@ -9866,7 +9890,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto committee_cold_resign = getCommitteeColdResignState(rt, args[0].asObject(rt), "committee_cold_resign");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_committee_cold_resign(committee_cold_resign->get(), out, err);
-        });
+        }, "Certificate.new_committee_cold_resign");
       }
     )
   );
@@ -9881,7 +9905,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto drep_deregistration = getDRepDeregistrationState(rt, args[0].asObject(rt), "drep_deregistration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_drep_deregistration(drep_deregistration->get(), out, err);
-        });
+        }, "Certificate.new_drep_deregistration");
       }
     )
   );
@@ -9896,7 +9920,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto drep_registration = getDRepRegistrationState(rt, args[0].asObject(rt), "drep_registration");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_drep_registration(drep_registration->get(), out, err);
-        });
+        }, "Certificate.new_drep_registration");
       }
     )
   );
@@ -9911,7 +9935,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto drep_update = getDRepUpdateState(rt, args[0].asObject(rt), "drep_update");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_drep_update(drep_update->get(), out, err);
-        });
+        }, "Certificate.new_drep_update");
       }
     )
   );
@@ -9926,7 +9950,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_and_vote_delegation = getStakeAndVoteDelegationState(rt, args[0].asObject(rt), "stake_and_vote_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_and_vote_delegation(stake_and_vote_delegation->get(), out, err);
-        });
+        }, "Certificate.new_stake_and_vote_delegation");
       }
     )
   );
@@ -9941,7 +9965,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_registration_and_delegation = getStakeRegistrationAndDelegationState(rt, args[0].asObject(rt), "stake_registration_and_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_registration_and_delegation(stake_registration_and_delegation->get(), out, err);
-        });
+        }, "Certificate.new_stake_registration_and_delegation");
       }
     )
   );
@@ -9956,7 +9980,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto stake_vote_registration_and_delegation = getStakeVoteRegistrationAndDelegationState(rt, args[0].asObject(rt), "stake_vote_registration_and_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_stake_vote_registration_and_delegation(stake_vote_registration_and_delegation->get(), out, err);
-        });
+        }, "Certificate.new_stake_vote_registration_and_delegation");
       }
     )
   );
@@ -9971,7 +9995,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto vote_delegation = getVoteDelegationState(rt, args[0].asObject(rt), "vote_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_vote_delegation(vote_delegation->get(), out, err);
-        });
+        }, "Certificate.new_vote_delegation");
       }
     )
   );
@@ -9986,7 +10010,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         auto vote_registration_and_delegation = getVoteRegistrationAndDelegationState(rt, args[0].asObject(rt), "vote_registration_and_delegation");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificate_new_vote_registration_and_delegation(vote_registration_and_delegation->get(), out, err);
-        });
+        }, "Certificate.new_vote_registration_and_delegation");
       }
     )
   );
@@ -10021,11 +10045,12 @@ static jsi::Object makeCertificatesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCertificates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCertificates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCertificatesInstance(rt, result);
 }
@@ -10047,7 +10072,7 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
         auto st = getThisCertificatesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_certificates_to_bytes(st->get(), out, err);
-        });
+        }, "Certificates.to_bytes");
       }
     )
   );
@@ -10059,7 +10084,7 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
         auto st = getThisCertificatesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_certificates_to_hex(st->get(), out, err);
-        });
+        }, "Certificates.to_hex");
       }
     )
   );
@@ -10071,7 +10096,7 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
         auto st = getThisCertificatesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_certificates_to_json(st->get(), out, err);
-        });
+        }, "Certificates.to_json");
       }
     )
   );
@@ -10113,7 +10138,7 @@ static jsi::Object getOrCreateCertificatesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Certificates.get"));
       }
     )
   );
@@ -10162,7 +10187,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Certificates.from_bytes", "bytes");
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Certificates.from_bytes");
       }
     )
   );
@@ -10177,7 +10202,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Certificates.from_hex");
       }
     )
   );
@@ -10192,7 +10217,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_from_json(json.c_str(), out, err);
-        });
+        }, "Certificates.from_json");
       }
     )
   );
@@ -10203,7 +10228,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_new(out, err);
-        });
+        }, "Certificates.new");
       }
     )
   );
@@ -10238,11 +10263,12 @@ static jsi::Object makeCertificatesBuilderInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslCertificatesBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCertificatesBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCertificatesBuilderInstance(rt, result);
 }
@@ -10338,7 +10364,7 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "CertificatesBuilder.get_plutus_witnesses"));
       }
     )
   );
@@ -10362,7 +10388,7 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "CertificatesBuilder.get_ref_inputs"));
       }
     )
   );
@@ -10386,7 +10412,7 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "CertificatesBuilder.get_native_scripts"));
       }
     )
   );
@@ -10418,7 +10444,7 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "CertificatesBuilder.get_certificates_refund"));
       }
     )
   );
@@ -10450,7 +10476,7 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "CertificatesBuilder.get_certificates_deposit"));
       }
     )
   );
@@ -10476,7 +10502,7 @@ static jsi::Object getOrCreateCertificatesBuilderProto(jsi::Runtime& rt) {
         auto st = getThisCertificatesBuilderState(rt, thisVal);
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_builder_build(st->get(), out, err);
-        });
+        }, "CertificatesBuilder.build");
       }
     )
   );
@@ -10503,7 +10529,7 @@ static jsi::Object makeCertificatesBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslCertificatesBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_certificates_builder_new(out, err);
-        });
+        }, "CertificatesBuilder.new");
       }
     )
   );
@@ -10538,11 +10564,12 @@ static jsi::Object makeChangeConfigInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslChangeConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslChangeConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeChangeConfigInstance(rt, result);
 }
@@ -10568,7 +10595,7 @@ static jsi::Object getOrCreateChangeConfigProto(jsi::Runtime& rt) {
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_change_address(st->get(), address->get(), out, err);
-        });
+        }, "ChangeConfig.change_address");
       }
     )
   );
@@ -10584,7 +10611,7 @@ static jsi::Object getOrCreateChangeConfigProto(jsi::Runtime& rt) {
         auto plutus_data = getOutputDatumState(rt, args[0].asObject(rt), "plutus_data");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_change_plutus_data(st->get(), plutus_data->get(), out, err);
-        });
+        }, "ChangeConfig.change_plutus_data");
       }
     )
   );
@@ -10600,7 +10627,7 @@ static jsi::Object getOrCreateChangeConfigProto(jsi::Runtime& rt) {
         auto script_ref = getScriptRefState(rt, args[0].asObject(rt), "script_ref");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_change_script_ref(st->get(), script_ref->get(), out, err);
-        });
+        }, "ChangeConfig.change_script_ref");
       }
     )
   );
@@ -10631,7 +10658,7 @@ static jsi::Object makeChangeConfigExport(jsi::Runtime& rt) {
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslChangeConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_change_config_new(address->get(), out, err);
-        });
+        }, "ChangeConfig.new");
       }
     )
   );
@@ -10666,11 +10693,12 @@ static jsi::Object makeCommitteeInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCommittee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCommittee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCommitteeInstance(rt, result);
 }
@@ -10692,7 +10720,7 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_committee_to_bytes(st->get(), out, err);
-        });
+        }, "Committee.to_bytes");
       }
     )
   );
@@ -10704,7 +10732,7 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_committee_to_hex(st->get(), out, err);
-        });
+        }, "Committee.to_hex");
       }
     )
   );
@@ -10716,7 +10744,7 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_committee_to_json(st->get(), out, err);
-        });
+        }, "Committee.to_json");
       }
     )
   );
@@ -10728,7 +10756,7 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeState(rt, thisVal);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_members_keys(st->get(), out, err);
-        });
+        }, "Committee.members_keys");
       }
     )
   );
@@ -10740,7 +10768,7 @@ static jsi::Object getOrCreateCommitteeProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_quorum_threshold(st->get(), out, err);
-        });
+        }, "Committee.quorum_threshold");
       }
     )
   );
@@ -10811,7 +10839,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Committee.from_bytes", "bytes");
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Committee.from_bytes");
       }
     )
   );
@@ -10826,7 +10854,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Committee.from_hex");
       }
     )
   );
@@ -10841,7 +10869,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_from_json(json.c_str(), out, err);
-        });
+        }, "Committee.from_json");
       }
     )
   );
@@ -10856,7 +10884,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         auto quorum_threshold = getUnitIntervalState(rt, args[0].asObject(rt), "quorum_threshold");
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_new(quorum_threshold->get(), out, err);
-        });
+        }, "Committee.new");
       }
     )
   );
@@ -10891,11 +10919,12 @@ static jsi::Object makeCommitteeColdResignInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslCommitteeColdResign(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCommitteeColdResign(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCommitteeColdResignInstance(rt, result);
 }
@@ -10917,7 +10946,7 @@ static jsi::Object getOrCreateCommitteeColdResignProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeColdResignState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_to_bytes(st->get(), out, err);
-        });
+        }, "CommitteeColdResign.to_bytes");
       }
     )
   );
@@ -10929,7 +10958,7 @@ static jsi::Object getOrCreateCommitteeColdResignProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeColdResignState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_to_hex(st->get(), out, err);
-        });
+        }, "CommitteeColdResign.to_hex");
       }
     )
   );
@@ -10941,7 +10970,7 @@ static jsi::Object getOrCreateCommitteeColdResignProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeColdResignState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_to_json(st->get(), out, err);
-        });
+        }, "CommitteeColdResign.to_json");
       }
     )
   );
@@ -10953,7 +10982,7 @@ static jsi::Object getOrCreateCommitteeColdResignProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeColdResignState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_committee_cold_credential(st->get(), out, err);
-        });
+        }, "CommitteeColdResign.committee_cold_credential");
       }
     )
   );
@@ -10965,7 +10994,7 @@ static jsi::Object getOrCreateCommitteeColdResignProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeColdResignState(rt, thisVal);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_anchor(st->get(), out, err);
-        });
+        }, "CommitteeColdResign.anchor");
       }
     )
   );
@@ -11010,7 +11039,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "CommitteeColdResign.from_bytes", "bytes");
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "CommitteeColdResign.from_bytes");
       }
     )
   );
@@ -11025,7 +11054,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "CommitteeColdResign.from_hex");
       }
     )
   );
@@ -11040,7 +11069,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_from_json(json.c_str(), out, err);
-        });
+        }, "CommitteeColdResign.from_json");
       }
     )
   );
@@ -11055,7 +11084,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         auto committee_cold_credential = getCredentialState(rt, args[0].asObject(rt), "committee_cold_credential");
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_new(committee_cold_credential->get(), out, err);
-        });
+        }, "CommitteeColdResign.new");
       }
     )
   );
@@ -11074,7 +11103,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_cold_resign_new_with_anchor(committee_cold_credential->get(), anchor->get(), out, err);
-        });
+        }, "CommitteeColdResign.new_with_anchor");
       }
     )
   );
@@ -11109,11 +11138,12 @@ static jsi::Object makeCommitteeHotAuthInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslCommitteeHotAuth(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCommitteeHotAuth(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCommitteeHotAuthInstance(rt, result);
 }
@@ -11135,7 +11165,7 @@ static jsi::Object getOrCreateCommitteeHotAuthProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeHotAuthState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_to_bytes(st->get(), out, err);
-        });
+        }, "CommitteeHotAuth.to_bytes");
       }
     )
   );
@@ -11147,7 +11177,7 @@ static jsi::Object getOrCreateCommitteeHotAuthProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeHotAuthState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_to_hex(st->get(), out, err);
-        });
+        }, "CommitteeHotAuth.to_hex");
       }
     )
   );
@@ -11159,7 +11189,7 @@ static jsi::Object getOrCreateCommitteeHotAuthProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeHotAuthState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_to_json(st->get(), out, err);
-        });
+        }, "CommitteeHotAuth.to_json");
       }
     )
   );
@@ -11171,7 +11201,7 @@ static jsi::Object getOrCreateCommitteeHotAuthProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeHotAuthState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_committee_cold_credential(st->get(), out, err);
-        });
+        }, "CommitteeHotAuth.committee_cold_credential");
       }
     )
   );
@@ -11183,7 +11213,7 @@ static jsi::Object getOrCreateCommitteeHotAuthProto(jsi::Runtime& rt) {
         auto st = getThisCommitteeHotAuthState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_committee_hot_credential(st->get(), out, err);
-        });
+        }, "CommitteeHotAuth.committee_hot_credential");
       }
     )
   );
@@ -11228,7 +11258,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "CommitteeHotAuth.from_bytes", "bytes");
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "CommitteeHotAuth.from_bytes");
       }
     )
   );
@@ -11243,7 +11273,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "CommitteeHotAuth.from_hex");
       }
     )
   );
@@ -11258,7 +11288,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_from_json(json.c_str(), out, err);
-        });
+        }, "CommitteeHotAuth.from_json");
       }
     )
   );
@@ -11277,7 +11307,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         auto committee_hot_credential = getCredentialState(rt, args[1].asObject(rt), "committee_hot_credential");
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_committee_hot_auth_new(committee_cold_credential->get(), committee_hot_credential->get(), out, err);
-        });
+        }, "CommitteeHotAuth.new");
       }
     )
   );
@@ -11312,11 +11342,12 @@ static jsi::Object makeConstitutionInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslConstitution(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslConstitution(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeConstitutionInstance(rt, result);
 }
@@ -11338,7 +11369,7 @@ static jsi::Object getOrCreateConstitutionProto(jsi::Runtime& rt) {
         auto st = getThisConstitutionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_constitution_to_bytes(st->get(), out, err);
-        });
+        }, "Constitution.to_bytes");
       }
     )
   );
@@ -11350,7 +11381,7 @@ static jsi::Object getOrCreateConstitutionProto(jsi::Runtime& rt) {
         auto st = getThisConstitutionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_constitution_to_hex(st->get(), out, err);
-        });
+        }, "Constitution.to_hex");
       }
     )
   );
@@ -11362,7 +11393,7 @@ static jsi::Object getOrCreateConstitutionProto(jsi::Runtime& rt) {
         auto st = getThisConstitutionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_constitution_to_json(st->get(), out, err);
-        });
+        }, "Constitution.to_json");
       }
     )
   );
@@ -11374,7 +11405,7 @@ static jsi::Object getOrCreateConstitutionProto(jsi::Runtime& rt) {
         auto st = getThisConstitutionState(rt, thisVal);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_anchor(st->get(), out, err);
-        });
+        }, "Constitution.anchor");
       }
     )
   );
@@ -11386,7 +11417,7 @@ static jsi::Object getOrCreateConstitutionProto(jsi::Runtime& rt) {
         auto st = getThisConstitutionState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_script_hash(st->get(), out, err);
-        });
+        }, "Constitution.script_hash");
       }
     )
   );
@@ -11417,7 +11448,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Constitution.from_bytes", "bytes");
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Constitution.from_bytes");
       }
     )
   );
@@ -11432,7 +11463,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Constitution.from_hex");
       }
     )
   );
@@ -11447,7 +11478,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_from_json(json.c_str(), out, err);
-        });
+        }, "Constitution.from_json");
       }
     )
   );
@@ -11462,7 +11493,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         auto anchor = getAnchorState(rt, args[0].asObject(rt), "anchor");
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_new(anchor->get(), out, err);
-        });
+        }, "Constitution.new");
       }
     )
   );
@@ -11481,7 +11512,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         auto script_hash = getScriptHashState(rt, args[1].asObject(rt), "script_hash");
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constitution_new_with_script_hash(anchor->get(), script_hash->get(), out, err);
-        });
+        }, "Constitution.new_with_script_hash");
       }
     )
   );
@@ -11516,11 +11547,12 @@ static jsi::Object makeConstrPlutusDataInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslConstrPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslConstrPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeConstrPlutusDataInstance(rt, result);
 }
@@ -11542,7 +11574,7 @@ static jsi::Object getOrCreateConstrPlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisConstrPlutusDataState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_to_bytes(st->get(), out, err);
-        });
+        }, "ConstrPlutusData.to_bytes");
       }
     )
   );
@@ -11554,7 +11586,7 @@ static jsi::Object getOrCreateConstrPlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisConstrPlutusDataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_to_hex(st->get(), out, err);
-        });
+        }, "ConstrPlutusData.to_hex");
       }
     )
   );
@@ -11566,7 +11598,7 @@ static jsi::Object getOrCreateConstrPlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisConstrPlutusDataState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_alternative(st->get(), out, err);
-        });
+        }, "ConstrPlutusData.alternative");
       }
     )
   );
@@ -11578,7 +11610,7 @@ static jsi::Object getOrCreateConstrPlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisConstrPlutusDataState(rt, thisVal);
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_data(st->get(), out, err);
-        });
+        }, "ConstrPlutusData.data");
       }
     )
   );
@@ -11609,7 +11641,7 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ConstrPlutusData.from_bytes", "bytes");
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ConstrPlutusData.from_bytes");
       }
     )
   );
@@ -11624,7 +11656,7 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ConstrPlutusData.from_hex");
       }
     )
   );
@@ -11643,7 +11675,7 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
         auto data = getPlutusListState(rt, args[1].asObject(rt), "data");
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_constr_plutus_data_new(alternative->get(), data->get(), out, err);
-        });
+        }, "ConstrPlutusData.new");
       }
     )
   );
@@ -11678,11 +11710,12 @@ static jsi::Object makeCostModelInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCostModel(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCostModel(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCostModelInstance(rt, result);
 }
@@ -11704,7 +11737,7 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
         auto st = getThisCostModelState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_to_bytes(st->get(), out, err);
-        });
+        }, "CostModel.to_bytes");
       }
     )
   );
@@ -11716,7 +11749,7 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
         auto st = getThisCostModelState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_to_hex(st->get(), out, err);
-        });
+        }, "CostModel.to_hex");
       }
     )
   );
@@ -11728,7 +11761,7 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
         auto st = getThisCostModelState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_to_json(st->get(), out, err);
-        });
+        }, "CostModel.to_json");
       }
     )
   );
@@ -11748,7 +11781,7 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
         auto cost = getIntState(rt, args[1].asObject(rt), "cost");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_set(st->get(), operation, cost->get(), out, err);
-        });
+        }, "CostModel.set");
       }
     )
   );
@@ -11776,7 +11809,7 @@ static jsi::Object getOrCreateCostModelProto(jsi::Runtime& rt) {
         return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "CostModel.get"));
       }
     )
   );
@@ -11821,7 +11854,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "CostModel.from_bytes", "bytes");
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "CostModel.from_bytes");
       }
     )
   );
@@ -11836,7 +11869,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "CostModel.from_hex");
       }
     )
   );
@@ -11851,7 +11884,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_from_json(json.c_str(), out, err);
-        });
+        }, "CostModel.from_json");
       }
     )
   );
@@ -11862,7 +11895,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_cost_model_new(out, err);
-        });
+        }, "CostModel.new");
       }
     )
   );
@@ -11897,11 +11930,12 @@ static jsi::Object makeCostmdlsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCostmdls(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCostmdls(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCostmdlsInstance(rt, result);
 }
@@ -11923,7 +11957,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         auto st = getThisCostmdlsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_to_bytes(st->get(), out, err);
-        });
+        }, "Costmdls.to_bytes");
       }
     )
   );
@@ -11935,7 +11969,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         auto st = getThisCostmdlsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_to_hex(st->get(), out, err);
-        });
+        }, "Costmdls.to_hex");
       }
     )
   );
@@ -11947,7 +11981,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         auto st = getThisCostmdlsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_to_json(st->get(), out, err);
-        });
+        }, "Costmdls.to_json");
       }
     )
   );
@@ -11993,7 +12027,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Costmdls.insert"));
       }
     )
   );
@@ -12021,7 +12055,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Costmdls.get"));
       }
     )
   );
@@ -12033,7 +12067,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         auto st = getThisCostmdlsState(rt, thisVal);
         return callCslLanguages(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_keys(st->get(), out, err);
-        });
+        }, "Costmdls.keys");
       }
     )
   );
@@ -12049,7 +12083,7 @@ static jsi::Object getOrCreateCostmdlsProto(jsi::Runtime& rt) {
         auto languages = getLanguagesState(rt, args[0].asObject(rt), "languages");
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_retain_language_versions(st->get(), languages->get(), out, err);
-        });
+        }, "Costmdls.retain_language_versions");
       }
     )
   );
@@ -12080,7 +12114,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Costmdls.from_bytes", "bytes");
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Costmdls.from_bytes");
       }
     )
   );
@@ -12095,7 +12129,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Costmdls.from_hex");
       }
     )
   );
@@ -12110,7 +12144,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_from_json(json.c_str(), out, err);
-        });
+        }, "Costmdls.from_json");
       }
     )
   );
@@ -12121,7 +12155,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_costmdls_new(out, err);
-        });
+        }, "Costmdls.new");
       }
     )
   );
@@ -12156,11 +12190,12 @@ static jsi::Object makeCredentialInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCredential(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCredential(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCredentialInstance(rt, result);
 }
@@ -12182,7 +12217,7 @@ static jsi::Object getOrCreateCredentialProto(jsi::Runtime& rt) {
         auto st = getThisCredentialState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_to_keyhash(st->get(), out, err);
-        });
+        }, "Credential.to_keyhash");
       }
     )
   );
@@ -12194,7 +12229,7 @@ static jsi::Object getOrCreateCredentialProto(jsi::Runtime& rt) {
         auto st = getThisCredentialState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_to_scripthash(st->get(), out, err);
-        });
+        }, "Credential.to_scripthash");
       }
     )
   );
@@ -12234,7 +12269,7 @@ static jsi::Object getOrCreateCredentialProto(jsi::Runtime& rt) {
         auto st = getThisCredentialState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_credential_to_bytes(st->get(), out, err);
-        });
+        }, "Credential.to_bytes");
       }
     )
   );
@@ -12246,7 +12281,7 @@ static jsi::Object getOrCreateCredentialProto(jsi::Runtime& rt) {
         auto st = getThisCredentialState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_credential_to_hex(st->get(), out, err);
-        });
+        }, "Credential.to_hex");
       }
     )
   );
@@ -12258,7 +12293,7 @@ static jsi::Object getOrCreateCredentialProto(jsi::Runtime& rt) {
         auto st = getThisCredentialState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_credential_to_json(st->get(), out, err);
-        });
+        }, "Credential.to_json");
       }
     )
   );
@@ -12289,7 +12324,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         auto hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "hash");
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_keyhash(hash->get(), out, err);
-        });
+        }, "Credential.from_keyhash");
       }
     )
   );
@@ -12304,7 +12339,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         auto hash = getScriptHashState(rt, args[0].asObject(rt), "hash");
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_scripthash(hash->get(), out, err);
-        });
+        }, "Credential.from_scripthash");
       }
     )
   );
@@ -12319,7 +12354,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Credential.from_bytes", "bytes");
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Credential.from_bytes");
       }
     )
   );
@@ -12334,7 +12369,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Credential.from_hex");
       }
     )
   );
@@ -12349,7 +12384,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credential_from_json(json.c_str(), out, err);
-        });
+        }, "Credential.from_json");
       }
     )
   );
@@ -12384,11 +12419,12 @@ static jsi::Object makeCredentialsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeCredentialsInstance(rt, result);
 }
@@ -12410,7 +12446,7 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisCredentialsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_credentials_to_bytes(st->get(), out, err);
-        });
+        }, "Credentials.to_bytes");
       }
     )
   );
@@ -12422,7 +12458,7 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisCredentialsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_credentials_to_hex(st->get(), out, err);
-        });
+        }, "Credentials.to_hex");
       }
     )
   );
@@ -12434,7 +12470,7 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisCredentialsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_credentials_to_json(st->get(), out, err);
-        });
+        }, "Credentials.to_json");
       }
     )
   );
@@ -12476,7 +12512,7 @@ static jsi::Object getOrCreateCredentialsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Credentials.get"));
       }
     )
   );
@@ -12525,7 +12561,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Credentials.from_bytes", "bytes");
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Credentials.from_bytes");
       }
     )
   );
@@ -12540,7 +12576,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Credentials.from_hex");
       }
     )
   );
@@ -12555,7 +12591,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_from_json(json.c_str(), out, err);
-        });
+        }, "Credentials.from_json");
       }
     )
   );
@@ -12566,7 +12602,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_credentials_new(out, err);
-        });
+        }, "Credentials.new");
       }
     )
   );
@@ -12601,11 +12637,12 @@ static jsi::Object makeDNSRecordAorAAAAInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslDNSRecordAorAAAA(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDNSRecordAorAAAA(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDNSRecordAorAAAAInstance(rt, result);
 }
@@ -12627,7 +12664,7 @@ static jsi::Object getOrCreateDNSRecordAorAAAAProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordAorAAAAState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_to_bytes(st->get(), out, err);
-        });
+        }, "DNSRecordAorAAAA.to_bytes");
       }
     )
   );
@@ -12639,7 +12676,7 @@ static jsi::Object getOrCreateDNSRecordAorAAAAProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordAorAAAAState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_to_hex(st->get(), out, err);
-        });
+        }, "DNSRecordAorAAAA.to_hex");
       }
     )
   );
@@ -12651,7 +12688,7 @@ static jsi::Object getOrCreateDNSRecordAorAAAAProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordAorAAAAState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_to_json(st->get(), out, err);
-        });
+        }, "DNSRecordAorAAAA.to_json");
       }
     )
   );
@@ -12663,7 +12700,7 @@ static jsi::Object getOrCreateDNSRecordAorAAAAProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordAorAAAAState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_record(st->get(), out, err);
-        });
+        }, "DNSRecordAorAAAA.record");
       }
     )
   );
@@ -12694,7 +12731,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DNSRecordAorAAAA.from_bytes", "bytes");
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DNSRecordAorAAAA.from_bytes");
       }
     )
   );
@@ -12709,7 +12746,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DNSRecordAorAAAA.from_hex");
       }
     )
   );
@@ -12724,7 +12761,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_from_json(json.c_str(), out, err);
-        });
+        }, "DNSRecordAorAAAA.from_json");
       }
     )
   );
@@ -12739,7 +12776,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         std::string dns_name = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_aor_a_a_a_a_new(dns_name.c_str(), out, err);
-        });
+        }, "DNSRecordAorAAAA.new");
       }
     )
   );
@@ -12774,11 +12811,12 @@ static jsi::Object makeDNSRecordSRVInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDNSRecordSRV(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDNSRecordSRV(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDNSRecordSRVInstance(rt, result);
 }
@@ -12800,7 +12838,7 @@ static jsi::Object getOrCreateDNSRecordSRVProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordSRVState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_to_bytes(st->get(), out, err);
-        });
+        }, "DNSRecordSRV.to_bytes");
       }
     )
   );
@@ -12812,7 +12850,7 @@ static jsi::Object getOrCreateDNSRecordSRVProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordSRVState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_to_hex(st->get(), out, err);
-        });
+        }, "DNSRecordSRV.to_hex");
       }
     )
   );
@@ -12824,7 +12862,7 @@ static jsi::Object getOrCreateDNSRecordSRVProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordSRVState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_to_json(st->get(), out, err);
-        });
+        }, "DNSRecordSRV.to_json");
       }
     )
   );
@@ -12836,7 +12874,7 @@ static jsi::Object getOrCreateDNSRecordSRVProto(jsi::Runtime& rt) {
         auto st = getThisDNSRecordSRVState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_record(st->get(), out, err);
-        });
+        }, "DNSRecordSRV.record");
       }
     )
   );
@@ -12867,7 +12905,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DNSRecordSRV.from_bytes", "bytes");
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DNSRecordSRV.from_bytes");
       }
     )
   );
@@ -12882,7 +12920,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DNSRecordSRV.from_hex");
       }
     )
   );
@@ -12897,7 +12935,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_from_json(json.c_str(), out, err);
-        });
+        }, "DNSRecordSRV.from_json");
       }
     )
   );
@@ -12912,7 +12950,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         std::string dns_name = args[0].asString(rt).utf8(rt);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_n_s_record_s_r_v_new(dns_name.c_str(), out, err);
-        });
+        }, "DNSRecordSRV.new");
       }
     )
   );
@@ -12947,11 +12985,12 @@ static jsi::Object makeDRepInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDRep(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDRep(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDRepInstance(rt, result);
 }
@@ -12973,7 +13012,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
         auto st = getThisDRepState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_bytes(st->get(), out, err);
-        });
+        }, "DRep.to_bytes");
       }
     )
   );
@@ -12985,7 +13024,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
         auto st = getThisDRepState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_hex(st->get(), out, err);
-        });
+        }, "DRep.to_hex");
       }
     )
   );
@@ -12997,7 +13036,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
         auto st = getThisDRepState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_json(st->get(), out, err);
-        });
+        }, "DRep.to_json");
       }
     )
   );
@@ -13023,7 +13062,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
         auto st = getThisDRepState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_key_hash(st->get(), out, err);
-        });
+        }, "DRep.to_key_hash");
       }
     )
   );
@@ -13035,7 +13074,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
         auto st = getThisDRepState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_script_hash(st->get(), out, err);
-        });
+        }, "DRep.to_script_hash");
       }
     )
   );
@@ -13051,7 +13090,7 @@ static jsi::Object getOrCreateDRepProto(jsi::Runtime& rt) {
         bool cip_129_format = args[0].asBool();
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_to_bech32(st->get(), cip_129_format, out, err);
-        });
+        }, "DRep.to_bech32");
       }
     )
   );
@@ -13082,7 +13121,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRep.from_bytes", "bytes");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DRep.from_bytes");
       }
     )
   );
@@ -13097,7 +13136,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DRep.from_hex");
       }
     )
   );
@@ -13112,7 +13151,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_json(json.c_str(), out, err);
-        });
+        }, "DRep.from_json");
       }
     )
   );
@@ -13127,7 +13166,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         auto key_hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "key_hash");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_key_hash(key_hash->get(), out, err);
-        });
+        }, "DRep.new_key_hash");
       }
     )
   );
@@ -13142,7 +13181,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         auto script_hash = getScriptHashState(rt, args[0].asObject(rt), "script_hash");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_script_hash(script_hash->get(), out, err);
-        });
+        }, "DRep.new_script_hash");
       }
     )
   );
@@ -13153,7 +13192,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_always_abstain(out, err);
-        });
+        }, "DRep.new_always_abstain");
       }
     )
   );
@@ -13164,7 +13203,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_always_no_confidence(out, err);
-        });
+        }, "DRep.new_always_no_confidence");
       }
     )
   );
@@ -13179,7 +13218,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_new_from_credential(cred->get(), out, err);
-        });
+        }, "DRep.new_from_credential");
       }
     )
   );
@@ -13194,7 +13233,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_from_bech32(bech32_str.c_str(), out, err);
-        });
+        }, "DRep.from_bech32");
       }
     )
   );
@@ -13229,11 +13268,12 @@ static jsi::Object makeDRepDeregistrationInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslDRepDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDRepDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDRepDeregistrationInstance(rt, result);
 }
@@ -13255,7 +13295,7 @@ static jsi::Object getOrCreateDRepDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepDeregistrationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_to_bytes(st->get(), out, err);
-        });
+        }, "DRepDeregistration.to_bytes");
       }
     )
   );
@@ -13267,7 +13307,7 @@ static jsi::Object getOrCreateDRepDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepDeregistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_to_hex(st->get(), out, err);
-        });
+        }, "DRepDeregistration.to_hex");
       }
     )
   );
@@ -13279,7 +13319,7 @@ static jsi::Object getOrCreateDRepDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepDeregistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_to_json(st->get(), out, err);
-        });
+        }, "DRepDeregistration.to_json");
       }
     )
   );
@@ -13291,7 +13331,7 @@ static jsi::Object getOrCreateDRepDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepDeregistrationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_voting_credential(st->get(), out, err);
-        });
+        }, "DRepDeregistration.voting_credential");
       }
     )
   );
@@ -13303,7 +13343,7 @@ static jsi::Object getOrCreateDRepDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepDeregistrationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_coin(st->get(), out, err);
-        });
+        }, "DRepDeregistration.coin");
       }
     )
   );
@@ -13348,7 +13388,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepDeregistration.from_bytes", "bytes");
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DRepDeregistration.from_bytes");
       }
     )
   );
@@ -13363,7 +13403,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DRepDeregistration.from_hex");
       }
     )
   );
@@ -13378,7 +13418,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_from_json(json.c_str(), out, err);
-        });
+        }, "DRepDeregistration.from_json");
       }
     )
   );
@@ -13397,7 +13437,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_deregistration_new(voting_credential->get(), coin->get(), out, err);
-        });
+        }, "DRepDeregistration.new");
       }
     )
   );
@@ -13432,11 +13472,12 @@ static jsi::Object makeDRepRegistrationInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslDRepRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDRepRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDRepRegistrationInstance(rt, result);
 }
@@ -13458,7 +13499,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepRegistrationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_to_bytes(st->get(), out, err);
-        });
+        }, "DRepRegistration.to_bytes");
       }
     )
   );
@@ -13470,7 +13511,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepRegistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_to_hex(st->get(), out, err);
-        });
+        }, "DRepRegistration.to_hex");
       }
     )
   );
@@ -13482,7 +13523,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepRegistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_to_json(st->get(), out, err);
-        });
+        }, "DRepRegistration.to_json");
       }
     )
   );
@@ -13494,7 +13535,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepRegistrationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_voting_credential(st->get(), out, err);
-        });
+        }, "DRepRegistration.voting_credential");
       }
     )
   );
@@ -13506,7 +13547,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepRegistrationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_coin(st->get(), out, err);
-        });
+        }, "DRepRegistration.coin");
       }
     )
   );
@@ -13518,7 +13559,7 @@ static jsi::Object getOrCreateDRepRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisDRepRegistrationState(rt, thisVal);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_anchor(st->get(), out, err);
-        });
+        }, "DRepRegistration.anchor");
       }
     )
   );
@@ -13563,7 +13604,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepRegistration.from_bytes", "bytes");
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DRepRegistration.from_bytes");
       }
     )
   );
@@ -13578,7 +13619,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DRepRegistration.from_hex");
       }
     )
   );
@@ -13593,7 +13634,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_from_json(json.c_str(), out, err);
-        });
+        }, "DRepRegistration.from_json");
       }
     )
   );
@@ -13612,7 +13653,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_new(voting_credential->get(), coin->get(), out, err);
-        });
+        }, "DRepRegistration.new");
       }
     )
   );
@@ -13635,7 +13676,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         auto anchor = getAnchorState(rt, args[2].asObject(rt), "anchor");
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_registration_new_with_anchor(voting_credential->get(), coin->get(), anchor->get(), out, err);
-        });
+        }, "DRepRegistration.new_with_anchor");
       }
     )
   );
@@ -13670,11 +13711,12 @@ static jsi::Object makeDRepUpdateInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDRepUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDRepUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDRepUpdateInstance(rt, result);
 }
@@ -13696,7 +13738,7 @@ static jsi::Object getOrCreateDRepUpdateProto(jsi::Runtime& rt) {
         auto st = getThisDRepUpdateState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_to_bytes(st->get(), out, err);
-        });
+        }, "DRepUpdate.to_bytes");
       }
     )
   );
@@ -13708,7 +13750,7 @@ static jsi::Object getOrCreateDRepUpdateProto(jsi::Runtime& rt) {
         auto st = getThisDRepUpdateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_to_hex(st->get(), out, err);
-        });
+        }, "DRepUpdate.to_hex");
       }
     )
   );
@@ -13720,7 +13762,7 @@ static jsi::Object getOrCreateDRepUpdateProto(jsi::Runtime& rt) {
         auto st = getThisDRepUpdateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_to_json(st->get(), out, err);
-        });
+        }, "DRepUpdate.to_json");
       }
     )
   );
@@ -13732,7 +13774,7 @@ static jsi::Object getOrCreateDRepUpdateProto(jsi::Runtime& rt) {
         auto st = getThisDRepUpdateState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_voting_credential(st->get(), out, err);
-        });
+        }, "DRepUpdate.voting_credential");
       }
     )
   );
@@ -13744,7 +13786,7 @@ static jsi::Object getOrCreateDRepUpdateProto(jsi::Runtime& rt) {
         auto st = getThisDRepUpdateState(rt, thisVal);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_anchor(st->get(), out, err);
-        });
+        }, "DRepUpdate.anchor");
       }
     )
   );
@@ -13789,7 +13831,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepUpdate.from_bytes", "bytes");
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DRepUpdate.from_bytes");
       }
     )
   );
@@ -13804,7 +13846,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DRepUpdate.from_hex");
       }
     )
   );
@@ -13819,7 +13861,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_from_json(json.c_str(), out, err);
-        });
+        }, "DRepUpdate.from_json");
       }
     )
   );
@@ -13834,7 +13876,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         auto voting_credential = getCredentialState(rt, args[0].asObject(rt), "voting_credential");
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_new(voting_credential->get(), out, err);
-        });
+        }, "DRepUpdate.new");
       }
     )
   );
@@ -13853,7 +13895,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_update_new_with_anchor(voting_credential->get(), anchor->get(), out, err);
-        });
+        }, "DRepUpdate.new_with_anchor");
       }
     )
   );
@@ -13888,11 +13930,12 @@ static jsi::Object makeDRepVotingThresholdsInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslDRepVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDRepVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDRepVotingThresholdsInstance(rt, result);
 }
@@ -13914,7 +13957,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_to_bytes(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.to_bytes");
       }
     )
   );
@@ -13926,7 +13969,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_to_hex(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.to_hex");
       }
     )
   );
@@ -13938,7 +13981,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_to_json(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.to_json");
       }
     )
   );
@@ -14130,7 +14173,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_motion_no_confidence(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.motion_no_confidence");
       }
     )
   );
@@ -14142,7 +14185,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_committee_normal(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.committee_normal");
       }
     )
   );
@@ -14154,7 +14197,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_committee_no_confidence(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.committee_no_confidence");
       }
     )
   );
@@ -14166,7 +14209,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_update_constitution(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.update_constitution");
       }
     )
   );
@@ -14178,7 +14221,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_hard_fork_initiation(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.hard_fork_initiation");
       }
     )
   );
@@ -14190,7 +14233,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_pp_network_group(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.pp_network_group");
       }
     )
   );
@@ -14202,7 +14245,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_pp_economic_group(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.pp_economic_group");
       }
     )
   );
@@ -14214,7 +14257,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_pp_technical_group(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.pp_technical_group");
       }
     )
   );
@@ -14226,7 +14269,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_pp_governance_group(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.pp_governance_group");
       }
     )
   );
@@ -14238,7 +14281,7 @@ static jsi::Object getOrCreateDRepVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisDRepVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_treasury_withdrawal(st->get(), out, err);
-        });
+        }, "DRepVotingThresholds.treasury_withdrawal");
       }
     )
   );
@@ -14269,7 +14312,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepVotingThresholds.from_bytes", "bytes");
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DRepVotingThresholds.from_bytes");
       }
     )
   );
@@ -14284,7 +14327,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "DRepVotingThresholds.from_hex");
       }
     )
   );
@@ -14299,7 +14342,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_from_json(json.c_str(), out, err);
-        });
+        }, "DRepVotingThresholds.from_json");
       }
     )
   );
@@ -14350,7 +14393,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         auto treasury_withdrawal = getUnitIntervalState(rt, args[9].asObject(rt), "treasury_withdrawal");
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_d_rep_voting_thresholds_new(motion_no_confidence->get(), committee_normal->get(), committee_no_confidence->get(), update_constitution->get(), hard_fork_initiation->get(), pp_network_group->get(), pp_economic_group->get(), pp_technical_group->get(), pp_governance_group->get(), treasury_withdrawal->get(), out, err);
-        });
+        }, "DRepVotingThresholds.new");
       }
     )
   );
@@ -14385,11 +14428,12 @@ static jsi::Object makeDataCostInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDataCost(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDataCost(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDataCostInstance(rt, result);
 }
@@ -14411,7 +14455,7 @@ static jsi::Object getOrCreateDataCostProto(jsi::Runtime& rt) {
         auto st = getThisDataCostState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_cost_coins_per_byte(st->get(), out, err);
-        });
+        }, "DataCost.coins_per_byte");
       }
     )
   );
@@ -14442,7 +14486,7 @@ static jsi::Object makeDataCostExport(jsi::Runtime& rt) {
         auto coins_per_byte = getBigNumState(rt, args[0].asObject(rt), "coins_per_byte");
         return callCslDataCost(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_cost_new_coins_per_byte(coins_per_byte->get(), out, err);
-        });
+        }, "DataCost.new_coins_per_byte");
       }
     )
   );
@@ -14477,11 +14521,12 @@ static jsi::Object makeDataHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDataHashInstance(rt, result);
 }
@@ -14503,7 +14548,7 @@ static jsi::Object getOrCreateDataHashProto(jsi::Runtime& rt) {
         auto st = getThisDataHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_to_bytes(st->get(), out, err);
-        });
+        }, "DataHash.to_bytes");
       }
     )
   );
@@ -14519,7 +14564,7 @@ static jsi::Object getOrCreateDataHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "DataHash.to_bech32");
       }
     )
   );
@@ -14531,7 +14576,7 @@ static jsi::Object getOrCreateDataHashProto(jsi::Runtime& rt) {
         auto st = getThisDataHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_to_hex(st->get(), out, err);
-        });
+        }, "DataHash.to_hex");
       }
     )
   );
@@ -14562,7 +14607,7 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DataHash.from_bytes", "bytes");
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "DataHash.from_bytes");
       }
     )
   );
@@ -14577,7 +14622,7 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "DataHash.from_bech32");
       }
     )
   );
@@ -14592,7 +14637,7 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_data_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "DataHash.from_hex");
       }
     )
   );
@@ -14627,11 +14672,12 @@ static jsi::Object makeDatumSourceInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslDatumSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslDatumSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeDatumSourceInstance(rt, result);
 }
@@ -14672,7 +14718,7 @@ static jsi::Object makeDatumSourceExport(jsi::Runtime& rt) {
         auto datum = getPlutusDataState(rt, args[0].asObject(rt), "datum");
         return callCslDatumSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_datum_source_new(datum->get(), out, err);
-        });
+        }, "DatumSource.new");
       }
     )
   );
@@ -14687,7 +14733,7 @@ static jsi::Object makeDatumSourceExport(jsi::Runtime& rt) {
         auto input = getTransactionInputState(rt, args[0].asObject(rt), "input");
         return callCslDatumSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_datum_source_new_ref_input(input->get(), out, err);
-        });
+        }, "DatumSource.new_ref_input");
       }
     )
   );
@@ -14722,11 +14768,12 @@ static jsi::Object makeEd25519KeyHashInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslEd25519KeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslEd25519KeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeEd25519KeyHashInstance(rt, result);
 }
@@ -14748,7 +14795,7 @@ static jsi::Object getOrCreateEd25519KeyHashProto(jsi::Runtime& rt) {
         auto st = getThisEd25519KeyHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_to_bytes(st->get(), out, err);
-        });
+        }, "Ed25519KeyHash.to_bytes");
       }
     )
   );
@@ -14764,7 +14811,7 @@ static jsi::Object getOrCreateEd25519KeyHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "Ed25519KeyHash.to_bech32");
       }
     )
   );
@@ -14776,7 +14823,7 @@ static jsi::Object getOrCreateEd25519KeyHashProto(jsi::Runtime& rt) {
         auto st = getThisEd25519KeyHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_to_hex(st->get(), out, err);
-        });
+        }, "Ed25519KeyHash.to_hex");
       }
     )
   );
@@ -14807,7 +14854,7 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ed25519KeyHash.from_bytes", "bytes");
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Ed25519KeyHash.from_bytes");
       }
     )
   );
@@ -14822,7 +14869,7 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "Ed25519KeyHash.from_bech32");
       }
     )
   );
@@ -14837,7 +14884,7 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "Ed25519KeyHash.from_hex");
       }
     )
   );
@@ -14872,11 +14919,12 @@ static jsi::Object makeEd25519KeyHashesInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslEd25519KeyHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslEd25519KeyHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeEd25519KeyHashesInstance(rt, result);
 }
@@ -14898,7 +14946,7 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_to_bytes(st->get(), out, err);
-        });
+        }, "Ed25519KeyHashes.to_bytes");
       }
     )
   );
@@ -14910,7 +14958,7 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_to_hex(st->get(), out, err);
-        });
+        }, "Ed25519KeyHashes.to_hex");
       }
     )
   );
@@ -14922,7 +14970,7 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_to_json(st->get(), out, err);
-        });
+        }, "Ed25519KeyHashes.to_json");
       }
     )
   );
@@ -14964,7 +15012,7 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Ed25519KeyHashes.get"));
       }
     )
   );
@@ -15012,7 +15060,7 @@ static jsi::Object getOrCreateEd25519KeyHashesProto(jsi::Runtime& rt) {
         auto st = getThisEd25519KeyHashesState(rt, thisVal);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_to_option(st->get(), out, err);
-        });
+        }, "Ed25519KeyHashes.to_option");
       }
     )
   );
@@ -15043,7 +15091,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ed25519KeyHashes.from_bytes", "bytes");
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Ed25519KeyHashes.from_bytes");
       }
     )
   );
@@ -15058,7 +15106,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Ed25519KeyHashes.from_hex");
       }
     )
   );
@@ -15073,7 +15121,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_from_json(json.c_str(), out, err);
-        });
+        }, "Ed25519KeyHashes.from_json");
       }
     )
   );
@@ -15084,7 +15132,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_key_hashes_new(out, err);
-        });
+        }, "Ed25519KeyHashes.new");
       }
     )
   );
@@ -15119,11 +15167,12 @@ static jsi::Object makeEd25519SignatureInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslEd25519Signature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslEd25519Signature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeEd25519SignatureInstance(rt, result);
 }
@@ -15145,7 +15194,7 @@ static jsi::Object getOrCreateEd25519SignatureProto(jsi::Runtime& rt) {
         auto st = getThisEd25519SignatureState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_to_bytes(st->get(), out, err);
-        });
+        }, "Ed25519Signature.to_bytes");
       }
     )
   );
@@ -15157,7 +15206,7 @@ static jsi::Object getOrCreateEd25519SignatureProto(jsi::Runtime& rt) {
         auto st = getThisEd25519SignatureState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_to_bech32(st->get(), out, err);
-        });
+        }, "Ed25519Signature.to_bech32");
       }
     )
   );
@@ -15169,7 +15218,7 @@ static jsi::Object getOrCreateEd25519SignatureProto(jsi::Runtime& rt) {
         auto st = getThisEd25519SignatureState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_to_hex(st->get(), out, err);
-        });
+        }, "Ed25519Signature.to_hex");
       }
     )
   );
@@ -15200,7 +15249,7 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_from_bech32(bech32_str.c_str(), out, err);
-        });
+        }, "Ed25519Signature.from_bech32");
       }
     )
   );
@@ -15215,7 +15264,7 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
         std::string input = args[0].asString(rt).utf8(rt);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_from_hex(input.c_str(), out, err);
-        });
+        }, "Ed25519Signature.from_hex");
       }
     )
   );
@@ -15230,7 +15279,7 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ed25519Signature.from_bytes", "bytes");
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ed25519_signature_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Ed25519Signature.from_bytes");
       }
     )
   );
@@ -15265,11 +15314,12 @@ static jsi::Object makeEnterpriseAddressInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslEnterpriseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslEnterpriseAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeEnterpriseAddressInstance(rt, result);
 }
@@ -15291,7 +15341,7 @@ static jsi::Object getOrCreateEnterpriseAddressProto(jsi::Runtime& rt) {
         auto st = getThisEnterpriseAddressState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_enterprise_address_payment_cred(st->get(), out, err);
-        });
+        }, "EnterpriseAddress.payment_cred");
       }
     )
   );
@@ -15303,7 +15353,7 @@ static jsi::Object getOrCreateEnterpriseAddressProto(jsi::Runtime& rt) {
         auto st = getThisEnterpriseAddressState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_enterprise_address_to_address(st->get(), out, err);
-        });
+        }, "EnterpriseAddress.to_address");
       }
     )
   );
@@ -15352,7 +15402,7 @@ static jsi::Object makeEnterpriseAddressExport(jsi::Runtime& rt) {
         auto payment = getCredentialState(rt, args[1].asObject(rt), "payment");
         return callCslEnterpriseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_enterprise_address_new(network, payment->get(), out, err);
-        });
+        }, "EnterpriseAddress.new");
       }
     )
   );
@@ -15367,7 +15417,7 @@ static jsi::Object makeEnterpriseAddressExport(jsi::Runtime& rt) {
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslEnterpriseAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_enterprise_address_from_address(addr->get(), out, err);
-        });
+        }, "EnterpriseAddress.from_address");
       }
     )
   );
@@ -15402,11 +15452,12 @@ static jsi::Object makeExUnitPricesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslExUnitPrices(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslExUnitPrices(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeExUnitPricesInstance(rt, result);
 }
@@ -15428,7 +15479,7 @@ static jsi::Object getOrCreateExUnitPricesProto(jsi::Runtime& rt) {
         auto st = getThisExUnitPricesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_to_bytes(st->get(), out, err);
-        });
+        }, "ExUnitPrices.to_bytes");
       }
     )
   );
@@ -15440,7 +15491,7 @@ static jsi::Object getOrCreateExUnitPricesProto(jsi::Runtime& rt) {
         auto st = getThisExUnitPricesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_to_hex(st->get(), out, err);
-        });
+        }, "ExUnitPrices.to_hex");
       }
     )
   );
@@ -15452,7 +15503,7 @@ static jsi::Object getOrCreateExUnitPricesProto(jsi::Runtime& rt) {
         auto st = getThisExUnitPricesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_to_json(st->get(), out, err);
-        });
+        }, "ExUnitPrices.to_json");
       }
     )
   );
@@ -15464,7 +15515,7 @@ static jsi::Object getOrCreateExUnitPricesProto(jsi::Runtime& rt) {
         auto st = getThisExUnitPricesState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_mem_price(st->get(), out, err);
-        });
+        }, "ExUnitPrices.mem_price");
       }
     )
   );
@@ -15476,7 +15527,7 @@ static jsi::Object getOrCreateExUnitPricesProto(jsi::Runtime& rt) {
         auto st = getThisExUnitPricesState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_step_price(st->get(), out, err);
-        });
+        }, "ExUnitPrices.step_price");
       }
     )
   );
@@ -15507,7 +15558,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ExUnitPrices.from_bytes", "bytes");
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ExUnitPrices.from_bytes");
       }
     )
   );
@@ -15522,7 +15573,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ExUnitPrices.from_hex");
       }
     )
   );
@@ -15537,7 +15588,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_from_json(json.c_str(), out, err);
-        });
+        }, "ExUnitPrices.from_json");
       }
     )
   );
@@ -15556,7 +15607,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         auto step_price = getUnitIntervalState(rt, args[1].asObject(rt), "step_price");
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_unit_prices_new(mem_price->get(), step_price->get(), out, err);
-        });
+        }, "ExUnitPrices.new");
       }
     )
   );
@@ -15591,11 +15642,12 @@ static jsi::Object makeExUnitsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslExUnits(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslExUnits(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeExUnitsInstance(rt, result);
 }
@@ -15617,7 +15669,7 @@ static jsi::Object getOrCreateExUnitsProto(jsi::Runtime& rt) {
         auto st = getThisExUnitsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_to_bytes(st->get(), out, err);
-        });
+        }, "ExUnits.to_bytes");
       }
     )
   );
@@ -15629,7 +15681,7 @@ static jsi::Object getOrCreateExUnitsProto(jsi::Runtime& rt) {
         auto st = getThisExUnitsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_to_hex(st->get(), out, err);
-        });
+        }, "ExUnits.to_hex");
       }
     )
   );
@@ -15641,7 +15693,7 @@ static jsi::Object getOrCreateExUnitsProto(jsi::Runtime& rt) {
         auto st = getThisExUnitsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_to_json(st->get(), out, err);
-        });
+        }, "ExUnits.to_json");
       }
     )
   );
@@ -15653,7 +15705,7 @@ static jsi::Object getOrCreateExUnitsProto(jsi::Runtime& rt) {
         auto st = getThisExUnitsState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_mem(st->get(), out, err);
-        });
+        }, "ExUnits.mem");
       }
     )
   );
@@ -15665,7 +15717,7 @@ static jsi::Object getOrCreateExUnitsProto(jsi::Runtime& rt) {
         auto st = getThisExUnitsState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_steps(st->get(), out, err);
-        });
+        }, "ExUnits.steps");
       }
     )
   );
@@ -15696,7 +15748,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ExUnits.from_bytes", "bytes");
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ExUnits.from_bytes");
       }
     )
   );
@@ -15711,7 +15763,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ExUnits.from_hex");
       }
     )
   );
@@ -15726,7 +15778,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_from_json(json.c_str(), out, err);
-        });
+        }, "ExUnits.from_json");
       }
     )
   );
@@ -15745,7 +15797,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         auto steps = getBigNumState(rt, args[1].asObject(rt), "steps");
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ex_units_new(mem->get(), steps->get(), out, err);
-        });
+        }, "ExUnits.new");
       }
     )
   );
@@ -15780,11 +15832,12 @@ static jsi::Object makeFixedBlockInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslFixedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslFixedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeFixedBlockInstance(rt, result);
 }
@@ -15806,7 +15859,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedBlockState(rt, thisVal);
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_header(st->get(), out, err);
-        });
+        }, "FixedBlock.header");
       }
     )
   );
@@ -15818,7 +15871,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedBlockState(rt, thisVal);
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_transaction_bodies(st->get(), out, err);
-        });
+        }, "FixedBlock.transaction_bodies");
       }
     )
   );
@@ -15830,7 +15883,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedBlockState(rt, thisVal);
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_transaction_witness_sets(st->get(), out, err);
-        });
+        }, "FixedBlock.transaction_witness_sets");
       }
     )
   );
@@ -15842,7 +15895,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedBlockState(rt, thisVal);
         return callCslAuxiliaryDataSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_auxiliary_data_set(st->get(), out, err);
-        });
+        }, "FixedBlock.auxiliary_data_set");
       }
     )
   );
@@ -15854,7 +15907,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedBlockState(rt, thisVal);
         return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_invalid_transactions(st->get(), out, err);
-        });
+        }, "FixedBlock.invalid_transactions");
       }
     )
   );
@@ -15866,7 +15919,7 @@ static jsi::Object getOrCreateFixedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedBlockState(rt, thisVal);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_block_hash(st->get(), out, err);
-        });
+        }, "FixedBlock.block_hash");
       }
     )
   );
@@ -15897,7 +15950,7 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedBlock.from_bytes", "bytes");
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "FixedBlock.from_bytes");
       }
     )
   );
@@ -15912,7 +15965,7 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_block_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "FixedBlock.from_hex");
       }
     )
   );
@@ -15947,11 +16000,12 @@ static jsi::Object makeFixedTransactionInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslFixedTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslFixedTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeFixedTransactionInstance(rt, result);
 }
@@ -15973,7 +16027,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_to_bytes(st->get(), out, err);
-        });
+        }, "FixedTransaction.to_bytes");
       }
     )
   );
@@ -15985,7 +16039,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_to_hex(st->get(), out, err);
-        });
+        }, "FixedTransaction.to_hex");
       }
     )
   );
@@ -15997,7 +16051,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body(st->get(), out, err);
-        });
+        }, "FixedTransaction.body");
       }
     )
   );
@@ -16009,7 +16063,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_raw_body(st->get(), out, err);
-        });
+        }, "FixedTransaction.raw_body");
       }
     )
   );
@@ -16057,7 +16111,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_witness_set(st->get(), out, err);
-        });
+        }, "FixedTransaction.witness_set");
       }
     )
   );
@@ -16069,7 +16123,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_raw_witness_set(st->get(), out, err);
-        });
+        }, "FixedTransaction.raw_witness_set");
       }
     )
   );
@@ -16131,7 +16185,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_auxiliary_data(st->get(), out, err);
-        });
+        }, "FixedTransaction.auxiliary_data");
       }
     )
   );
@@ -16143,7 +16197,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_raw_auxiliary_data(st->get(), out, err);
-        });
+        }, "FixedTransaction.raw_auxiliary_data");
       }
     )
   );
@@ -16155,7 +16209,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionState(rt, thisVal);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_transaction_hash(st->get(), out, err);
-        });
+        }, "FixedTransaction.transaction_hash");
       }
     )
   );
@@ -16284,7 +16338,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.from_bytes", "bytes");
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "FixedTransaction.from_bytes");
       }
     )
   );
@@ -16299,7 +16353,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "FixedTransaction.from_hex");
       }
     )
   );
@@ -16322,7 +16376,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         bool is_valid = args[2].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_new(raw_body.data(), static_cast<size_t>(raw_body.size()), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), is_valid, out, err);
-        });
+        }, "FixedTransaction.new");
       }
     )
   );
@@ -16349,7 +16403,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         bool is_valid = args[3].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_new_with_auxiliary(raw_body.data(), static_cast<size_t>(raw_body.size()), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), raw_auxiliary_data.data(), static_cast<size_t>(raw_auxiliary_data.size()), is_valid, out, err);
-        });
+        }, "FixedTransaction.new_with_auxiliary");
       }
     )
   );
@@ -16364,7 +16418,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         auto raw_body = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.new_from_body_bytes", "raw_body");
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_new_from_body_bytes(raw_body.data(), static_cast<size_t>(raw_body.size()), out, err);
-        });
+        }, "FixedTransaction.new_from_body_bytes");
       }
     )
   );
@@ -16399,11 +16453,12 @@ static jsi::Object makeFixedTransactionBodiesInstance(jsi::Runtime& rt, const RP
   return obj;
 }
 
-static jsi::Object callCslFixedTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslFixedTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeFixedTransactionBodiesInstance(rt, result);
 }
@@ -16455,7 +16510,7 @@ static jsi::Object getOrCreateFixedTransactionBodiesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "FixedTransactionBodies.get"));
       }
     )
   );
@@ -16504,7 +16559,7 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedTransactionBodies.from_bytes", "bytes");
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_bodies_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "FixedTransactionBodies.from_bytes");
       }
     )
   );
@@ -16519,7 +16574,7 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_bodies_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "FixedTransactionBodies.from_hex");
       }
     )
   );
@@ -16530,7 +16585,7 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_bodies_new(out, err);
-        });
+        }, "FixedTransactionBodies.new");
       }
     )
   );
@@ -16565,11 +16620,12 @@ static jsi::Object makeFixedTransactionBodyInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslFixedTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslFixedTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeFixedTransactionBodyInstance(rt, result);
 }
@@ -16591,7 +16647,7 @@ static jsi::Object getOrCreateFixedTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionBodyState(rt, thisVal);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_transaction_body(st->get(), out, err);
-        });
+        }, "FixedTransactionBody.transaction_body");
       }
     )
   );
@@ -16603,7 +16659,7 @@ static jsi::Object getOrCreateFixedTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionBodyState(rt, thisVal);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_tx_hash(st->get(), out, err);
-        });
+        }, "FixedTransactionBody.tx_hash");
       }
     )
   );
@@ -16615,7 +16671,7 @@ static jsi::Object getOrCreateFixedTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisFixedTransactionBodyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_original_bytes(st->get(), out, err);
-        });
+        }, "FixedTransactionBody.original_bytes");
       }
     )
   );
@@ -16646,7 +16702,7 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedTransactionBody.from_bytes", "bytes");
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "FixedTransactionBody.from_bytes");
       }
     )
   );
@@ -16661,7 +16717,7 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_transaction_body_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "FixedTransactionBody.from_hex");
       }
     )
   );
@@ -16696,11 +16752,12 @@ static jsi::Object makeFixedTxWitnessesSetInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslFixedTxWitnessesSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslFixedTxWitnessesSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeFixedTxWitnessesSetInstance(rt, result);
 }
@@ -16722,7 +16779,7 @@ static jsi::Object getOrCreateFixedTxWitnessesSetProto(jsi::Runtime& rt) {
         auto st = getThisFixedTxWitnessesSetState(rt, thisVal);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_tx_witnesses_set_tx_witnesses_set(st->get(), out, err);
-        });
+        }, "FixedTxWitnessesSet.tx_witnesses_set");
       }
     )
   );
@@ -16770,7 +16827,7 @@ static jsi::Object getOrCreateFixedTxWitnessesSetProto(jsi::Runtime& rt) {
         auto st = getThisFixedTxWitnessesSetState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_fixed_tx_witnesses_set_to_bytes(st->get(), out, err);
-        });
+        }, "FixedTxWitnessesSet.to_bytes");
       }
     )
   );
@@ -16801,7 +16858,7 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
         auto data = parseUint8Array(rt, args[0].asObject(rt), "FixedTxWitnessesSet.from_bytes", "data");
         return callCslFixedTxWitnessesSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_tx_witnesses_set_from_bytes(data.data(), static_cast<size_t>(data.size()), out, err);
-        });
+        }, "FixedTxWitnessesSet.from_bytes");
       }
     )
   );
@@ -16836,11 +16893,12 @@ static jsi::Object makeFixedVersionedBlockInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslFixedVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslFixedVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeFixedVersionedBlockInstance(rt, result);
 }
@@ -16862,7 +16920,7 @@ static jsi::Object getOrCreateFixedVersionedBlockProto(jsi::Runtime& rt) {
         auto st = getThisFixedVersionedBlockState(rt, thisVal);
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_versioned_block_block(st->get(), out, err);
-        });
+        }, "FixedVersionedBlock.block");
       }
     )
   );
@@ -16907,7 +16965,7 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedVersionedBlock.from_bytes", "bytes");
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_versioned_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "FixedVersionedBlock.from_bytes");
       }
     )
   );
@@ -16922,7 +16980,7 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_fixed_versioned_block_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "FixedVersionedBlock.from_hex");
       }
     )
   );
@@ -16957,11 +17015,12 @@ static jsi::Object makeGeneralTransactionMetadataInstance(jsi::Runtime& rt, cons
   return obj;
 }
 
-static jsi::Object callCslGeneralTransactionMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGeneralTransactionMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGeneralTransactionMetadataInstance(rt, result);
 }
@@ -16983,7 +17042,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
         auto st = getThisGeneralTransactionMetadataState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_to_bytes(st->get(), out, err);
-        });
+        }, "GeneralTransactionMetadata.to_bytes");
       }
     )
   );
@@ -16995,7 +17054,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
         auto st = getThisGeneralTransactionMetadataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_to_hex(st->get(), out, err);
-        });
+        }, "GeneralTransactionMetadata.to_hex");
       }
     )
   );
@@ -17007,7 +17066,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
         auto st = getThisGeneralTransactionMetadataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_to_json(st->get(), out, err);
-        });
+        }, "GeneralTransactionMetadata.to_json");
       }
     )
   );
@@ -17053,7 +17112,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "GeneralTransactionMetadata.insert"));
       }
     )
   );
@@ -17081,7 +17140,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "GeneralTransactionMetadata.get"));
       }
     )
   );
@@ -17093,7 +17152,7 @@ static jsi::Object getOrCreateGeneralTransactionMetadataProto(jsi::Runtime& rt) 
         auto st = getThisGeneralTransactionMetadataState(rt, thisVal);
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_keys(st->get(), out, err);
-        });
+        }, "GeneralTransactionMetadata.keys");
       }
     )
   );
@@ -17124,7 +17183,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GeneralTransactionMetadata.from_bytes", "bytes");
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GeneralTransactionMetadata.from_bytes");
       }
     )
   );
@@ -17139,7 +17198,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "GeneralTransactionMetadata.from_hex");
       }
     )
   );
@@ -17154,7 +17213,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_from_json(json.c_str(), out, err);
-        });
+        }, "GeneralTransactionMetadata.from_json");
       }
     )
   );
@@ -17165,7 +17224,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_general_transaction_metadata_new(out, err);
-        });
+        }, "GeneralTransactionMetadata.new");
       }
     )
   );
@@ -17200,11 +17259,12 @@ static jsi::Object makeGenesisDelegateHashInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslGenesisDelegateHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGenesisDelegateHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGenesisDelegateHashInstance(rt, result);
 }
@@ -17226,7 +17286,7 @@ static jsi::Object getOrCreateGenesisDelegateHashProto(jsi::Runtime& rt) {
         auto st = getThisGenesisDelegateHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_to_bytes(st->get(), out, err);
-        });
+        }, "GenesisDelegateHash.to_bytes");
       }
     )
   );
@@ -17242,7 +17302,7 @@ static jsi::Object getOrCreateGenesisDelegateHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "GenesisDelegateHash.to_bech32");
       }
     )
   );
@@ -17254,7 +17314,7 @@ static jsi::Object getOrCreateGenesisDelegateHashProto(jsi::Runtime& rt) {
         auto st = getThisGenesisDelegateHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_to_hex(st->get(), out, err);
-        });
+        }, "GenesisDelegateHash.to_hex");
       }
     )
   );
@@ -17285,7 +17345,7 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisDelegateHash.from_bytes", "bytes");
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GenesisDelegateHash.from_bytes");
       }
     )
   );
@@ -17300,7 +17360,7 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "GenesisDelegateHash.from_bech32");
       }
     )
   );
@@ -17315,7 +17375,7 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_delegate_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "GenesisDelegateHash.from_hex");
       }
     )
   );
@@ -17350,11 +17410,12 @@ static jsi::Object makeGenesisHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslGenesisHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGenesisHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGenesisHashInstance(rt, result);
 }
@@ -17376,7 +17437,7 @@ static jsi::Object getOrCreateGenesisHashProto(jsi::Runtime& rt) {
         auto st = getThisGenesisHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_to_bytes(st->get(), out, err);
-        });
+        }, "GenesisHash.to_bytes");
       }
     )
   );
@@ -17392,7 +17453,7 @@ static jsi::Object getOrCreateGenesisHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "GenesisHash.to_bech32");
       }
     )
   );
@@ -17404,7 +17465,7 @@ static jsi::Object getOrCreateGenesisHashProto(jsi::Runtime& rt) {
         auto st = getThisGenesisHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_to_hex(st->get(), out, err);
-        });
+        }, "GenesisHash.to_hex");
       }
     )
   );
@@ -17435,7 +17496,7 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisHash.from_bytes", "bytes");
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GenesisHash.from_bytes");
       }
     )
   );
@@ -17450,7 +17511,7 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "GenesisHash.from_bech32");
       }
     )
   );
@@ -17465,7 +17526,7 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "GenesisHash.from_hex");
       }
     )
   );
@@ -17500,11 +17561,12 @@ static jsi::Object makeGenesisHashesInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslGenesisHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGenesisHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGenesisHashesInstance(rt, result);
 }
@@ -17526,7 +17588,7 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
         auto st = getThisGenesisHashesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_to_bytes(st->get(), out, err);
-        });
+        }, "GenesisHashes.to_bytes");
       }
     )
   );
@@ -17538,7 +17600,7 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
         auto st = getThisGenesisHashesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_to_hex(st->get(), out, err);
-        });
+        }, "GenesisHashes.to_hex");
       }
     )
   );
@@ -17550,7 +17612,7 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
         auto st = getThisGenesisHashesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_to_json(st->get(), out, err);
-        });
+        }, "GenesisHashes.to_json");
       }
     )
   );
@@ -17592,7 +17654,7 @@ static jsi::Object getOrCreateGenesisHashesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "GenesisHashes.get"));
       }
     )
   );
@@ -17641,7 +17703,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisHashes.from_bytes", "bytes");
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GenesisHashes.from_bytes");
       }
     )
   );
@@ -17656,7 +17718,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "GenesisHashes.from_hex");
       }
     )
   );
@@ -17671,7 +17733,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_from_json(json.c_str(), out, err);
-        });
+        }, "GenesisHashes.from_json");
       }
     )
   );
@@ -17682,7 +17744,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_hashes_new(out, err);
-        });
+        }, "GenesisHashes.new");
       }
     )
   );
@@ -17717,11 +17779,12 @@ static jsi::Object makeGenesisKeyDelegationInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslGenesisKeyDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGenesisKeyDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGenesisKeyDelegationInstance(rt, result);
 }
@@ -17743,7 +17806,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
         auto st = getThisGenesisKeyDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.to_bytes");
       }
     )
   );
@@ -17755,7 +17818,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
         auto st = getThisGenesisKeyDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_to_hex(st->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.to_hex");
       }
     )
   );
@@ -17767,7 +17830,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
         auto st = getThisGenesisKeyDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_to_json(st->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.to_json");
       }
     )
   );
@@ -17779,7 +17842,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
         auto st = getThisGenesisKeyDelegationState(rt, thisVal);
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_genesishash(st->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.genesishash");
       }
     )
   );
@@ -17791,7 +17854,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
         auto st = getThisGenesisKeyDelegationState(rt, thisVal);
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_genesis_delegate_hash(st->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.genesis_delegate_hash");
       }
     )
   );
@@ -17803,7 +17866,7 @@ static jsi::Object getOrCreateGenesisKeyDelegationProto(jsi::Runtime& rt) {
         auto st = getThisGenesisKeyDelegationState(rt, thisVal);
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_vrf_keyhash(st->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.vrf_keyhash");
       }
     )
   );
@@ -17834,7 +17897,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisKeyDelegation.from_bytes", "bytes");
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GenesisKeyDelegation.from_bytes");
       }
     )
   );
@@ -17849,7 +17912,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "GenesisKeyDelegation.from_hex");
       }
     )
   );
@@ -17864,7 +17927,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "GenesisKeyDelegation.from_json");
       }
     )
   );
@@ -17887,7 +17950,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         auto vrf_keyhash = getVRFKeyHashState(rt, args[2].asObject(rt), "vrf_keyhash");
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_genesis_key_delegation_new(genesishash->get(), genesis_delegate_hash->get(), vrf_keyhash->get(), out, err);
-        });
+        }, "GenesisKeyDelegation.new");
       }
     )
   );
@@ -17922,11 +17985,12 @@ static jsi::Object makeGovernanceActionInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslGovernanceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGovernanceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGovernanceActionInstance(rt, result);
 }
@@ -17948,7 +18012,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_to_bytes(st->get(), out, err);
-        });
+        }, "GovernanceAction.to_bytes");
       }
     )
   );
@@ -17960,7 +18024,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_to_hex(st->get(), out, err);
-        });
+        }, "GovernanceAction.to_hex");
       }
     )
   );
@@ -17972,7 +18036,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_to_json(st->get(), out, err);
-        });
+        }, "GovernanceAction.to_json");
       }
     )
   );
@@ -17998,7 +18062,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_parameter_change_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_parameter_change_action");
       }
     )
   );
@@ -18010,7 +18074,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_hard_fork_initiation_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_hard_fork_initiation_action");
       }
     )
   );
@@ -18022,7 +18086,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_treasury_withdrawals_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_treasury_withdrawals_action");
       }
     )
   );
@@ -18034,7 +18098,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_no_confidence_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_no_confidence_action");
       }
     )
   );
@@ -18046,7 +18110,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_new_committee_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_new_committee_action");
       }
     )
   );
@@ -18058,7 +18122,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_new_constitution_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_new_constitution_action");
       }
     )
   );
@@ -18070,7 +18134,7 @@ static jsi::Object getOrCreateGovernanceActionProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionState(rt, thisVal);
         return callCslInfoAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_as_info_action(st->get(), out, err);
-        });
+        }, "GovernanceAction.as_info_action");
       }
     )
   );
@@ -18101,7 +18165,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GovernanceAction.from_bytes", "bytes");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GovernanceAction.from_bytes");
       }
     )
   );
@@ -18116,7 +18180,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "GovernanceAction.from_hex");
       }
     )
   );
@@ -18131,7 +18195,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_from_json(json.c_str(), out, err);
-        });
+        }, "GovernanceAction.from_json");
       }
     )
   );
@@ -18146,7 +18210,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto parameter_change_action = getParameterChangeActionState(rt, args[0].asObject(rt), "parameter_change_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_parameter_change_action(parameter_change_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_parameter_change_action");
       }
     )
   );
@@ -18161,7 +18225,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto hard_fork_initiation_action = getHardForkInitiationActionState(rt, args[0].asObject(rt), "hard_fork_initiation_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_hard_fork_initiation_action(hard_fork_initiation_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_hard_fork_initiation_action");
       }
     )
   );
@@ -18176,7 +18240,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto treasury_withdrawals_action = getTreasuryWithdrawalsActionState(rt, args[0].asObject(rt), "treasury_withdrawals_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_treasury_withdrawals_action(treasury_withdrawals_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_treasury_withdrawals_action");
       }
     )
   );
@@ -18191,7 +18255,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto no_confidence_action = getNoConfidenceActionState(rt, args[0].asObject(rt), "no_confidence_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_no_confidence_action(no_confidence_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_no_confidence_action");
       }
     )
   );
@@ -18206,7 +18270,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto new_committee_action = getUpdateCommitteeActionState(rt, args[0].asObject(rt), "new_committee_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_new_committee_action(new_committee_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_new_committee_action");
       }
     )
   );
@@ -18221,7 +18285,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto new_constitution_action = getNewConstitutionActionState(rt, args[0].asObject(rt), "new_constitution_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_new_constitution_action(new_constitution_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_new_constitution_action");
       }
     )
   );
@@ -18236,7 +18300,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         auto info_action = getInfoActionState(rt, args[0].asObject(rt), "info_action");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_new_info_action(info_action->get(), out, err);
-        });
+        }, "GovernanceAction.new_info_action");
       }
     )
   );
@@ -18271,11 +18335,12 @@ static jsi::Object makeGovernanceActionIdInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslGovernanceActionId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGovernanceActionId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGovernanceActionIdInstance(rt, result);
 }
@@ -18297,7 +18362,7 @@ static jsi::Object getOrCreateGovernanceActionIdProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionIdState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_to_bytes(st->get(), out, err);
-        });
+        }, "GovernanceActionId.to_bytes");
       }
     )
   );
@@ -18309,7 +18374,7 @@ static jsi::Object getOrCreateGovernanceActionIdProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionIdState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_to_hex(st->get(), out, err);
-        });
+        }, "GovernanceActionId.to_hex");
       }
     )
   );
@@ -18321,7 +18386,7 @@ static jsi::Object getOrCreateGovernanceActionIdProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionIdState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_to_json(st->get(), out, err);
-        });
+        }, "GovernanceActionId.to_json");
       }
     )
   );
@@ -18333,7 +18398,7 @@ static jsi::Object getOrCreateGovernanceActionIdProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionIdState(rt, thisVal);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_transaction_id(st->get(), out, err);
-        });
+        }, "GovernanceActionId.transaction_id");
       }
     )
   );
@@ -18378,7 +18443,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GovernanceActionId.from_bytes", "bytes");
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "GovernanceActionId.from_bytes");
       }
     )
   );
@@ -18393,7 +18458,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "GovernanceActionId.from_hex");
       }
     )
   );
@@ -18408,7 +18473,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_from_json(json.c_str(), out, err);
-        });
+        }, "GovernanceActionId.from_json");
       }
     )
   );
@@ -18427,7 +18492,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         auto index = static_cast<int64_t>(args[1].asNumber());
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_id_new(transaction_id->get(), index, out, err);
-        });
+        }, "GovernanceActionId.new");
       }
     )
   );
@@ -18462,11 +18527,12 @@ static jsi::Object makeGovernanceActionIdsInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslGovernanceActionIds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslGovernanceActionIds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeGovernanceActionIdsInstance(rt, result);
 }
@@ -18488,7 +18554,7 @@ static jsi::Object getOrCreateGovernanceActionIdsProto(jsi::Runtime& rt) {
         auto st = getThisGovernanceActionIdsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_ids_to_json(st->get(), out, err);
-        });
+        }, "GovernanceActionIds.to_json");
       }
     )
   );
@@ -18534,7 +18600,7 @@ static jsi::Object getOrCreateGovernanceActionIdsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "GovernanceActionIds.get"));
       }
     )
   );
@@ -18579,7 +18645,7 @@ static jsi::Object makeGovernanceActionIdsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_ids_from_json(json.c_str(), out, err);
-        });
+        }, "GovernanceActionIds.from_json");
       }
     )
   );
@@ -18590,7 +18656,7 @@ static jsi::Object makeGovernanceActionIdsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_governance_action_ids_new(out, err);
-        });
+        }, "GovernanceActionIds.new");
       }
     )
   );
@@ -18625,11 +18691,12 @@ static jsi::Object makeHardForkInitiationActionInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslHardForkInitiationAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslHardForkInitiationAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeHardForkInitiationActionInstance(rt, result);
 }
@@ -18651,7 +18718,7 @@ static jsi::Object getOrCreateHardForkInitiationActionProto(jsi::Runtime& rt) {
         auto st = getThisHardForkInitiationActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_to_bytes(st->get(), out, err);
-        });
+        }, "HardForkInitiationAction.to_bytes");
       }
     )
   );
@@ -18663,7 +18730,7 @@ static jsi::Object getOrCreateHardForkInitiationActionProto(jsi::Runtime& rt) {
         auto st = getThisHardForkInitiationActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_to_hex(st->get(), out, err);
-        });
+        }, "HardForkInitiationAction.to_hex");
       }
     )
   );
@@ -18675,7 +18742,7 @@ static jsi::Object getOrCreateHardForkInitiationActionProto(jsi::Runtime& rt) {
         auto st = getThisHardForkInitiationActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_to_json(st->get(), out, err);
-        });
+        }, "HardForkInitiationAction.to_json");
       }
     )
   );
@@ -18687,7 +18754,7 @@ static jsi::Object getOrCreateHardForkInitiationActionProto(jsi::Runtime& rt) {
         auto st = getThisHardForkInitiationActionState(rt, thisVal);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_gov_action_id(st->get(), out, err);
-        });
+        }, "HardForkInitiationAction.gov_action_id");
       }
     )
   );
@@ -18699,7 +18766,7 @@ static jsi::Object getOrCreateHardForkInitiationActionProto(jsi::Runtime& rt) {
         auto st = getThisHardForkInitiationActionState(rt, thisVal);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_protocol_version(st->get(), out, err);
-        });
+        }, "HardForkInitiationAction.protocol_version");
       }
     )
   );
@@ -18730,7 +18797,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "HardForkInitiationAction.from_bytes", "bytes");
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "HardForkInitiationAction.from_bytes");
       }
     )
   );
@@ -18745,7 +18812,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "HardForkInitiationAction.from_hex");
       }
     )
   );
@@ -18760,7 +18827,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_from_json(json.c_str(), out, err);
-        });
+        }, "HardForkInitiationAction.from_json");
       }
     )
   );
@@ -18775,7 +18842,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         auto protocol_version = getProtocolVersionState(rt, args[0].asObject(rt), "protocol_version");
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_new(protocol_version->get(), out, err);
-        });
+        }, "HardForkInitiationAction.new");
       }
     )
   );
@@ -18794,7 +18861,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         auto protocol_version = getProtocolVersionState(rt, args[1].asObject(rt), "protocol_version");
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hard_fork_initiation_action_new_with_action_id(gov_action_id->get(), protocol_version->get(), out, err);
-        });
+        }, "HardForkInitiationAction.new_with_action_id");
       }
     )
   );
@@ -18829,11 +18896,12 @@ static jsi::Object makeHeaderInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslHeader(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslHeader(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeHeaderInstance(rt, result);
 }
@@ -18855,7 +18923,7 @@ static jsi::Object getOrCreateHeaderProto(jsi::Runtime& rt) {
         auto st = getThisHeaderState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_header_to_bytes(st->get(), out, err);
-        });
+        }, "Header.to_bytes");
       }
     )
   );
@@ -18867,7 +18935,7 @@ static jsi::Object getOrCreateHeaderProto(jsi::Runtime& rt) {
         auto st = getThisHeaderState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_header_to_hex(st->get(), out, err);
-        });
+        }, "Header.to_hex");
       }
     )
   );
@@ -18879,7 +18947,7 @@ static jsi::Object getOrCreateHeaderProto(jsi::Runtime& rt) {
         auto st = getThisHeaderState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_header_to_json(st->get(), out, err);
-        });
+        }, "Header.to_json");
       }
     )
   );
@@ -18891,7 +18959,7 @@ static jsi::Object getOrCreateHeaderProto(jsi::Runtime& rt) {
         auto st = getThisHeaderState(rt, thisVal);
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_header_body(st->get(), out, err);
-        });
+        }, "Header.header_body");
       }
     )
   );
@@ -18903,7 +18971,7 @@ static jsi::Object getOrCreateHeaderProto(jsi::Runtime& rt) {
         auto st = getThisHeaderState(rt, thisVal);
         return callCslKESSignature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_signature(st->get(), out, err);
-        });
+        }, "Header.body_signature");
       }
     )
   );
@@ -18934,7 +19002,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Header.from_bytes", "bytes");
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Header.from_bytes");
       }
     )
   );
@@ -18949,7 +19017,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Header.from_hex");
       }
     )
   );
@@ -18964,7 +19032,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_from_json(json.c_str(), out, err);
-        });
+        }, "Header.from_json");
       }
     )
   );
@@ -18983,7 +19051,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         auto body_signature = getKESSignatureState(rt, args[1].asObject(rt), "body_signature");
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_new(header_body->get(), body_signature->get(), out, err);
-        });
+        }, "Header.new");
       }
     )
   );
@@ -19018,11 +19086,12 @@ static jsi::Object makeHeaderBodyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslHeaderBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslHeaderBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeHeaderBodyInstance(rt, result);
 }
@@ -19044,7 +19113,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_header_body_to_bytes(st->get(), out, err);
-        });
+        }, "HeaderBody.to_bytes");
       }
     )
   );
@@ -19056,7 +19125,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_header_body_to_hex(st->get(), out, err);
-        });
+        }, "HeaderBody.to_hex");
       }
     )
   );
@@ -19068,7 +19137,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_header_body_to_json(st->get(), out, err);
-        });
+        }, "HeaderBody.to_json");
       }
     )
   );
@@ -19108,7 +19177,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_slot_bignum(st->get(), out, err);
-        });
+        }, "HeaderBody.slot_bignum");
       }
     )
   );
@@ -19120,7 +19189,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_prev_hash(st->get(), out, err);
-        });
+        }, "HeaderBody.prev_hash");
       }
     )
   );
@@ -19132,7 +19201,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_issuer_vkey(st->get(), out, err);
-        });
+        }, "HeaderBody.issuer_vkey");
       }
     )
   );
@@ -19144,7 +19213,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_vrf_vkey(st->get(), out, err);
-        });
+        }, "HeaderBody.vrf_vkey");
       }
     )
   );
@@ -19170,7 +19239,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_nonce_vrf_or_nothing(st->get(), out, err);
-        });
+        }, "HeaderBody.nonce_vrf_or_nothing");
       }
     )
   );
@@ -19182,7 +19251,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_leader_vrf_or_nothing(st->get(), out, err);
-        });
+        }, "HeaderBody.leader_vrf_or_nothing");
       }
     )
   );
@@ -19208,7 +19277,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_vrf_result_or_nothing(st->get(), out, err);
-        });
+        }, "HeaderBody.vrf_result_or_nothing");
       }
     )
   );
@@ -19234,7 +19303,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_block_body_hash(st->get(), out, err);
-        });
+        }, "HeaderBody.block_body_hash");
       }
     )
   );
@@ -19246,7 +19315,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_operational_cert(st->get(), out, err);
-        });
+        }, "HeaderBody.operational_cert");
       }
     )
   );
@@ -19258,7 +19327,7 @@ static jsi::Object getOrCreateHeaderBodyProto(jsi::Runtime& rt) {
         auto st = getThisHeaderBodyState(rt, thisVal);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_protocol_version(st->get(), out, err);
-        });
+        }, "HeaderBody.protocol_version");
       }
     )
   );
@@ -19289,7 +19358,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "HeaderBody.from_bytes", "bytes");
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "HeaderBody.from_bytes");
       }
     )
   );
@@ -19304,7 +19373,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "HeaderBody.from_hex");
       }
     )
   );
@@ -19319,7 +19388,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_header_body_from_json(json.c_str(), out, err);
-        });
+        }, "HeaderBody.from_json");
       }
     )
   );
@@ -19376,11 +19445,11 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         if (has_prev_hash) {
           return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_header_body_new_with_prev_hash(block_number, slot, prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
+          }, "HeaderBody.new");
         } else {
           return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_header_body_new(block_number, slot, issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
+          }, "HeaderBody.new");
         }
       }
     )
@@ -19438,11 +19507,11 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         if (has_prev_hash) {
           return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_header_body_new_headerbody_with_prev_hash(block_number, slot->get(), prev_hash->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
+          }, "HeaderBody.new_headerbody");
         } else {
           return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_header_body_new_headerbody(block_number, slot->get(), issuer_vkey->get(), vrf_vkey->get(), vrf_result->get(), block_body_size, block_body_hash->get(), operational_cert->get(), protocol_version->get(), out, err);
-          });
+          }, "HeaderBody.new_headerbody");
         }
       }
     )
@@ -19478,11 +19547,12 @@ static jsi::Object makeInfoActionInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslInfoAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslInfoAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeInfoActionInstance(rt, result);
 }
@@ -19519,7 +19589,7 @@ static jsi::Object makeInfoActionExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslInfoAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_info_action_new(out, err);
-        });
+        }, "InfoAction.new");
       }
     )
   );
@@ -19554,11 +19624,12 @@ static jsi::Object makeIntInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslInt(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeIntInstance(rt, result);
 }
@@ -19580,7 +19651,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
         auto st = getThisIntState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_int_to_bytes(st->get(), out, err);
-        });
+        }, "Int.to_bytes");
       }
     )
   );
@@ -19592,7 +19663,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
         auto st = getThisIntState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_int_to_hex(st->get(), out, err);
-        });
+        }, "Int.to_hex");
       }
     )
   );
@@ -19604,7 +19675,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
         auto st = getThisIntState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_int_to_json(st->get(), out, err);
-        });
+        }, "Int.to_json");
       }
     )
   );
@@ -19630,7 +19701,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
         auto st = getThisIntState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_as_positive(st->get(), out, err);
-        });
+        }, "Int.as_positive");
       }
     )
   );
@@ -19642,7 +19713,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
         auto st = getThisIntState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_as_negative(st->get(), out, err);
-        });
+        }, "Int.as_negative");
       }
     )
   );
@@ -19696,7 +19767,7 @@ static jsi::Object getOrCreateIntProto(jsi::Runtime& rt) {
         auto st = getThisIntState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_int_to_str(st->get(), out, err);
-        });
+        }, "Int.to_str");
       }
     )
   );
@@ -19727,7 +19798,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Int.from_bytes", "bytes");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Int.from_bytes");
       }
     )
   );
@@ -19742,7 +19813,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Int.from_hex");
       }
     )
   );
@@ -19757,7 +19828,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_json(json.c_str(), out, err);
-        });
+        }, "Int.from_json");
       }
     )
   );
@@ -19772,7 +19843,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         auto x = getBigNumState(rt, args[0].asObject(rt), "x");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_new(x->get(), out, err);
-        });
+        }, "Int.new");
       }
     )
   );
@@ -19787,7 +19858,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         auto x = getBigNumState(rt, args[0].asObject(rt), "x");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_new_negative(x->get(), out, err);
-        });
+        }, "Int.new_negative");
       }
     )
   );
@@ -19802,7 +19873,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         auto x = static_cast<int64_t>(args[0].asNumber());
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_new_i32(x, out, err);
-        });
+        }, "Int.new_i32");
       }
     )
   );
@@ -19817,7 +19888,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         std::string string = args[0].asString(rt).utf8(rt);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_int_from_str(string.c_str(), out, err);
-        });
+        }, "Int.from_str");
       }
     )
   );
@@ -19852,11 +19923,12 @@ static jsi::Object makeIpv4Instance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslIpv4(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslIpv4(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeIpv4Instance(rt, result);
 }
@@ -19878,7 +19950,7 @@ static jsi::Object getOrCreateIpv4Proto(jsi::Runtime& rt) {
         auto st = getThisIpv4State(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_to_bytes(st->get(), out, err);
-        });
+        }, "Ipv4.to_bytes");
       }
     )
   );
@@ -19890,7 +19962,7 @@ static jsi::Object getOrCreateIpv4Proto(jsi::Runtime& rt) {
         auto st = getThisIpv4State(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_to_hex(st->get(), out, err);
-        });
+        }, "Ipv4.to_hex");
       }
     )
   );
@@ -19902,7 +19974,7 @@ static jsi::Object getOrCreateIpv4Proto(jsi::Runtime& rt) {
         auto st = getThisIpv4State(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_to_json(st->get(), out, err);
-        });
+        }, "Ipv4.to_json");
       }
     )
   );
@@ -19914,7 +19986,7 @@ static jsi::Object getOrCreateIpv4Proto(jsi::Runtime& rt) {
         auto st = getThisIpv4State(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_ip(st->get(), out, err);
-        });
+        }, "Ipv4.ip");
       }
     )
   );
@@ -19945,7 +20017,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ipv4.from_bytes", "bytes");
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Ipv4.from_bytes");
       }
     )
   );
@@ -19960,7 +20032,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Ipv4.from_hex");
       }
     )
   );
@@ -19975,7 +20047,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_from_json(json.c_str(), out, err);
-        });
+        }, "Ipv4.from_json");
       }
     )
   );
@@ -19990,7 +20062,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         auto data = parseUint8Array(rt, args[0].asObject(rt), "Ipv4.new", "data");
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv4_new(data.data(), static_cast<size_t>(data.size()), out, err);
-        });
+        }, "Ipv4.new");
       }
     )
   );
@@ -20025,11 +20097,12 @@ static jsi::Object makeIpv6Instance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslIpv6(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslIpv6(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeIpv6Instance(rt, result);
 }
@@ -20051,7 +20124,7 @@ static jsi::Object getOrCreateIpv6Proto(jsi::Runtime& rt) {
         auto st = getThisIpv6State(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_to_bytes(st->get(), out, err);
-        });
+        }, "Ipv6.to_bytes");
       }
     )
   );
@@ -20063,7 +20136,7 @@ static jsi::Object getOrCreateIpv6Proto(jsi::Runtime& rt) {
         auto st = getThisIpv6State(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_to_hex(st->get(), out, err);
-        });
+        }, "Ipv6.to_hex");
       }
     )
   );
@@ -20075,7 +20148,7 @@ static jsi::Object getOrCreateIpv6Proto(jsi::Runtime& rt) {
         auto st = getThisIpv6State(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_to_json(st->get(), out, err);
-        });
+        }, "Ipv6.to_json");
       }
     )
   );
@@ -20087,7 +20160,7 @@ static jsi::Object getOrCreateIpv6Proto(jsi::Runtime& rt) {
         auto st = getThisIpv6State(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_ip(st->get(), out, err);
-        });
+        }, "Ipv6.ip");
       }
     )
   );
@@ -20118,7 +20191,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ipv6.from_bytes", "bytes");
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Ipv6.from_bytes");
       }
     )
   );
@@ -20133,7 +20206,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Ipv6.from_hex");
       }
     )
   );
@@ -20148,7 +20221,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_from_json(json.c_str(), out, err);
-        });
+        }, "Ipv6.from_json");
       }
     )
   );
@@ -20163,7 +20236,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         auto data = parseUint8Array(rt, args[0].asObject(rt), "Ipv6.new", "data");
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_ipv6_new(data.data(), static_cast<size_t>(data.size()), out, err);
-        });
+        }, "Ipv6.new");
       }
     )
   );
@@ -20198,11 +20271,12 @@ static jsi::Object makeKESSignatureInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslKESSignature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslKESSignature(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeKESSignatureInstance(rt, result);
 }
@@ -20224,7 +20298,7 @@ static jsi::Object getOrCreateKESSignatureProto(jsi::Runtime& rt) {
         auto st = getThisKESSignatureState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_signature_to_bytes(st->get(), out, err);
-        });
+        }, "KESSignature.to_bytes");
       }
     )
   );
@@ -20255,7 +20329,7 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "KESSignature.from_bytes", "bytes");
         return callCslKESSignature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_signature_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "KESSignature.from_bytes");
       }
     )
   );
@@ -20290,11 +20364,12 @@ static jsi::Object makeKESVKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslKESVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslKESVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeKESVKeyInstance(rt, result);
 }
@@ -20316,7 +20391,7 @@ static jsi::Object getOrCreateKESVKeyProto(jsi::Runtime& rt) {
         auto st = getThisKESVKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_to_bytes(st->get(), out, err);
-        });
+        }, "KESVKey.to_bytes");
       }
     )
   );
@@ -20332,7 +20407,7 @@ static jsi::Object getOrCreateKESVKeyProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "KESVKey.to_bech32");
       }
     )
   );
@@ -20344,7 +20419,7 @@ static jsi::Object getOrCreateKESVKeyProto(jsi::Runtime& rt) {
         auto st = getThisKESVKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_to_hex(st->get(), out, err);
-        });
+        }, "KESVKey.to_hex");
       }
     )
   );
@@ -20375,7 +20450,7 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "KESVKey.from_bytes", "bytes");
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "KESVKey.from_bytes");
       }
     )
   );
@@ -20390,7 +20465,7 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "KESVKey.from_bech32");
       }
     )
   );
@@ -20405,7 +20480,7 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_k_e_s_v_key_from_hex(hex.c_str(), out, err);
-        });
+        }, "KESVKey.from_hex");
       }
     )
   );
@@ -20440,11 +20515,12 @@ static jsi::Object makeLanguageInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslLanguage(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslLanguage(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeLanguageInstance(rt, result);
 }
@@ -20466,7 +20542,7 @@ static jsi::Object getOrCreateLanguageProto(jsi::Runtime& rt) {
         auto st = getThisLanguageState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_language_to_bytes(st->get(), out, err);
-        });
+        }, "Language.to_bytes");
       }
     )
   );
@@ -20478,7 +20554,7 @@ static jsi::Object getOrCreateLanguageProto(jsi::Runtime& rt) {
         auto st = getThisLanguageState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_language_to_hex(st->get(), out, err);
-        });
+        }, "Language.to_hex");
       }
     )
   );
@@ -20490,7 +20566,7 @@ static jsi::Object getOrCreateLanguageProto(jsi::Runtime& rt) {
         auto st = getThisLanguageState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_language_to_json(st->get(), out, err);
-        });
+        }, "Language.to_json");
       }
     )
   );
@@ -20535,7 +20611,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Language.from_bytes", "bytes");
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Language.from_bytes");
       }
     )
   );
@@ -20550,7 +20626,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Language.from_hex");
       }
     )
   );
@@ -20565,7 +20641,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_from_json(json.c_str(), out, err);
-        });
+        }, "Language.from_json");
       }
     )
   );
@@ -20576,7 +20652,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_new_plutus_v1(out, err);
-        });
+        }, "Language.new_plutus_v1");
       }
     )
   );
@@ -20587,7 +20663,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_new_plutus_v2(out, err);
-        });
+        }, "Language.new_plutus_v2");
       }
     )
   );
@@ -20598,7 +20674,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_language_new_plutus_v3(out, err);
-        });
+        }, "Language.new_plutus_v3");
       }
     )
   );
@@ -20633,11 +20709,12 @@ static jsi::Object makeLanguagesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslLanguages(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslLanguages(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeLanguagesInstance(rt, result);
 }
@@ -20689,7 +20766,7 @@ static jsi::Object getOrCreateLanguagesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Languages.get"));
       }
     )
   );
@@ -20734,7 +20811,7 @@ static jsi::Object makeLanguagesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslLanguages(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_languages_new(out, err);
-        });
+        }, "Languages.new");
       }
     )
   );
@@ -20745,7 +20822,7 @@ static jsi::Object makeLanguagesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslLanguages(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_languages_list(out, err);
-        });
+        }, "Languages.list");
       }
     )
   );
@@ -20780,11 +20857,12 @@ static jsi::Object makeLegacyDaedalusPrivateKeyInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslLegacyDaedalusPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslLegacyDaedalusPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeLegacyDaedalusPrivateKeyInstance(rt, result);
 }
@@ -20806,7 +20884,7 @@ static jsi::Object getOrCreateLegacyDaedalusPrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisLegacyDaedalusPrivateKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_legacy_daedalus_private_key_as_bytes(st->get(), out, err);
-        });
+        }, "LegacyDaedalusPrivateKey.as_bytes");
       }
     )
   );
@@ -20818,7 +20896,7 @@ static jsi::Object getOrCreateLegacyDaedalusPrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisLegacyDaedalusPrivateKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_legacy_daedalus_private_key_chaincode(st->get(), out, err);
-        });
+        }, "LegacyDaedalusPrivateKey.chaincode");
       }
     )
   );
@@ -20849,7 +20927,7 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "LegacyDaedalusPrivateKey.from_bytes", "bytes");
         return callCslLegacyDaedalusPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_legacy_daedalus_private_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "LegacyDaedalusPrivateKey.from_bytes");
       }
     )
   );
@@ -20884,11 +20962,12 @@ static jsi::Object makeLinearFeeInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslLinearFee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslLinearFee(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeLinearFeeInstance(rt, result);
 }
@@ -20910,7 +20989,7 @@ static jsi::Object getOrCreateLinearFeeProto(jsi::Runtime& rt) {
         auto st = getThisLinearFeeState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_linear_fee_constant(st->get(), out, err);
-        });
+        }, "LinearFee.constant");
       }
     )
   );
@@ -20922,7 +21001,7 @@ static jsi::Object getOrCreateLinearFeeProto(jsi::Runtime& rt) {
         auto st = getThisLinearFeeState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_linear_fee_coefficient(st->get(), out, err);
-        });
+        }, "LinearFee.coefficient");
       }
     )
   );
@@ -20957,7 +21036,7 @@ static jsi::Object makeLinearFeeExport(jsi::Runtime& rt) {
         auto constant = getBigNumState(rt, args[1].asObject(rt), "constant");
         return callCslLinearFee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_linear_fee_new(coefficient->get(), constant->get(), out, err);
-        });
+        }, "LinearFee.new");
       }
     )
   );
@@ -20992,11 +21071,12 @@ static jsi::Object makeMIRToStakeCredentialsInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslMIRToStakeCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMIRToStakeCredentials(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMIRToStakeCredentialsInstance(rt, result);
 }
@@ -21018,7 +21098,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisMIRToStakeCredentialsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_to_bytes(st->get(), out, err);
-        });
+        }, "MIRToStakeCredentials.to_bytes");
       }
     )
   );
@@ -21030,7 +21110,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisMIRToStakeCredentialsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_to_hex(st->get(), out, err);
-        });
+        }, "MIRToStakeCredentials.to_hex");
       }
     )
   );
@@ -21042,7 +21122,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisMIRToStakeCredentialsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_to_json(st->get(), out, err);
-        });
+        }, "MIRToStakeCredentials.to_json");
       }
     )
   );
@@ -21088,7 +21168,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MIRToStakeCredentials.insert"));
       }
     )
   );
@@ -21116,7 +21196,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MIRToStakeCredentials.get"));
       }
     )
   );
@@ -21128,7 +21208,7 @@ static jsi::Object getOrCreateMIRToStakeCredentialsProto(jsi::Runtime& rt) {
         auto st = getThisMIRToStakeCredentialsState(rt, thisVal);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_keys(st->get(), out, err);
-        });
+        }, "MIRToStakeCredentials.keys");
       }
     )
   );
@@ -21159,7 +21239,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MIRToStakeCredentials.from_bytes", "bytes");
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MIRToStakeCredentials.from_bytes");
       }
     )
   );
@@ -21174,7 +21254,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MIRToStakeCredentials.from_hex");
       }
     )
   );
@@ -21189,7 +21269,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_from_json(json.c_str(), out, err);
-        });
+        }, "MIRToStakeCredentials.from_json");
       }
     )
   );
@@ -21200,7 +21280,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_m_i_r_to_stake_credentials_new(out, err);
-        });
+        }, "MIRToStakeCredentials.new");
       }
     )
   );
@@ -21235,11 +21315,12 @@ static jsi::Object makeMalformedAddressInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslMalformedAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMalformedAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMalformedAddressInstance(rt, result);
 }
@@ -21261,7 +21342,7 @@ static jsi::Object getOrCreateMalformedAddressProto(jsi::Runtime& rt) {
         auto st = getThisMalformedAddressState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_malformed_address_original_bytes(st->get(), out, err);
-        });
+        }, "MalformedAddress.original_bytes");
       }
     )
   );
@@ -21273,7 +21354,7 @@ static jsi::Object getOrCreateMalformedAddressProto(jsi::Runtime& rt) {
         auto st = getThisMalformedAddressState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_malformed_address_to_address(st->get(), out, err);
-        });
+        }, "MalformedAddress.to_address");
       }
     )
   );
@@ -21304,7 +21385,7 @@ static jsi::Object makeMalformedAddressExport(jsi::Runtime& rt) {
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslMalformedAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_malformed_address_from_address(addr->get(), out, err);
-        });
+        }, "MalformedAddress.from_address");
       }
     )
   );
@@ -21339,11 +21420,12 @@ static jsi::Object makeMetadataListInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMetadataList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMetadataList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMetadataListInstance(rt, result);
 }
@@ -21365,7 +21447,7 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
         auto st = getThisMetadataListState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_to_bytes(st->get(), out, err);
-        });
+        }, "MetadataList.to_bytes");
       }
     )
   );
@@ -21377,7 +21459,7 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
         auto st = getThisMetadataListState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_to_hex(st->get(), out, err);
-        });
+        }, "MetadataList.to_hex");
       }
     )
   );
@@ -21419,7 +21501,7 @@ static jsi::Object getOrCreateMetadataListProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataList.get"));
       }
     )
   );
@@ -21468,7 +21550,7 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MetadataList.from_bytes", "bytes");
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MetadataList.from_bytes");
       }
     )
   );
@@ -21483,7 +21565,7 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MetadataList.from_hex");
       }
     )
   );
@@ -21494,7 +21576,7 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_list_new(out, err);
-        });
+        }, "MetadataList.new");
       }
     )
   );
@@ -21529,11 +21611,12 @@ static jsi::Object makeMetadataMapInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMetadataMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMetadataMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMetadataMapInstance(rt, result);
 }
@@ -21555,7 +21638,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         auto st = getThisMetadataMapState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_to_bytes(st->get(), out, err);
-        });
+        }, "MetadataMap.to_bytes");
       }
     )
   );
@@ -21567,7 +21650,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         auto st = getThisMetadataMapState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_to_hex(st->get(), out, err);
-        });
+        }, "MetadataMap.to_hex");
       }
     )
   );
@@ -21613,7 +21696,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataMap.insert"));
       }
     )
   );
@@ -21645,7 +21728,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataMap.insert_str"));
       }
     )
   );
@@ -21677,7 +21760,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataMap.insert_i32"));
       }
     )
   );
@@ -21705,7 +21788,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataMap.get"));
       }
     )
   );
@@ -21733,7 +21816,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataMap.get_str"));
       }
     )
   );
@@ -21761,7 +21844,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MetadataMap.get_i32"));
       }
     )
   );
@@ -21791,7 +21874,7 @@ static jsi::Object getOrCreateMetadataMapProto(jsi::Runtime& rt) {
         auto st = getThisMetadataMapState(rt, thisVal);
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_keys(st->get(), out, err);
-        });
+        }, "MetadataMap.keys");
       }
     )
   );
@@ -21822,7 +21905,7 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MetadataMap.from_bytes", "bytes");
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MetadataMap.from_bytes");
       }
     )
   );
@@ -21837,7 +21920,7 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MetadataMap.from_hex");
       }
     )
   );
@@ -21848,7 +21931,7 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_metadata_map_new(out, err);
-        });
+        }, "MetadataMap.new");
       }
     )
   );
@@ -21883,11 +21966,12 @@ static jsi::Object makeMintInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMint(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMint(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMintInstance(rt, result);
 }
@@ -21909,7 +21993,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         auto st = getThisMintState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_mint_to_bytes(st->get(), out, err);
-        });
+        }, "Mint.to_bytes");
       }
     )
   );
@@ -21921,7 +22005,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         auto st = getThisMintState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_mint_to_hex(st->get(), out, err);
-        });
+        }, "Mint.to_hex");
       }
     )
   );
@@ -21933,7 +22017,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         auto st = getThisMintState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_mint_to_json(st->get(), out, err);
-        });
+        }, "Mint.to_json");
       }
     )
   );
@@ -21979,7 +22063,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         return jsi::Value(callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Mint.insert"));
       }
     )
   );
@@ -22007,7 +22091,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         return jsi::Value(callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Mint.get"));
       }
     )
   );
@@ -22019,7 +22103,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         auto st = getThisMintState(rt, thisVal);
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_keys(st->get(), out, err);
-        });
+        }, "Mint.keys");
       }
     )
   );
@@ -22031,7 +22115,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         auto st = getThisMintState(rt, thisVal);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_as_positive_multiasset(st->get(), out, err);
-        });
+        }, "Mint.as_positive_multiasset");
       }
     )
   );
@@ -22043,7 +22127,7 @@ static jsi::Object getOrCreateMintProto(jsi::Runtime& rt) {
         auto st = getThisMintState(rt, thisVal);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_as_negative_multiasset(st->get(), out, err);
-        });
+        }, "Mint.as_negative_multiasset");
       }
     )
   );
@@ -22074,7 +22158,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Mint.from_bytes", "bytes");
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Mint.from_bytes");
       }
     )
   );
@@ -22089,7 +22173,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Mint.from_hex");
       }
     )
   );
@@ -22104,7 +22188,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_from_json(json.c_str(), out, err);
-        });
+        }, "Mint.from_json");
       }
     )
   );
@@ -22115,7 +22199,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_new(out, err);
-        });
+        }, "Mint.new");
       }
     )
   );
@@ -22134,7 +22218,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         auto value = getMintAssetsState(rt, args[1].asObject(rt), "value");
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_new_from_entry(key->get(), value->get(), out, err);
-        });
+        }, "Mint.new_from_entry");
       }
     )
   );
@@ -22169,11 +22253,12 @@ static jsi::Object makeMintAssetsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMintAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMintAssetsInstance(rt, result);
 }
@@ -22229,7 +22314,7 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintAssets.insert"));
       }
     )
   );
@@ -22257,7 +22342,7 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintAssets.get"));
       }
     )
   );
@@ -22269,7 +22354,7 @@ static jsi::Object getOrCreateMintAssetsProto(jsi::Runtime& rt) {
         auto st = getThisMintAssetsState(rt, thisVal);
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_assets_keys(st->get(), out, err);
-        });
+        }, "MintAssets.keys");
       }
     )
   );
@@ -22296,7 +22381,7 @@ static jsi::Object makeMintAssetsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_assets_new(out, err);
-        });
+        }, "MintAssets.new");
       }
     )
   );
@@ -22315,7 +22400,7 @@ static jsi::Object makeMintAssetsExport(jsi::Runtime& rt) {
         auto value = getIntState(rt, args[1].asObject(rt), "value");
         return callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_assets_new_from_entry(key->get(), value->get(), out, err);
-        });
+        }, "MintAssets.new_from_entry");
       }
     )
   );
@@ -22350,11 +22435,12 @@ static jsi::Object makeMintBuilderInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMintBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMintBuilderInstance(rt, result);
 }
@@ -22428,7 +22514,7 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
         auto st = getThisMintBuilderState(rt, thisVal);
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_builder_build(st->get(), out, err);
-        });
+        }, "MintBuilder.build");
       }
     )
   );
@@ -22452,7 +22538,7 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintBuilder.get_native_scripts"));
       }
     )
   );
@@ -22476,7 +22562,7 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintBuilder.get_plutus_witnesses"));
       }
     )
   );
@@ -22500,7 +22586,7 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintBuilder.get_ref_inputs"));
       }
     )
   );
@@ -22524,7 +22610,7 @@ static jsi::Object getOrCreateMintBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintBuilder.get_redeemers"));
       }
     )
   );
@@ -22579,7 +22665,7 @@ static jsi::Object makeMintBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMintBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_builder_new(out, err);
-        });
+        }, "MintBuilder.new");
       }
     )
   );
@@ -22614,11 +22700,12 @@ static jsi::Object makeMintWitnessInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMintWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMintWitnessInstance(rt, result);
 }
@@ -22659,7 +22746,7 @@ static jsi::Object makeMintWitnessExport(jsi::Runtime& rt) {
         auto native_script = getNativeScriptSourceState(rt, args[0].asObject(rt), "native_script");
         return callCslMintWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_witness_new_native_script(native_script->get(), out, err);
-        });
+        }, "MintWitness.new_native_script");
       }
     )
   );
@@ -22678,7 +22765,7 @@ static jsi::Object makeMintWitnessExport(jsi::Runtime& rt) {
         auto redeemer = getRedeemerState(rt, args[1].asObject(rt), "redeemer");
         return callCslMintWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mint_witness_new_plutus_script(plutus_script->get(), redeemer->get(), out, err);
-        });
+        }, "MintWitness.new_plutus_script");
       }
     )
   );
@@ -22713,11 +22800,12 @@ static jsi::Object makeMintsAssetsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMintsAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMintsAssets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMintsAssetsInstance(rt, result);
 }
@@ -22739,7 +22827,7 @@ static jsi::Object getOrCreateMintsAssetsProto(jsi::Runtime& rt) {
         auto st = getThisMintsAssetsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_mints_assets_to_json(st->get(), out, err);
-        });
+        }, "MintsAssets.to_json");
       }
     )
   );
@@ -22785,7 +22873,7 @@ static jsi::Object getOrCreateMintsAssetsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslMintAssets(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MintsAssets.get"));
       }
     )
   );
@@ -22830,7 +22918,7 @@ static jsi::Object makeMintsAssetsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mints_assets_from_json(json.c_str(), out, err);
-        });
+        }, "MintsAssets.from_json");
       }
     )
   );
@@ -22841,7 +22929,7 @@ static jsi::Object makeMintsAssetsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMintsAssets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_mints_assets_new(out, err);
-        });
+        }, "MintsAssets.new");
       }
     )
   );
@@ -22876,11 +22964,12 @@ static jsi::Object makeMoveInstantaneousRewardInstance(jsi::Runtime& rt, const R
   return obj;
 }
 
-static jsi::Object callCslMoveInstantaneousReward(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMoveInstantaneousReward(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMoveInstantaneousRewardInstance(rt, result);
 }
@@ -22902,7 +22991,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardProto(jsi::Runtime& rt) {
         auto st = getThisMoveInstantaneousRewardState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_to_bytes(st->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.to_bytes");
       }
     )
   );
@@ -22914,7 +23003,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardProto(jsi::Runtime& rt) {
         auto st = getThisMoveInstantaneousRewardState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_to_hex(st->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.to_hex");
       }
     )
   );
@@ -22926,7 +23015,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardProto(jsi::Runtime& rt) {
         auto st = getThisMoveInstantaneousRewardState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_to_json(st->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.to_json");
       }
     )
   );
@@ -22966,7 +23055,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardProto(jsi::Runtime& rt) {
         auto st = getThisMoveInstantaneousRewardState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_as_to_other_pot(st->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.as_to_other_pot");
       }
     )
   );
@@ -22978,7 +23067,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardProto(jsi::Runtime& rt) {
         auto st = getThisMoveInstantaneousRewardState(rt, thisVal);
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_as_to_stake_creds(st->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.as_to_stake_creds");
       }
     )
   );
@@ -23009,7 +23098,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MoveInstantaneousReward.from_bytes", "bytes");
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MoveInstantaneousReward.from_bytes");
       }
     )
   );
@@ -23024,7 +23113,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MoveInstantaneousReward.from_hex");
       }
     )
   );
@@ -23039,7 +23128,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_from_json(json.c_str(), out, err);
-        });
+        }, "MoveInstantaneousReward.from_json");
       }
     )
   );
@@ -23058,7 +23147,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         auto amount = getBigNumState(rt, args[1].asObject(rt), "amount");
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_new_to_other_pot(pot, amount->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.new_to_other_pot");
       }
     )
   );
@@ -23077,7 +23166,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         auto amounts = getMIRToStakeCredentialsState(rt, args[1].asObject(rt), "amounts");
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_reward_new_to_stake_creds(pot, amounts->get(), out, err);
-        });
+        }, "MoveInstantaneousReward.new_to_stake_creds");
       }
     )
   );
@@ -23112,11 +23201,12 @@ static jsi::Object makeMoveInstantaneousRewardsCertInstance(jsi::Runtime& rt, co
   return obj;
 }
 
-static jsi::Object callCslMoveInstantaneousRewardsCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMoveInstantaneousRewardsCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMoveInstantaneousRewardsCertInstance(rt, result);
 }
@@ -23138,7 +23228,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardsCertProto(jsi::Runtime& rt
         auto st = getThisMoveInstantaneousRewardsCertState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_to_bytes(st->get(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.to_bytes");
       }
     )
   );
@@ -23150,7 +23240,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardsCertProto(jsi::Runtime& rt
         auto st = getThisMoveInstantaneousRewardsCertState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_to_hex(st->get(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.to_hex");
       }
     )
   );
@@ -23162,7 +23252,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardsCertProto(jsi::Runtime& rt
         auto st = getThisMoveInstantaneousRewardsCertState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_to_json(st->get(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.to_json");
       }
     )
   );
@@ -23174,7 +23264,7 @@ static jsi::Object getOrCreateMoveInstantaneousRewardsCertProto(jsi::Runtime& rt
         auto st = getThisMoveInstantaneousRewardsCertState(rt, thisVal);
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_move_instantaneous_reward(st->get(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.move_instantaneous_reward");
       }
     )
   );
@@ -23205,7 +23295,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MoveInstantaneousRewardsCert.from_bytes", "bytes");
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.from_bytes");
       }
     )
   );
@@ -23220,7 +23310,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.from_hex");
       }
     )
   );
@@ -23235,7 +23325,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_from_json(json.c_str(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.from_json");
       }
     )
   );
@@ -23250,7 +23340,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         auto move_instantaneous_reward = getMoveInstantaneousRewardState(rt, args[0].asObject(rt), "move_instantaneous_reward");
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_move_instantaneous_rewards_cert_new(move_instantaneous_reward->get(), out, err);
-        });
+        }, "MoveInstantaneousRewardsCert.new");
       }
     )
   );
@@ -23285,11 +23375,12 @@ static jsi::Object makeMultiAssetInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslMultiAsset(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMultiAsset(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMultiAssetInstance(rt, result);
 }
@@ -23311,7 +23402,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         auto st = getThisMultiAssetState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_to_bytes(st->get(), out, err);
-        });
+        }, "MultiAsset.to_bytes");
       }
     )
   );
@@ -23323,7 +23414,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         auto st = getThisMultiAssetState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_to_hex(st->get(), out, err);
-        });
+        }, "MultiAsset.to_hex");
       }
     )
   );
@@ -23335,7 +23426,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         auto st = getThisMultiAssetState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_to_json(st->get(), out, err);
-        });
+        }, "MultiAsset.to_json");
       }
     )
   );
@@ -23381,7 +23472,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         return jsi::Value(callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MultiAsset.insert"));
       }
     )
   );
@@ -23409,7 +23500,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         return jsi::Value(callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MultiAsset.get"));
       }
     )
   );
@@ -23433,7 +23524,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         auto value = getBigNumState(rt, args[2].asObject(rt), "value");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_set_asset(st->get(), policy_id->get(), asset_name->get(), value->get(), out, err);
-        });
+        }, "MultiAsset.set_asset");
       }
     )
   );
@@ -23465,7 +23556,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "MultiAsset.get_asset"));
       }
     )
   );
@@ -23477,7 +23568,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         auto st = getThisMultiAssetState(rt, thisVal);
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_keys(st->get(), out, err);
-        });
+        }, "MultiAsset.keys");
       }
     )
   );
@@ -23493,7 +23584,7 @@ static jsi::Object getOrCreateMultiAssetProto(jsi::Runtime& rt) {
         auto rhs_ma = getMultiAssetState(rt, args[0].asObject(rt), "rhs_ma");
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_sub(st->get(), rhs_ma->get(), out, err);
-        });
+        }, "MultiAsset.sub");
       }
     )
   );
@@ -23524,7 +23615,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MultiAsset.from_bytes", "bytes");
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MultiAsset.from_bytes");
       }
     )
   );
@@ -23539,7 +23630,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MultiAsset.from_hex");
       }
     )
   );
@@ -23554,7 +23645,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_from_json(json.c_str(), out, err);
-        });
+        }, "MultiAsset.from_json");
       }
     )
   );
@@ -23565,7 +23656,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_asset_new(out, err);
-        });
+        }, "MultiAsset.new");
       }
     )
   );
@@ -23600,11 +23691,12 @@ static jsi::Object makeMultiHostNameInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslMultiHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslMultiHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeMultiHostNameInstance(rt, result);
 }
@@ -23626,7 +23718,7 @@ static jsi::Object getOrCreateMultiHostNameProto(jsi::Runtime& rt) {
         auto st = getThisMultiHostNameState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_to_bytes(st->get(), out, err);
-        });
+        }, "MultiHostName.to_bytes");
       }
     )
   );
@@ -23638,7 +23730,7 @@ static jsi::Object getOrCreateMultiHostNameProto(jsi::Runtime& rt) {
         auto st = getThisMultiHostNameState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_to_hex(st->get(), out, err);
-        });
+        }, "MultiHostName.to_hex");
       }
     )
   );
@@ -23650,7 +23742,7 @@ static jsi::Object getOrCreateMultiHostNameProto(jsi::Runtime& rt) {
         auto st = getThisMultiHostNameState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_to_json(st->get(), out, err);
-        });
+        }, "MultiHostName.to_json");
       }
     )
   );
@@ -23662,7 +23754,7 @@ static jsi::Object getOrCreateMultiHostNameProto(jsi::Runtime& rt) {
         auto st = getThisMultiHostNameState(rt, thisVal);
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_dns_name(st->get(), out, err);
-        });
+        }, "MultiHostName.dns_name");
       }
     )
   );
@@ -23693,7 +23785,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MultiHostName.from_bytes", "bytes");
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "MultiHostName.from_bytes");
       }
     )
   );
@@ -23708,7 +23800,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "MultiHostName.from_hex");
       }
     )
   );
@@ -23723,7 +23815,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_from_json(json.c_str(), out, err);
-        });
+        }, "MultiHostName.from_json");
       }
     )
   );
@@ -23738,7 +23830,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         auto dns_name = getDNSRecordSRVState(rt, args[0].asObject(rt), "dns_name");
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_multi_host_name_new(dns_name->get(), out, err);
-        });
+        }, "MultiHostName.new");
       }
     )
   );
@@ -23773,11 +23865,12 @@ static jsi::Object makeNativeScriptInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNativeScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNativeScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNativeScriptInstance(rt, result);
 }
@@ -23799,7 +23892,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_native_script_to_bytes(st->get(), out, err);
-        });
+        }, "NativeScript.to_bytes");
       }
     )
   );
@@ -23811,7 +23904,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_native_script_to_hex(st->get(), out, err);
-        });
+        }, "NativeScript.to_hex");
       }
     )
   );
@@ -23823,7 +23916,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_native_script_to_json(st->get(), out, err);
-        });
+        }, "NativeScript.to_json");
       }
     )
   );
@@ -23835,7 +23928,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_hash(st->get(), out, err);
-        });
+        }, "NativeScript.hash");
       }
     )
   );
@@ -23861,7 +23954,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_as_script_pubkey(st->get(), out, err);
-        });
+        }, "NativeScript.as_script_pubkey");
       }
     )
   );
@@ -23873,7 +23966,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_as_script_all(st->get(), out, err);
-        });
+        }, "NativeScript.as_script_all");
       }
     )
   );
@@ -23885,7 +23978,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_as_script_any(st->get(), out, err);
-        });
+        }, "NativeScript.as_script_any");
       }
     )
   );
@@ -23897,7 +23990,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_as_script_n_of_k(st->get(), out, err);
-        });
+        }, "NativeScript.as_script_n_of_k");
       }
     )
   );
@@ -23909,7 +24002,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_as_timelock_start(st->get(), out, err);
-        });
+        }, "NativeScript.as_timelock_start");
       }
     )
   );
@@ -23921,7 +24014,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptState(rt, thisVal);
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_as_timelock_expiry(st->get(), out, err);
-        });
+        }, "NativeScript.as_timelock_expiry");
       }
     )
   );
@@ -23945,7 +24038,7 @@ static jsi::Object getOrCreateNativeScriptProto(jsi::Runtime& rt) {
         return jsi::Value(callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "NativeScript.get_required_signers"));
       }
     )
   );
@@ -23976,7 +24069,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NativeScript.from_bytes", "bytes");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "NativeScript.from_bytes");
       }
     )
   );
@@ -23991,7 +24084,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "NativeScript.from_hex");
       }
     )
   );
@@ -24006,7 +24099,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_from_json(json.c_str(), out, err);
-        });
+        }, "NativeScript.from_json");
       }
     )
   );
@@ -24021,7 +24114,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto script_pubkey = getScriptPubkeyState(rt, args[0].asObject(rt), "script_pubkey");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_pubkey(script_pubkey->get(), out, err);
-        });
+        }, "NativeScript.new_script_pubkey");
       }
     )
   );
@@ -24036,7 +24129,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto script_all = getScriptAllState(rt, args[0].asObject(rt), "script_all");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_all(script_all->get(), out, err);
-        });
+        }, "NativeScript.new_script_all");
       }
     )
   );
@@ -24051,7 +24144,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto script_any = getScriptAnyState(rt, args[0].asObject(rt), "script_any");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_any(script_any->get(), out, err);
-        });
+        }, "NativeScript.new_script_any");
       }
     )
   );
@@ -24066,7 +24159,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto script_n_of_k = getScriptNOfKState(rt, args[0].asObject(rt), "script_n_of_k");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_script_n_of_k(script_n_of_k->get(), out, err);
-        });
+        }, "NativeScript.new_script_n_of_k");
       }
     )
   );
@@ -24081,7 +24174,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto timelock_start = getTimelockStartState(rt, args[0].asObject(rt), "timelock_start");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_timelock_start(timelock_start->get(), out, err);
-        });
+        }, "NativeScript.new_timelock_start");
       }
     )
   );
@@ -24096,7 +24189,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         auto timelock_expiry = getTimelockExpiryState(rt, args[0].asObject(rt), "timelock_expiry");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_new_timelock_expiry(timelock_expiry->get(), out, err);
-        });
+        }, "NativeScript.new_timelock_expiry");
       }
     )
   );
@@ -24131,11 +24224,12 @@ static jsi::Object makeNativeScriptSourceInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslNativeScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNativeScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNativeScriptSourceInstance(rt, result);
 }
@@ -24208,7 +24302,7 @@ static jsi::Object makeNativeScriptSourceExport(jsi::Runtime& rt) {
         auto script = getNativeScriptState(rt, args[0].asObject(rt), "script");
         return callCslNativeScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_source_new(script->get(), out, err);
-        });
+        }, "NativeScriptSource.new");
       }
     )
   );
@@ -24231,7 +24325,7 @@ static jsi::Object makeNativeScriptSourceExport(jsi::Runtime& rt) {
         auto script_size = static_cast<int64_t>(args[2].asNumber());
         return callCslNativeScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_script_source_new_ref_input(script_hash->get(), input->get(), script_size, out, err);
-        });
+        }, "NativeScriptSource.new_ref_input");
       }
     )
   );
@@ -24266,11 +24360,12 @@ static jsi::Object makeNativeScriptsInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslNativeScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNativeScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNativeScriptsInstance(rt, result);
 }
@@ -24322,7 +24417,7 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "NativeScripts.get"));
       }
     )
   );
@@ -24352,7 +24447,7 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_to_bytes(st->get(), out, err);
-        });
+        }, "NativeScripts.to_bytes");
       }
     )
   );
@@ -24364,7 +24459,7 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_to_hex(st->get(), out, err);
-        });
+        }, "NativeScripts.to_hex");
       }
     )
   );
@@ -24376,7 +24471,7 @@ static jsi::Object getOrCreateNativeScriptsProto(jsi::Runtime& rt) {
         auto st = getThisNativeScriptsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_to_json(st->get(), out, err);
-        });
+        }, "NativeScripts.to_json");
       }
     )
   );
@@ -24403,7 +24498,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_new(out, err);
-        });
+        }, "NativeScripts.new");
       }
     )
   );
@@ -24418,7 +24513,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NativeScripts.from_bytes", "bytes");
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "NativeScripts.from_bytes");
       }
     )
   );
@@ -24433,7 +24528,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "NativeScripts.from_hex");
       }
     )
   );
@@ -24448,7 +24543,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_native_scripts_from_json(json.c_str(), out, err);
-        });
+        }, "NativeScripts.from_json");
       }
     )
   );
@@ -24483,11 +24578,12 @@ static jsi::Object makeNetworkIdInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNetworkId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNetworkId(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNetworkIdInstance(rt, result);
 }
@@ -24509,7 +24605,7 @@ static jsi::Object getOrCreateNetworkIdProto(jsi::Runtime& rt) {
         auto st = getThisNetworkIdState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_network_id_to_bytes(st->get(), out, err);
-        });
+        }, "NetworkId.to_bytes");
       }
     )
   );
@@ -24521,7 +24617,7 @@ static jsi::Object getOrCreateNetworkIdProto(jsi::Runtime& rt) {
         auto st = getThisNetworkIdState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_network_id_to_hex(st->get(), out, err);
-        });
+        }, "NetworkId.to_hex");
       }
     )
   );
@@ -24533,7 +24629,7 @@ static jsi::Object getOrCreateNetworkIdProto(jsi::Runtime& rt) {
         auto st = getThisNetworkIdState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_network_id_to_json(st->get(), out, err);
-        });
+        }, "NetworkId.to_json");
       }
     )
   );
@@ -24578,7 +24674,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NetworkId.from_bytes", "bytes");
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "NetworkId.from_bytes");
       }
     )
   );
@@ -24593,7 +24689,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "NetworkId.from_hex");
       }
     )
   );
@@ -24608,7 +24704,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_from_json(json.c_str(), out, err);
-        });
+        }, "NetworkId.from_json");
       }
     )
   );
@@ -24619,7 +24715,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_testnet(out, err);
-        });
+        }, "NetworkId.testnet");
       }
     )
   );
@@ -24630,7 +24726,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_id_mainnet(out, err);
-        });
+        }, "NetworkId.mainnet");
       }
     )
   );
@@ -24665,11 +24761,12 @@ static jsi::Object makeNetworkInfoInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNetworkInfo(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNetworkInfo(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNetworkInfoInstance(rt, result);
 }
@@ -24742,7 +24839,7 @@ static jsi::Object makeNetworkInfoExport(jsi::Runtime& rt) {
         auto protocol_magic = static_cast<int64_t>(args[1].asNumber());
         return callCslNetworkInfo(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_info_new(network_id, protocol_magic, out, err);
-        });
+        }, "NetworkInfo.new");
       }
     )
   );
@@ -24753,7 +24850,7 @@ static jsi::Object makeNetworkInfoExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNetworkInfo(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_info_testnet_preview(out, err);
-        });
+        }, "NetworkInfo.testnet_preview");
       }
     )
   );
@@ -24764,7 +24861,7 @@ static jsi::Object makeNetworkInfoExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNetworkInfo(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_info_testnet_preprod(out, err);
-        });
+        }, "NetworkInfo.testnet_preprod");
       }
     )
   );
@@ -24775,7 +24872,7 @@ static jsi::Object makeNetworkInfoExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNetworkInfo(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_network_info_mainnet(out, err);
-        });
+        }, "NetworkInfo.mainnet");
       }
     )
   );
@@ -24810,11 +24907,12 @@ static jsi::Object makeNewConstitutionActionInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslNewConstitutionAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNewConstitutionAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNewConstitutionActionInstance(rt, result);
 }
@@ -24836,7 +24934,7 @@ static jsi::Object getOrCreateNewConstitutionActionProto(jsi::Runtime& rt) {
         auto st = getThisNewConstitutionActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_to_bytes(st->get(), out, err);
-        });
+        }, "NewConstitutionAction.to_bytes");
       }
     )
   );
@@ -24848,7 +24946,7 @@ static jsi::Object getOrCreateNewConstitutionActionProto(jsi::Runtime& rt) {
         auto st = getThisNewConstitutionActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_to_hex(st->get(), out, err);
-        });
+        }, "NewConstitutionAction.to_hex");
       }
     )
   );
@@ -24860,7 +24958,7 @@ static jsi::Object getOrCreateNewConstitutionActionProto(jsi::Runtime& rt) {
         auto st = getThisNewConstitutionActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_to_json(st->get(), out, err);
-        });
+        }, "NewConstitutionAction.to_json");
       }
     )
   );
@@ -24872,7 +24970,7 @@ static jsi::Object getOrCreateNewConstitutionActionProto(jsi::Runtime& rt) {
         auto st = getThisNewConstitutionActionState(rt, thisVal);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_gov_action_id(st->get(), out, err);
-        });
+        }, "NewConstitutionAction.gov_action_id");
       }
     )
   );
@@ -24884,7 +24982,7 @@ static jsi::Object getOrCreateNewConstitutionActionProto(jsi::Runtime& rt) {
         auto st = getThisNewConstitutionActionState(rt, thisVal);
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_constitution(st->get(), out, err);
-        });
+        }, "NewConstitutionAction.constitution");
       }
     )
   );
@@ -24929,7 +25027,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NewConstitutionAction.from_bytes", "bytes");
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "NewConstitutionAction.from_bytes");
       }
     )
   );
@@ -24944,7 +25042,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "NewConstitutionAction.from_hex");
       }
     )
   );
@@ -24959,7 +25057,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_from_json(json.c_str(), out, err);
-        });
+        }, "NewConstitutionAction.from_json");
       }
     )
   );
@@ -24974,7 +25072,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         auto constitution = getConstitutionState(rt, args[0].asObject(rt), "constitution");
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_new(constitution->get(), out, err);
-        });
+        }, "NewConstitutionAction.new");
       }
     )
   );
@@ -24993,7 +25091,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         auto constitution = getConstitutionState(rt, args[1].asObject(rt), "constitution");
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_new_constitution_action_new_with_action_id(gov_action_id->get(), constitution->get(), out, err);
-        });
+        }, "NewConstitutionAction.new_with_action_id");
       }
     )
   );
@@ -25028,11 +25126,12 @@ static jsi::Object makeNoConfidenceActionInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslNoConfidenceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNoConfidenceAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNoConfidenceActionInstance(rt, result);
 }
@@ -25054,7 +25153,7 @@ static jsi::Object getOrCreateNoConfidenceActionProto(jsi::Runtime& rt) {
         auto st = getThisNoConfidenceActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_to_bytes(st->get(), out, err);
-        });
+        }, "NoConfidenceAction.to_bytes");
       }
     )
   );
@@ -25066,7 +25165,7 @@ static jsi::Object getOrCreateNoConfidenceActionProto(jsi::Runtime& rt) {
         auto st = getThisNoConfidenceActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_to_hex(st->get(), out, err);
-        });
+        }, "NoConfidenceAction.to_hex");
       }
     )
   );
@@ -25078,7 +25177,7 @@ static jsi::Object getOrCreateNoConfidenceActionProto(jsi::Runtime& rt) {
         auto st = getThisNoConfidenceActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_to_json(st->get(), out, err);
-        });
+        }, "NoConfidenceAction.to_json");
       }
     )
   );
@@ -25090,7 +25189,7 @@ static jsi::Object getOrCreateNoConfidenceActionProto(jsi::Runtime& rt) {
         auto st = getThisNoConfidenceActionState(rt, thisVal);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_gov_action_id(st->get(), out, err);
-        });
+        }, "NoConfidenceAction.gov_action_id");
       }
     )
   );
@@ -25121,7 +25220,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NoConfidenceAction.from_bytes", "bytes");
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "NoConfidenceAction.from_bytes");
       }
     )
   );
@@ -25136,7 +25235,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "NoConfidenceAction.from_hex");
       }
     )
   );
@@ -25151,7 +25250,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_from_json(json.c_str(), out, err);
-        });
+        }, "NoConfidenceAction.from_json");
       }
     )
   );
@@ -25162,7 +25261,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_new(out, err);
-        });
+        }, "NoConfidenceAction.new");
       }
     )
   );
@@ -25177,7 +25276,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         auto gov_action_id = getGovernanceActionIdState(rt, args[0].asObject(rt), "gov_action_id");
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_no_confidence_action_new_with_action_id(gov_action_id->get(), out, err);
-        });
+        }, "NoConfidenceAction.new_with_action_id");
       }
     )
   );
@@ -25212,11 +25311,12 @@ static jsi::Object makeNonceInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslNonce(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslNonce(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeNonceInstance(rt, result);
 }
@@ -25238,7 +25338,7 @@ static jsi::Object getOrCreateNonceProto(jsi::Runtime& rt) {
         auto st = getThisNonceState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_nonce_to_bytes(st->get(), out, err);
-        });
+        }, "Nonce.to_bytes");
       }
     )
   );
@@ -25250,7 +25350,7 @@ static jsi::Object getOrCreateNonceProto(jsi::Runtime& rt) {
         auto st = getThisNonceState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_nonce_to_hex(st->get(), out, err);
-        });
+        }, "Nonce.to_hex");
       }
     )
   );
@@ -25262,7 +25362,7 @@ static jsi::Object getOrCreateNonceProto(jsi::Runtime& rt) {
         auto st = getThisNonceState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_nonce_to_json(st->get(), out, err);
-        });
+        }, "Nonce.to_json");
       }
     )
   );
@@ -25274,7 +25374,7 @@ static jsi::Object getOrCreateNonceProto(jsi::Runtime& rt) {
         auto st = getThisNonceState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_nonce_get_hash(st->get(), out, err);
-        });
+        }, "Nonce.get_hash");
       }
     )
   );
@@ -25305,7 +25405,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Nonce.from_bytes", "bytes");
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Nonce.from_bytes");
       }
     )
   );
@@ -25320,7 +25420,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Nonce.from_hex");
       }
     )
   );
@@ -25335,7 +25435,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_from_json(json.c_str(), out, err);
-        });
+        }, "Nonce.from_json");
       }
     )
   );
@@ -25346,7 +25446,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_new_identity(out, err);
-        });
+        }, "Nonce.new_identity");
       }
     )
   );
@@ -25361,7 +25461,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         auto hash = parseUint8Array(rt, args[0].asObject(rt), "Nonce.new_from_hash", "hash");
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_nonce_new_from_hash(hash.data(), static_cast<size_t>(hash.size()), out, err);
-        });
+        }, "Nonce.new_from_hash");
       }
     )
   );
@@ -25396,11 +25496,12 @@ static jsi::Object makeOperationalCertInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslOperationalCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslOperationalCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeOperationalCertInstance(rt, result);
 }
@@ -25422,7 +25523,7 @@ static jsi::Object getOrCreateOperationalCertProto(jsi::Runtime& rt) {
         auto st = getThisOperationalCertState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_to_bytes(st->get(), out, err);
-        });
+        }, "OperationalCert.to_bytes");
       }
     )
   );
@@ -25434,7 +25535,7 @@ static jsi::Object getOrCreateOperationalCertProto(jsi::Runtime& rt) {
         auto st = getThisOperationalCertState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_to_hex(st->get(), out, err);
-        });
+        }, "OperationalCert.to_hex");
       }
     )
   );
@@ -25446,7 +25547,7 @@ static jsi::Object getOrCreateOperationalCertProto(jsi::Runtime& rt) {
         auto st = getThisOperationalCertState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_to_json(st->get(), out, err);
-        });
+        }, "OperationalCert.to_json");
       }
     )
   );
@@ -25458,7 +25559,7 @@ static jsi::Object getOrCreateOperationalCertProto(jsi::Runtime& rt) {
         auto st = getThisOperationalCertState(rt, thisVal);
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_hot_vkey(st->get(), out, err);
-        });
+        }, "OperationalCert.hot_vkey");
       }
     )
   );
@@ -25498,7 +25599,7 @@ static jsi::Object getOrCreateOperationalCertProto(jsi::Runtime& rt) {
         auto st = getThisOperationalCertState(rt, thisVal);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_sigma(st->get(), out, err);
-        });
+        }, "OperationalCert.sigma");
       }
     )
   );
@@ -25529,7 +25630,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "OperationalCert.from_bytes", "bytes");
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "OperationalCert.from_bytes");
       }
     )
   );
@@ -25544,7 +25645,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "OperationalCert.from_hex");
       }
     )
   );
@@ -25559,7 +25660,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_from_json(json.c_str(), out, err);
-        });
+        }, "OperationalCert.from_json");
       }
     )
   );
@@ -25586,7 +25687,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         auto sigma = getEd25519SignatureState(rt, args[3].asObject(rt), "sigma");
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_operational_cert_new(hot_vkey->get(), sequence_number, kes_period, sigma->get(), out, err);
-        });
+        }, "OperationalCert.new");
       }
     )
   );
@@ -25621,11 +25722,12 @@ static jsi::Object makeOutputDatumInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslOutputDatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslOutputDatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeOutputDatumInstance(rt, result);
 }
@@ -25647,7 +25749,7 @@ static jsi::Object getOrCreateOutputDatumProto(jsi::Runtime& rt) {
         auto st = getThisOutputDatumState(rt, thisVal);
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_output_datum_data_hash(st->get(), out, err);
-        });
+        }, "OutputDatum.data_hash");
       }
     )
   );
@@ -25659,7 +25761,7 @@ static jsi::Object getOrCreateOutputDatumProto(jsi::Runtime& rt) {
         auto st = getThisOutputDatumState(rt, thisVal);
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_output_datum_data(st->get(), out, err);
-        });
+        }, "OutputDatum.data");
       }
     )
   );
@@ -25690,7 +25792,7 @@ static jsi::Object makeOutputDatumExport(jsi::Runtime& rt) {
         auto data_hash = getDataHashState(rt, args[0].asObject(rt), "data_hash");
         return callCslOutputDatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_output_datum_new_data_hash(data_hash->get(), out, err);
-        });
+        }, "OutputDatum.new_data_hash");
       }
     )
   );
@@ -25705,7 +25807,7 @@ static jsi::Object makeOutputDatumExport(jsi::Runtime& rt) {
         auto data = getPlutusDataState(rt, args[0].asObject(rt), "data");
         return callCslOutputDatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_output_datum_new_data(data->get(), out, err);
-        });
+        }, "OutputDatum.new_data");
       }
     )
   );
@@ -25740,11 +25842,12 @@ static jsi::Object makeParameterChangeActionInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslParameterChangeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslParameterChangeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeParameterChangeActionInstance(rt, result);
 }
@@ -25766,7 +25869,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
         auto st = getThisParameterChangeActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_to_bytes(st->get(), out, err);
-        });
+        }, "ParameterChangeAction.to_bytes");
       }
     )
   );
@@ -25778,7 +25881,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
         auto st = getThisParameterChangeActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_to_hex(st->get(), out, err);
-        });
+        }, "ParameterChangeAction.to_hex");
       }
     )
   );
@@ -25790,7 +25893,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
         auto st = getThisParameterChangeActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_to_json(st->get(), out, err);
-        });
+        }, "ParameterChangeAction.to_json");
       }
     )
   );
@@ -25802,7 +25905,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
         auto st = getThisParameterChangeActionState(rt, thisVal);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_gov_action_id(st->get(), out, err);
-        });
+        }, "ParameterChangeAction.gov_action_id");
       }
     )
   );
@@ -25814,7 +25917,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
         auto st = getThisParameterChangeActionState(rt, thisVal);
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_protocol_param_updates(st->get(), out, err);
-        });
+        }, "ParameterChangeAction.protocol_param_updates");
       }
     )
   );
@@ -25826,7 +25929,7 @@ static jsi::Object getOrCreateParameterChangeActionProto(jsi::Runtime& rt) {
         auto st = getThisParameterChangeActionState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_policy_hash(st->get(), out, err);
-        });
+        }, "ParameterChangeAction.policy_hash");
       }
     )
   );
@@ -25857,7 +25960,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ParameterChangeAction.from_bytes", "bytes");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ParameterChangeAction.from_bytes");
       }
     )
   );
@@ -25872,7 +25975,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ParameterChangeAction.from_hex");
       }
     )
   );
@@ -25887,7 +25990,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_from_json(json.c_str(), out, err);
-        });
+        }, "ParameterChangeAction.from_json");
       }
     )
   );
@@ -25902,7 +26005,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         auto protocol_param_updates = getProtocolParamUpdateState(rt, args[0].asObject(rt), "protocol_param_updates");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new(protocol_param_updates->get(), out, err);
-        });
+        }, "ParameterChangeAction.new");
       }
     )
   );
@@ -25921,7 +26024,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         auto protocol_param_updates = getProtocolParamUpdateState(rt, args[1].asObject(rt), "protocol_param_updates");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new_with_action_id(gov_action_id->get(), protocol_param_updates->get(), out, err);
-        });
+        }, "ParameterChangeAction.new_with_action_id");
       }
     )
   );
@@ -25940,7 +26043,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         auto policy_hash = getScriptHashState(rt, args[1].asObject(rt), "policy_hash");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new_with_policy_hash(protocol_param_updates->get(), policy_hash->get(), out, err);
-        });
+        }, "ParameterChangeAction.new_with_policy_hash");
       }
     )
   );
@@ -25963,7 +26066,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         auto policy_hash = getScriptHashState(rt, args[2].asObject(rt), "policy_hash");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_parameter_change_action_new_with_policy_hash_and_action_id(gov_action_id->get(), protocol_param_updates->get(), policy_hash->get(), out, err);
-        });
+        }, "ParameterChangeAction.new_with_policy_hash_and_action_id");
       }
     )
   );
@@ -25998,11 +26101,12 @@ static jsi::Object makePlutusDataInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusData(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusDataInstance(rt, result);
 }
@@ -26024,7 +26128,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_to_bytes(st->get(), out, err);
-        });
+        }, "PlutusData.to_bytes");
       }
     )
   );
@@ -26036,7 +26140,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_to_hex(st->get(), out, err);
-        });
+        }, "PlutusData.to_hex");
       }
     )
   );
@@ -26062,7 +26166,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_constr_plutus_data(st->get(), out, err);
-        });
+        }, "PlutusData.as_constr_plutus_data");
       }
     )
   );
@@ -26074,7 +26178,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_map(st->get(), out, err);
-        });
+        }, "PlutusData.as_map");
       }
     )
   );
@@ -26086,7 +26190,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_list(st->get(), out, err);
-        });
+        }, "PlutusData.as_list");
       }
     )
   );
@@ -26098,7 +26202,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_integer(st->get(), out, err);
-        });
+        }, "PlutusData.as_integer");
       }
     )
   );
@@ -26110,7 +26214,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto st = getThisPlutusDataState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_bytes(st->get(), out, err);
-        });
+        }, "PlutusData.as_bytes");
       }
     )
   );
@@ -26126,7 +26230,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[0].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_to_json(st->get(), schema, out, err);
-        });
+        }, "PlutusData.to_json");
       }
     )
   );
@@ -26142,7 +26246,7 @@ static jsi::Object getOrCreatePlutusDataProto(jsi::Runtime& rt) {
         auto network = getNetworkInfoState(rt, args[0].asObject(rt), "network");
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_as_address(st->get(), network->get(), out, err);
-        });
+        }, "PlutusData.as_address");
       }
     )
   );
@@ -26173,7 +26277,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusData.from_bytes", "bytes");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusData.from_bytes");
       }
     )
   );
@@ -26188,7 +26292,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PlutusData.from_hex");
       }
     )
   );
@@ -26203,7 +26307,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto constr_plutus_data = getConstrPlutusDataState(rt, args[0].asObject(rt), "constr_plutus_data");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_constr_plutus_data(constr_plutus_data->get(), out, err);
-        });
+        }, "PlutusData.new_constr_plutus_data");
       }
     )
   );
@@ -26218,7 +26322,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto alternative = getBigNumState(rt, args[0].asObject(rt), "alternative");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_empty_constr_plutus_data(alternative->get(), out, err);
-        });
+        }, "PlutusData.new_empty_constr_plutus_data");
       }
     )
   );
@@ -26237,7 +26341,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto plutus_data = getPlutusDataState(rt, args[1].asObject(rt), "plutus_data");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_single_value_constr_plutus_data(alternative->get(), plutus_data->get(), out, err);
-        });
+        }, "PlutusData.new_single_value_constr_plutus_data");
       }
     )
   );
@@ -26252,7 +26356,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto map = getPlutusMapState(rt, args[0].asObject(rt), "map");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_map(map->get(), out, err);
-        });
+        }, "PlutusData.new_map");
       }
     )
   );
@@ -26267,7 +26371,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto list = getPlutusListState(rt, args[0].asObject(rt), "list");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_list(list->get(), out, err);
-        });
+        }, "PlutusData.new_list");
       }
     )
   );
@@ -26282,7 +26386,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto integer = getBigIntState(rt, args[0].asObject(rt), "integer");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_integer(integer->get(), out, err);
-        });
+        }, "PlutusData.new_integer");
       }
     )
   );
@@ -26297,7 +26401,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusData.new_bytes", "bytes");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_new_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusData.new_bytes");
       }
     )
   );
@@ -26316,7 +26420,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_json(json.c_str(), schema, out, err);
-        });
+        }, "PlutusData.from_json");
       }
     )
   );
@@ -26331,7 +26435,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_data_from_address(address->get(), out, err);
-        });
+        }, "PlutusData.from_address");
       }
     )
   );
@@ -26366,11 +26470,12 @@ static jsi::Object makePlutusListInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusListInstance(rt, result);
 }
@@ -26392,7 +26497,7 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
         auto st = getThisPlutusListState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_to_bytes(st->get(), out, err);
-        });
+        }, "PlutusList.to_bytes");
       }
     )
   );
@@ -26404,7 +26509,7 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
         auto st = getThisPlutusListState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_to_hex(st->get(), out, err);
-        });
+        }, "PlutusList.to_hex");
       }
     )
   );
@@ -26446,7 +26551,7 @@ static jsi::Object getOrCreatePlutusListProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PlutusList.get"));
       }
     )
   );
@@ -26495,7 +26600,7 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusList.from_bytes", "bytes");
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusList.from_bytes");
       }
     )
   );
@@ -26510,7 +26615,7 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PlutusList.from_hex");
       }
     )
   );
@@ -26521,7 +26626,7 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_list_new(out, err);
-        });
+        }, "PlutusList.new");
       }
     )
   );
@@ -26556,11 +26661,12 @@ static jsi::Object makePlutusMapInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusMap(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusMapInstance(rt, result);
 }
@@ -26582,7 +26688,7 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
         auto st = getThisPlutusMapState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_to_bytes(st->get(), out, err);
-        });
+        }, "PlutusMap.to_bytes");
       }
     )
   );
@@ -26594,7 +26700,7 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
         auto st = getThisPlutusMapState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_to_hex(st->get(), out, err);
-        });
+        }, "PlutusMap.to_hex");
       }
     )
   );
@@ -26640,7 +26746,7 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PlutusMap.insert"));
       }
     )
   );
@@ -26668,7 +26774,7 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PlutusMap.get"));
       }
     )
   );
@@ -26680,7 +26786,7 @@ static jsi::Object getOrCreatePlutusMapProto(jsi::Runtime& rt) {
         auto st = getThisPlutusMapState(rt, thisVal);
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_keys(st->get(), out, err);
-        });
+        }, "PlutusMap.keys");
       }
     )
   );
@@ -26711,7 +26817,7 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusMap.from_bytes", "bytes");
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusMap.from_bytes");
       }
     )
   );
@@ -26726,7 +26832,7 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PlutusMap.from_hex");
       }
     )
   );
@@ -26737,7 +26843,7 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_new(out, err);
-        });
+        }, "PlutusMap.new");
       }
     )
   );
@@ -26772,11 +26878,12 @@ static jsi::Object makePlutusMapValuesInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslPlutusMapValues(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusMapValues(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusMapValuesInstance(rt, result);
 }
@@ -26828,7 +26935,7 @@ static jsi::Object getOrCreatePlutusMapValuesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PlutusMapValues.get"));
       }
     )
   );
@@ -26873,7 +26980,7 @@ static jsi::Object makePlutusMapValuesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPlutusMapValues(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_map_values_new(out, err);
-        });
+        }, "PlutusMapValues.new");
       }
     )
   );
@@ -26908,11 +27015,12 @@ static jsi::Object makePlutusScriptInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPlutusScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusScript(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusScriptInstance(rt, result);
 }
@@ -26934,7 +27042,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_to_bytes(st->get(), out, err);
-        });
+        }, "PlutusScript.to_bytes");
       }
     )
   );
@@ -26946,7 +27054,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_to_hex(st->get(), out, err);
-        });
+        }, "PlutusScript.to_hex");
       }
     )
   );
@@ -26958,7 +27066,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_bytes(st->get(), out, err);
-        });
+        }, "PlutusScript.bytes");
       }
     )
   );
@@ -26970,7 +27078,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_hash(st->get(), out, err);
-        });
+        }, "PlutusScript.hash");
       }
     )
   );
@@ -26982,7 +27090,7 @@ static jsi::Object getOrCreatePlutusScriptProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptState(rt, thisVal);
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_language_version(st->get(), out, err);
-        });
+        }, "PlutusScript.language_version");
       }
     )
   );
@@ -27013,7 +27121,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.from_bytes", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScript.from_bytes");
       }
     )
   );
@@ -27028,7 +27136,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PlutusScript.from_hex");
       }
     )
   );
@@ -27043,7 +27151,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.new", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScript.new");
       }
     )
   );
@@ -27058,7 +27166,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.new_v2", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new_v2(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScript.new_v2");
       }
     )
   );
@@ -27073,7 +27181,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.new_v3", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new_v3(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScript.new_v3");
       }
     )
   );
@@ -27092,7 +27200,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_new_with_version(bytes.data(), static_cast<size_t>(bytes.size()), language->get(), out, err);
-        });
+        }, "PlutusScript.new_with_version");
       }
     )
   );
@@ -27107,7 +27215,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.from_bytes_v2", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes_v2(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScript.from_bytes_v2");
       }
     )
   );
@@ -27122,7 +27230,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.from_bytes_v3", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes_v3(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScript.from_bytes_v3");
       }
     )
   );
@@ -27141,7 +27249,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_bytes_with_version(bytes.data(), static_cast<size_t>(bytes.size()), language->get(), out, err);
-        });
+        }, "PlutusScript.from_bytes_with_version");
       }
     )
   );
@@ -27160,7 +27268,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_from_hex_with_version(hex_str.c_str(), language->get(), out, err);
-        });
+        }, "PlutusScript.from_hex_with_version");
       }
     )
   );
@@ -27195,11 +27303,12 @@ static jsi::Object makePlutusScriptSourceInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslPlutusScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusScriptSource(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusScriptSourceInstance(rt, result);
 }
@@ -27272,7 +27381,7 @@ static jsi::Object makePlutusScriptSourceExport(jsi::Runtime& rt) {
         auto script = getPlutusScriptState(rt, args[0].asObject(rt), "script");
         return callCslPlutusScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_source_new(script->get(), out, err);
-        });
+        }, "PlutusScriptSource.new");
       }
     )
   );
@@ -27299,7 +27408,7 @@ static jsi::Object makePlutusScriptSourceExport(jsi::Runtime& rt) {
         auto script_size = static_cast<int64_t>(args[3].asNumber());
         return callCslPlutusScriptSource(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_script_source_new_ref_input(script_hash->get(), input->get(), lang_ver->get(), script_size, out, err);
-        });
+        }, "PlutusScriptSource.new_ref_input");
       }
     )
   );
@@ -27334,11 +27443,12 @@ static jsi::Object makePlutusScriptsInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslPlutusScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusScripts(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusScriptsInstance(rt, result);
 }
@@ -27360,7 +27470,7 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_to_bytes(st->get(), out, err);
-        });
+        }, "PlutusScripts.to_bytes");
       }
     )
   );
@@ -27372,7 +27482,7 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_to_hex(st->get(), out, err);
-        });
+        }, "PlutusScripts.to_hex");
       }
     )
   );
@@ -27384,7 +27494,7 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
         auto st = getThisPlutusScriptsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_to_json(st->get(), out, err);
-        });
+        }, "PlutusScripts.to_json");
       }
     )
   );
@@ -27426,7 +27536,7 @@ static jsi::Object getOrCreatePlutusScriptsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PlutusScripts.get"));
       }
     )
   );
@@ -27475,7 +27585,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScripts.from_bytes", "bytes");
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PlutusScripts.from_bytes");
       }
     )
   );
@@ -27490,7 +27600,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PlutusScripts.from_hex");
       }
     )
   );
@@ -27505,7 +27615,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_from_json(json.c_str(), out, err);
-        });
+        }, "PlutusScripts.from_json");
       }
     )
   );
@@ -27516,7 +27626,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_scripts_new(out, err);
-        });
+        }, "PlutusScripts.new");
       }
     )
   );
@@ -27551,11 +27661,12 @@ static jsi::Object makePlutusWitnessInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslPlutusWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusWitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusWitnessInstance(rt, result);
 }
@@ -27577,7 +27688,7 @@ static jsi::Object getOrCreatePlutusWitnessProto(jsi::Runtime& rt) {
         auto st = getThisPlutusWitnessState(rt, thisVal);
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_script(st->get(), out, err);
-        });
+        }, "PlutusWitness.script");
       }
     )
   );
@@ -27589,7 +27700,7 @@ static jsi::Object getOrCreatePlutusWitnessProto(jsi::Runtime& rt) {
         auto st = getThisPlutusWitnessState(rt, thisVal);
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_datum(st->get(), out, err);
-        });
+        }, "PlutusWitness.datum");
       }
     )
   );
@@ -27601,7 +27712,7 @@ static jsi::Object getOrCreatePlutusWitnessProto(jsi::Runtime& rt) {
         auto st = getThisPlutusWitnessState(rt, thisVal);
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_redeemer(st->get(), out, err);
-        });
+        }, "PlutusWitness.redeemer");
       }
     )
   );
@@ -27640,7 +27751,7 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
         auto redeemer = getRedeemerState(rt, args[2].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new(script->get(), datum->get(), redeemer->get(), out, err);
-        });
+        }, "PlutusWitness.new");
       }
     )
   );
@@ -27663,7 +27774,7 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
         auto redeemer = getRedeemerState(rt, args[2].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new_with_ref(script->get(), datum->get(), redeemer->get(), out, err);
-        });
+        }, "PlutusWitness.new_with_ref");
       }
     )
   );
@@ -27682,7 +27793,7 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
         auto redeemer = getRedeemerState(rt, args[1].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new_without_datum(script->get(), redeemer->get(), out, err);
-        });
+        }, "PlutusWitness.new_without_datum");
       }
     )
   );
@@ -27701,7 +27812,7 @@ static jsi::Object makePlutusWitnessExport(jsi::Runtime& rt) {
         auto redeemer = getRedeemerState(rt, args[1].asObject(rt), "redeemer");
         return callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witness_new_with_ref_without_datum(script->get(), redeemer->get(), out, err);
-        });
+        }, "PlutusWitness.new_with_ref_without_datum");
       }
     )
   );
@@ -27736,11 +27847,12 @@ static jsi::Object makePlutusWitnessesInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslPlutusWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPlutusWitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePlutusWitnessesInstance(rt, result);
 }
@@ -27792,7 +27904,7 @@ static jsi::Object getOrCreatePlutusWitnessesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitness(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PlutusWitnesses.get"));
       }
     )
   );
@@ -27837,7 +27949,7 @@ static jsi::Object makePlutusWitnessesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_plutus_witnesses_new(out, err);
-        });
+        }, "PlutusWitnesses.new");
       }
     )
   );
@@ -27872,11 +27984,12 @@ static jsi::Object makePointerInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPointer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPointer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePointerInstance(rt, result);
 }
@@ -27940,7 +28053,7 @@ static jsi::Object getOrCreatePointerProto(jsi::Runtime& rt) {
         auto st = getThisPointerState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_slot_bignum(st->get(), out, err);
-        });
+        }, "Pointer.slot_bignum");
       }
     )
   );
@@ -27952,7 +28065,7 @@ static jsi::Object getOrCreatePointerProto(jsi::Runtime& rt) {
         auto st = getThisPointerState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_tx_index_bignum(st->get(), out, err);
-        });
+        }, "Pointer.tx_index_bignum");
       }
     )
   );
@@ -27964,7 +28077,7 @@ static jsi::Object getOrCreatePointerProto(jsi::Runtime& rt) {
         auto st = getThisPointerState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_cert_index_bignum(st->get(), out, err);
-        });
+        }, "Pointer.cert_index_bignum");
       }
     )
   );
@@ -28003,7 +28116,7 @@ static jsi::Object makePointerExport(jsi::Runtime& rt) {
         auto cert_index = static_cast<int64_t>(args[2].asNumber());
         return callCslPointer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_new(slot, tx_index, cert_index, out, err);
-        });
+        }, "Pointer.new");
       }
     )
   );
@@ -28026,7 +28139,7 @@ static jsi::Object makePointerExport(jsi::Runtime& rt) {
         auto cert_index = getBigNumState(rt, args[2].asObject(rt), "cert_index");
         return callCslPointer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_new_pointer(slot->get(), tx_index->get(), cert_index->get(), out, err);
-        });
+        }, "Pointer.new_pointer");
       }
     )
   );
@@ -28061,11 +28174,12 @@ static jsi::Object makePointerAddressInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslPointerAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPointerAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePointerAddressInstance(rt, result);
 }
@@ -28087,7 +28201,7 @@ static jsi::Object getOrCreatePointerAddressProto(jsi::Runtime& rt) {
         auto st = getThisPointerAddressState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_payment_cred(st->get(), out, err);
-        });
+        }, "PointerAddress.payment_cred");
       }
     )
   );
@@ -28099,7 +28213,7 @@ static jsi::Object getOrCreatePointerAddressProto(jsi::Runtime& rt) {
         auto st = getThisPointerAddressState(rt, thisVal);
         return callCslPointer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_stake_pointer(st->get(), out, err);
-        });
+        }, "PointerAddress.stake_pointer");
       }
     )
   );
@@ -28111,7 +28225,7 @@ static jsi::Object getOrCreatePointerAddressProto(jsi::Runtime& rt) {
         auto st = getThisPointerAddressState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_to_address(st->get(), out, err);
-        });
+        }, "PointerAddress.to_address");
       }
     )
   );
@@ -28164,7 +28278,7 @@ static jsi::Object makePointerAddressExport(jsi::Runtime& rt) {
         auto stake = getPointerState(rt, args[2].asObject(rt), "stake");
         return callCslPointerAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_new(network, payment->get(), stake->get(), out, err);
-        });
+        }, "PointerAddress.new");
       }
     )
   );
@@ -28179,7 +28293,7 @@ static jsi::Object makePointerAddressExport(jsi::Runtime& rt) {
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslPointerAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pointer_address_from_address(addr->get(), out, err);
-        });
+        }, "PointerAddress.from_address");
       }
     )
   );
@@ -28214,11 +28328,12 @@ static jsi::Object makePoolMetadataInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPoolMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPoolMetadata(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePoolMetadataInstance(rt, result);
 }
@@ -28240,7 +28355,7 @@ static jsi::Object getOrCreatePoolMetadataProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_to_bytes(st->get(), out, err);
-        });
+        }, "PoolMetadata.to_bytes");
       }
     )
   );
@@ -28252,7 +28367,7 @@ static jsi::Object getOrCreatePoolMetadataProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_to_hex(st->get(), out, err);
-        });
+        }, "PoolMetadata.to_hex");
       }
     )
   );
@@ -28264,7 +28379,7 @@ static jsi::Object getOrCreatePoolMetadataProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_to_json(st->get(), out, err);
-        });
+        }, "PoolMetadata.to_json");
       }
     )
   );
@@ -28276,7 +28391,7 @@ static jsi::Object getOrCreatePoolMetadataProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataState(rt, thisVal);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_url(st->get(), out, err);
-        });
+        }, "PoolMetadata.url");
       }
     )
   );
@@ -28288,7 +28403,7 @@ static jsi::Object getOrCreatePoolMetadataProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataState(rt, thisVal);
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_pool_metadata_hash(st->get(), out, err);
-        });
+        }, "PoolMetadata.pool_metadata_hash");
       }
     )
   );
@@ -28319,7 +28434,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolMetadata.from_bytes", "bytes");
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PoolMetadata.from_bytes");
       }
     )
   );
@@ -28334,7 +28449,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PoolMetadata.from_hex");
       }
     )
   );
@@ -28349,7 +28464,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_from_json(json.c_str(), out, err);
-        });
+        }, "PoolMetadata.from_json");
       }
     )
   );
@@ -28368,7 +28483,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         auto pool_metadata_hash = getPoolMetadataHashState(rt, args[1].asObject(rt), "pool_metadata_hash");
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_new(url->get(), pool_metadata_hash->get(), out, err);
-        });
+        }, "PoolMetadata.new");
       }
     )
   );
@@ -28403,11 +28518,12 @@ static jsi::Object makePoolMetadataHashInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslPoolMetadataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPoolMetadataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePoolMetadataHashInstance(rt, result);
 }
@@ -28429,7 +28545,7 @@ static jsi::Object getOrCreatePoolMetadataHashProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_to_bytes(st->get(), out, err);
-        });
+        }, "PoolMetadataHash.to_bytes");
       }
     )
   );
@@ -28445,7 +28561,7 @@ static jsi::Object getOrCreatePoolMetadataHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "PoolMetadataHash.to_bech32");
       }
     )
   );
@@ -28457,7 +28573,7 @@ static jsi::Object getOrCreatePoolMetadataHashProto(jsi::Runtime& rt) {
         auto st = getThisPoolMetadataHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_to_hex(st->get(), out, err);
-        });
+        }, "PoolMetadataHash.to_hex");
       }
     )
   );
@@ -28488,7 +28604,7 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolMetadataHash.from_bytes", "bytes");
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PoolMetadataHash.from_bytes");
       }
     )
   );
@@ -28503,7 +28619,7 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "PoolMetadataHash.from_bech32");
       }
     )
   );
@@ -28518,7 +28634,7 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_metadata_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "PoolMetadataHash.from_hex");
       }
     )
   );
@@ -28553,11 +28669,12 @@ static jsi::Object makePoolParamsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPoolParams(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPoolParams(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePoolParamsInstance(rt, result);
 }
@@ -28579,7 +28696,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_to_bytes(st->get(), out, err);
-        });
+        }, "PoolParams.to_bytes");
       }
     )
   );
@@ -28591,7 +28708,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_to_hex(st->get(), out, err);
-        });
+        }, "PoolParams.to_hex");
       }
     )
   );
@@ -28603,7 +28720,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_to_json(st->get(), out, err);
-        });
+        }, "PoolParams.to_json");
       }
     )
   );
@@ -28615,7 +28732,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_operator(st->get(), out, err);
-        });
+        }, "PoolParams.operator");
       }
     )
   );
@@ -28627,7 +28744,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_vrf_keyhash(st->get(), out, err);
-        });
+        }, "PoolParams.vrf_keyhash");
       }
     )
   );
@@ -28639,7 +28756,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_pledge(st->get(), out, err);
-        });
+        }, "PoolParams.pledge");
       }
     )
   );
@@ -28651,7 +28768,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_cost(st->get(), out, err);
-        });
+        }, "PoolParams.cost");
       }
     )
   );
@@ -28663,7 +28780,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_margin(st->get(), out, err);
-        });
+        }, "PoolParams.margin");
       }
     )
   );
@@ -28675,7 +28792,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_reward_account(st->get(), out, err);
-        });
+        }, "PoolParams.reward_account");
       }
     )
   );
@@ -28687,7 +28804,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_pool_owners(st->get(), out, err);
-        });
+        }, "PoolParams.pool_owners");
       }
     )
   );
@@ -28699,7 +28816,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_relays(st->get(), out, err);
-        });
+        }, "PoolParams.relays");
       }
     )
   );
@@ -28711,7 +28828,7 @@ static jsi::Object getOrCreatePoolParamsProto(jsi::Runtime& rt) {
         auto st = getThisPoolParamsState(rt, thisVal);
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_pool_metadata(st->get(), out, err);
-        });
+        }, "PoolParams.pool_metadata");
       }
     )
   );
@@ -28742,7 +28859,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolParams.from_bytes", "bytes");
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PoolParams.from_bytes");
       }
     )
   );
@@ -28757,7 +28874,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PoolParams.from_hex");
       }
     )
   );
@@ -28772,7 +28889,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_params_from_json(json.c_str(), out, err);
-        });
+        }, "PoolParams.from_json");
       }
     )
   );
@@ -28825,11 +28942,11 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         if (has_pool_metadata) {
           return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_pool_params_new_with_pool_metadata(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), pool_metadata->get(), out, err);
-          });
+          }, "PoolParams.new");
         } else {
           return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_pool_params_new(operator_->get(), vrf_keyhash->get(), pledge->get(), cost->get(), margin->get(), reward_account->get(), pool_owners->get(), relays->get(), out, err);
-          });
+          }, "PoolParams.new");
         }
       }
     )
@@ -28865,11 +28982,12 @@ static jsi::Object makePoolRegistrationInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslPoolRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPoolRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePoolRegistrationInstance(rt, result);
 }
@@ -28891,7 +29009,7 @@ static jsi::Object getOrCreatePoolRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisPoolRegistrationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_to_bytes(st->get(), out, err);
-        });
+        }, "PoolRegistration.to_bytes");
       }
     )
   );
@@ -28903,7 +29021,7 @@ static jsi::Object getOrCreatePoolRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisPoolRegistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_to_hex(st->get(), out, err);
-        });
+        }, "PoolRegistration.to_hex");
       }
     )
   );
@@ -28915,7 +29033,7 @@ static jsi::Object getOrCreatePoolRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisPoolRegistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_to_json(st->get(), out, err);
-        });
+        }, "PoolRegistration.to_json");
       }
     )
   );
@@ -28927,7 +29045,7 @@ static jsi::Object getOrCreatePoolRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisPoolRegistrationState(rt, thisVal);
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_pool_params(st->get(), out, err);
-        });
+        }, "PoolRegistration.pool_params");
       }
     )
   );
@@ -28958,7 +29076,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolRegistration.from_bytes", "bytes");
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PoolRegistration.from_bytes");
       }
     )
   );
@@ -28973,7 +29091,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PoolRegistration.from_hex");
       }
     )
   );
@@ -28988,7 +29106,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_from_json(json.c_str(), out, err);
-        });
+        }, "PoolRegistration.from_json");
       }
     )
   );
@@ -29003,7 +29121,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         auto pool_params = getPoolParamsState(rt, args[0].asObject(rt), "pool_params");
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_registration_new(pool_params->get(), out, err);
-        });
+        }, "PoolRegistration.new");
       }
     )
   );
@@ -29038,11 +29156,12 @@ static jsi::Object makePoolRetirementInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslPoolRetirement(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPoolRetirement(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePoolRetirementInstance(rt, result);
 }
@@ -29064,7 +29183,7 @@ static jsi::Object getOrCreatePoolRetirementProto(jsi::Runtime& rt) {
         auto st = getThisPoolRetirementState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_to_bytes(st->get(), out, err);
-        });
+        }, "PoolRetirement.to_bytes");
       }
     )
   );
@@ -29076,7 +29195,7 @@ static jsi::Object getOrCreatePoolRetirementProto(jsi::Runtime& rt) {
         auto st = getThisPoolRetirementState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_to_hex(st->get(), out, err);
-        });
+        }, "PoolRetirement.to_hex");
       }
     )
   );
@@ -29088,7 +29207,7 @@ static jsi::Object getOrCreatePoolRetirementProto(jsi::Runtime& rt) {
         auto st = getThisPoolRetirementState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_to_json(st->get(), out, err);
-        });
+        }, "PoolRetirement.to_json");
       }
     )
   );
@@ -29100,7 +29219,7 @@ static jsi::Object getOrCreatePoolRetirementProto(jsi::Runtime& rt) {
         auto st = getThisPoolRetirementState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_pool_keyhash(st->get(), out, err);
-        });
+        }, "PoolRetirement.pool_keyhash");
       }
     )
   );
@@ -29145,7 +29264,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolRetirement.from_bytes", "bytes");
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PoolRetirement.from_bytes");
       }
     )
   );
@@ -29160,7 +29279,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PoolRetirement.from_hex");
       }
     )
   );
@@ -29175,7 +29294,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_from_json(json.c_str(), out, err);
-        });
+        }, "PoolRetirement.from_json");
       }
     )
   );
@@ -29194,7 +29313,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         auto epoch = static_cast<int64_t>(args[1].asNumber());
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_retirement_new(pool_keyhash->get(), epoch, out, err);
-        });
+        }, "PoolRetirement.new");
       }
     )
   );
@@ -29229,11 +29348,12 @@ static jsi::Object makePoolVotingThresholdsInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslPoolVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPoolVotingThresholds(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePoolVotingThresholdsInstance(rt, result);
 }
@@ -29255,7 +29375,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_to_bytes(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.to_bytes");
       }
     )
   );
@@ -29267,7 +29387,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_to_hex(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.to_hex");
       }
     )
   );
@@ -29279,7 +29399,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_to_json(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.to_json");
       }
     )
   );
@@ -29291,7 +29411,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_motion_no_confidence(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.motion_no_confidence");
       }
     )
   );
@@ -29303,7 +29423,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_committee_normal(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.committee_normal");
       }
     )
   );
@@ -29315,7 +29435,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_committee_no_confidence(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.committee_no_confidence");
       }
     )
   );
@@ -29327,7 +29447,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_hard_fork_initiation(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.hard_fork_initiation");
       }
     )
   );
@@ -29339,7 +29459,7 @@ static jsi::Object getOrCreatePoolVotingThresholdsProto(jsi::Runtime& rt) {
         auto st = getThisPoolVotingThresholdsState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_security_relevant_threshold(st->get(), out, err);
-        });
+        }, "PoolVotingThresholds.security_relevant_threshold");
       }
     )
   );
@@ -29370,7 +29490,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolVotingThresholds.from_bytes", "bytes");
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PoolVotingThresholds.from_bytes");
       }
     )
   );
@@ -29385,7 +29505,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PoolVotingThresholds.from_hex");
       }
     )
   );
@@ -29400,7 +29520,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_from_json(json.c_str(), out, err);
-        });
+        }, "PoolVotingThresholds.from_json");
       }
     )
   );
@@ -29431,7 +29551,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         auto security_relevant_threshold = getUnitIntervalState(rt, args[4].asObject(rt), "security_relevant_threshold");
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_pool_voting_thresholds_new(motion_no_confidence->get(), committee_normal->get(), committee_no_confidence->get(), hard_fork_initiation->get(), security_relevant_threshold->get(), out, err);
-        });
+        }, "PoolVotingThresholds.new");
       }
     )
   );
@@ -29466,11 +29586,12 @@ static jsi::Object makePrivateKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPrivateKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePrivateKeyInstance(rt, result);
 }
@@ -29492,7 +29613,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisPrivateKeyState(rt, thisVal);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_to_public(st->get(), out, err);
-        });
+        }, "PrivateKey.to_public");
       }
     )
   );
@@ -29504,7 +29625,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisPrivateKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_private_key_to_bech32(st->get(), out, err);
-        });
+        }, "PrivateKey.to_bech32");
       }
     )
   );
@@ -29516,7 +29637,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisPrivateKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_private_key_as_bytes(st->get(), out, err);
-        });
+        }, "PrivateKey.as_bytes");
       }
     )
   );
@@ -29532,7 +29653,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         auto message = parseUint8Array(rt, args[0].asObject(rt), "PrivateKey.sign", "message");
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_sign(st->get(), message.data(), static_cast<size_t>(message.size()), out, err);
-        });
+        }, "PrivateKey.sign");
       }
     )
   );
@@ -29544,7 +29665,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         auto st = getThisPrivateKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_private_key_to_hex(st->get(), out, err);
-        });
+        }, "PrivateKey.to_hex");
       }
     )
   );
@@ -29571,7 +29692,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_generate_ed25519(out, err);
-        });
+        }, "PrivateKey.generate_ed25519");
       }
     )
   );
@@ -29582,7 +29703,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_generate_ed25519extended(out, err);
-        });
+        }, "PrivateKey.generate_ed25519extended");
       }
     )
   );
@@ -29597,7 +29718,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_bech32(bech32_str.c_str(), out, err);
-        });
+        }, "PrivateKey.from_bech32");
       }
     )
   );
@@ -29612,7 +29733,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PrivateKey.from_extended_bytes", "bytes");
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_extended_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PrivateKey.from_extended_bytes");
       }
     )
   );
@@ -29627,7 +29748,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PrivateKey.from_normal_bytes", "bytes");
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_normal_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PrivateKey.from_normal_bytes");
       }
     )
   );
@@ -29642,7 +29763,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_private_key_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PrivateKey.from_hex");
       }
     )
   );
@@ -29677,11 +29798,12 @@ static jsi::Object makeProposedProtocolParameterUpdatesInstance(jsi::Runtime& rt
   return obj;
 }
 
-static jsi::Object callCslProposedProtocolParameterUpdates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslProposedProtocolParameterUpdates(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeProposedProtocolParameterUpdatesInstance(rt, result);
 }
@@ -29703,7 +29825,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
         auto st = getThisProposedProtocolParameterUpdatesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_to_bytes(st->get(), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.to_bytes");
       }
     )
   );
@@ -29715,7 +29837,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
         auto st = getThisProposedProtocolParameterUpdatesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_to_hex(st->get(), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.to_hex");
       }
     )
   );
@@ -29727,7 +29849,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
         auto st = getThisProposedProtocolParameterUpdatesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_to_json(st->get(), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.to_json");
       }
     )
   );
@@ -29773,7 +29895,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
         return jsi::Value(callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "ProposedProtocolParameterUpdates.insert"));
       }
     )
   );
@@ -29801,7 +29923,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
         return jsi::Value(callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "ProposedProtocolParameterUpdates.get"));
       }
     )
   );
@@ -29813,7 +29935,7 @@ static jsi::Object getOrCreateProposedProtocolParameterUpdatesProto(jsi::Runtime
         auto st = getThisProposedProtocolParameterUpdatesState(rt, thisVal);
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_keys(st->get(), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.keys");
       }
     )
   );
@@ -29844,7 +29966,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ProposedProtocolParameterUpdates.from_bytes", "bytes");
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.from_bytes");
       }
     )
   );
@@ -29859,7 +29981,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.from_hex");
       }
     )
   );
@@ -29874,7 +29996,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_from_json(json.c_str(), out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.from_json");
       }
     )
   );
@@ -29885,7 +30007,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_proposed_protocol_parameter_updates_new(out, err);
-        });
+        }, "ProposedProtocolParameterUpdates.new");
       }
     )
   );
@@ -29920,11 +30042,12 @@ static jsi::Object makeProtocolParamUpdateInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslProtocolParamUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslProtocolParamUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeProtocolParamUpdateInstance(rt, result);
 }
@@ -29946,7 +30069,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_to_bytes(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.to_bytes");
       }
     )
   );
@@ -29958,7 +30081,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_to_hex(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.to_hex");
       }
     )
   );
@@ -29970,7 +30093,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_to_json(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.to_json");
       }
     )
   );
@@ -30000,7 +30123,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_minfee_a(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.minfee_a");
       }
     )
   );
@@ -30030,7 +30153,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_minfee_b(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.minfee_b");
       }
     )
   );
@@ -30156,7 +30279,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_key_deposit(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.key_deposit");
       }
     )
   );
@@ -30186,7 +30309,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_pool_deposit(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.pool_deposit");
       }
     )
   );
@@ -30280,7 +30403,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_pool_pledge_influence(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.pool_pledge_influence");
       }
     )
   );
@@ -30310,7 +30433,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_expansion_rate(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.expansion_rate");
       }
     )
   );
@@ -30340,7 +30463,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_treasury_growth_rate(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.treasury_growth_rate");
       }
     )
   );
@@ -30352,7 +30475,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_d(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.d");
       }
     )
   );
@@ -30364,7 +30487,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_extra_entropy(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.extra_entropy");
       }
     )
   );
@@ -30394,7 +30517,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_protocol_version(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.protocol_version");
       }
     )
   );
@@ -30424,7 +30547,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_min_pool_cost(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.min_pool_cost");
       }
     )
   );
@@ -30454,7 +30577,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_ada_per_utxo_byte(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.ada_per_utxo_byte");
       }
     )
   );
@@ -30484,7 +30607,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_cost_models(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.cost_models");
       }
     )
   );
@@ -30514,7 +30637,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_execution_costs(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.execution_costs");
       }
     )
   );
@@ -30544,7 +30667,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_max_tx_ex_units(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.max_tx_ex_units");
       }
     )
   );
@@ -30574,7 +30697,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_max_block_ex_units(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.max_block_ex_units");
       }
     )
   );
@@ -30700,7 +30823,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_pool_voting_thresholds(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.pool_voting_thresholds");
       }
     )
   );
@@ -30730,7 +30853,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_drep_voting_thresholds(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.drep_voting_thresholds");
       }
     )
   );
@@ -30856,7 +30979,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_governance_action_deposit(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.governance_action_deposit");
       }
     )
   );
@@ -30886,7 +31009,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_drep_deposit(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.drep_deposit");
       }
     )
   );
@@ -30948,7 +31071,7 @@ static jsi::Object getOrCreateProtocolParamUpdateProto(jsi::Runtime& rt) {
         auto st = getThisProtocolParamUpdateState(rt, thisVal);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_ref_script_coins_per_byte(st->get(), out, err);
-        });
+        }, "ProtocolParamUpdate.ref_script_coins_per_byte");
       }
     )
   );
@@ -30979,7 +31102,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ProtocolParamUpdate.from_bytes", "bytes");
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ProtocolParamUpdate.from_bytes");
       }
     )
   );
@@ -30994,7 +31117,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ProtocolParamUpdate.from_hex");
       }
     )
   );
@@ -31009,7 +31132,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_from_json(json.c_str(), out, err);
-        });
+        }, "ProtocolParamUpdate.from_json");
       }
     )
   );
@@ -31020,7 +31143,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_param_update_new(out, err);
-        });
+        }, "ProtocolParamUpdate.new");
       }
     )
   );
@@ -31055,11 +31178,12 @@ static jsi::Object makeProtocolVersionInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslProtocolVersion(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslProtocolVersion(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeProtocolVersionInstance(rt, result);
 }
@@ -31081,7 +31205,7 @@ static jsi::Object getOrCreateProtocolVersionProto(jsi::Runtime& rt) {
         auto st = getThisProtocolVersionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_to_bytes(st->get(), out, err);
-        });
+        }, "ProtocolVersion.to_bytes");
       }
     )
   );
@@ -31093,7 +31217,7 @@ static jsi::Object getOrCreateProtocolVersionProto(jsi::Runtime& rt) {
         auto st = getThisProtocolVersionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_to_hex(st->get(), out, err);
-        });
+        }, "ProtocolVersion.to_hex");
       }
     )
   );
@@ -31105,7 +31229,7 @@ static jsi::Object getOrCreateProtocolVersionProto(jsi::Runtime& rt) {
         auto st = getThisProtocolVersionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_to_json(st->get(), out, err);
-        });
+        }, "ProtocolVersion.to_json");
       }
     )
   );
@@ -31164,7 +31288,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ProtocolVersion.from_bytes", "bytes");
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ProtocolVersion.from_bytes");
       }
     )
   );
@@ -31179,7 +31303,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ProtocolVersion.from_hex");
       }
     )
   );
@@ -31194,7 +31318,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_from_json(json.c_str(), out, err);
-        });
+        }, "ProtocolVersion.from_json");
       }
     )
   );
@@ -31213,7 +31337,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         auto minor = static_cast<int64_t>(args[1].asNumber());
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_protocol_version_new(major, minor, out, err);
-        });
+        }, "ProtocolVersion.new");
       }
     )
   );
@@ -31248,11 +31372,12 @@ static jsi::Object makePublicKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPublicKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePublicKeyInstance(rt, result);
 }
@@ -31274,7 +31399,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisPublicKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_public_key_to_bech32(st->get(), out, err);
-        });
+        }, "PublicKey.to_bech32");
       }
     )
   );
@@ -31286,7 +31411,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisPublicKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_public_key_as_bytes(st->get(), out, err);
-        });
+        }, "PublicKey.as_bytes");
       }
     )
   );
@@ -31320,7 +31445,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisPublicKeyState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_hash(st->get(), out, err);
-        });
+        }, "PublicKey.hash");
       }
     )
   );
@@ -31332,7 +31457,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         auto st = getThisPublicKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_public_key_to_hex(st->get(), out, err);
-        });
+        }, "PublicKey.to_hex");
       }
     )
   );
@@ -31363,7 +31488,7 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
         std::string bech32_str = args[0].asString(rt).utf8(rt);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_from_bech32(bech32_str.c_str(), out, err);
-        });
+        }, "PublicKey.from_bech32");
       }
     )
   );
@@ -31378,7 +31503,7 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PublicKey.from_bytes", "bytes");
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "PublicKey.from_bytes");
       }
     )
   );
@@ -31393,7 +31518,7 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_key_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "PublicKey.from_hex");
       }
     )
   );
@@ -31428,11 +31553,12 @@ static jsi::Object makePublicKeysInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslPublicKeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslPublicKeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makePublicKeysInstance(rt, result);
 }
@@ -31484,7 +31610,7 @@ static jsi::Object getOrCreatePublicKeysProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "PublicKeys.get"));
       }
     )
   );
@@ -31529,7 +31655,7 @@ static jsi::Object makePublicKeysExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslPublicKeys(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_public_keys_new(out, err);
-        });
+        }, "PublicKeys.new");
       }
     )
   );
@@ -31564,11 +31690,12 @@ static jsi::Object makeRedeemerInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRedeemer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRedeemer(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRedeemerInstance(rt, result);
 }
@@ -31590,7 +31717,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_to_bytes(st->get(), out, err);
-        });
+        }, "Redeemer.to_bytes");
       }
     )
   );
@@ -31602,7 +31729,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_to_hex(st->get(), out, err);
-        });
+        }, "Redeemer.to_hex");
       }
     )
   );
@@ -31614,7 +31741,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_to_json(st->get(), out, err);
-        });
+        }, "Redeemer.to_json");
       }
     )
   );
@@ -31626,7 +31753,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag(st->get(), out, err);
-        });
+        }, "Redeemer.tag");
       }
     )
   );
@@ -31638,7 +31765,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_index(st->get(), out, err);
-        });
+        }, "Redeemer.index");
       }
     )
   );
@@ -31650,7 +31777,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_data(st->get(), out, err);
-        });
+        }, "Redeemer.data");
       }
     )
   );
@@ -31662,7 +31789,7 @@ static jsi::Object getOrCreateRedeemerProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerState(rt, thisVal);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_ex_units(st->get(), out, err);
-        });
+        }, "Redeemer.ex_units");
       }
     )
   );
@@ -31693,7 +31820,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Redeemer.from_bytes", "bytes");
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Redeemer.from_bytes");
       }
     )
   );
@@ -31708,7 +31835,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Redeemer.from_hex");
       }
     )
   );
@@ -31723,7 +31850,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_from_json(json.c_str(), out, err);
-        });
+        }, "Redeemer.from_json");
       }
     )
   );
@@ -31750,7 +31877,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         auto ex_units = getExUnitsState(rt, args[3].asObject(rt), "ex_units");
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_new(tag->get(), index->get(), data->get(), ex_units->get(), out, err);
-        });
+        }, "Redeemer.new");
       }
     )
   );
@@ -31785,11 +31912,12 @@ static jsi::Object makeRedeemerTagInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRedeemerTag(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRedeemerTag(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRedeemerTagInstance(rt, result);
 }
@@ -31811,7 +31939,7 @@ static jsi::Object getOrCreateRedeemerTagProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerTagState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_to_bytes(st->get(), out, err);
-        });
+        }, "RedeemerTag.to_bytes");
       }
     )
   );
@@ -31823,7 +31951,7 @@ static jsi::Object getOrCreateRedeemerTagProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerTagState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_to_hex(st->get(), out, err);
-        });
+        }, "RedeemerTag.to_hex");
       }
     )
   );
@@ -31835,7 +31963,7 @@ static jsi::Object getOrCreateRedeemerTagProto(jsi::Runtime& rt) {
         auto st = getThisRedeemerTagState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_to_json(st->get(), out, err);
-        });
+        }, "RedeemerTag.to_json");
       }
     )
   );
@@ -31880,7 +32008,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "RedeemerTag.from_bytes", "bytes");
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "RedeemerTag.from_bytes");
       }
     )
   );
@@ -31895,7 +32023,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "RedeemerTag.from_hex");
       }
     )
   );
@@ -31910,7 +32038,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_from_json(json.c_str(), out, err);
-        });
+        }, "RedeemerTag.from_json");
       }
     )
   );
@@ -31921,7 +32049,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_new_spend(out, err);
-        });
+        }, "RedeemerTag.new_spend");
       }
     )
   );
@@ -31932,7 +32060,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_new_mint(out, err);
-        });
+        }, "RedeemerTag.new_mint");
       }
     )
   );
@@ -31943,7 +32071,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_new_cert(out, err);
-        });
+        }, "RedeemerTag.new_cert");
       }
     )
   );
@@ -31954,7 +32082,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_new_reward(out, err);
-        });
+        }, "RedeemerTag.new_reward");
       }
     )
   );
@@ -31965,7 +32093,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_new_vote(out, err);
-        });
+        }, "RedeemerTag.new_vote");
       }
     )
   );
@@ -31976,7 +32104,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemer_tag_new_voting_proposal(out, err);
-        });
+        }, "RedeemerTag.new_voting_proposal");
       }
     )
   );
@@ -32011,11 +32139,12 @@ static jsi::Object makeRedeemersInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRedeemers(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRedeemers(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRedeemersInstance(rt, result);
 }
@@ -32037,7 +32166,7 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
         auto st = getThisRedeemersState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_to_bytes(st->get(), out, err);
-        });
+        }, "Redeemers.to_bytes");
       }
     )
   );
@@ -32049,7 +32178,7 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
         auto st = getThisRedeemersState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_to_hex(st->get(), out, err);
-        });
+        }, "Redeemers.to_hex");
       }
     )
   );
@@ -32061,7 +32190,7 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
         auto st = getThisRedeemersState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_to_json(st->get(), out, err);
-        });
+        }, "Redeemers.to_json");
       }
     )
   );
@@ -32103,7 +32232,7 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
         return jsi::Value(callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Redeemers.get"));
       }
     )
   );
@@ -32147,7 +32276,7 @@ static jsi::Object getOrCreateRedeemersProto(jsi::Runtime& rt) {
         auto st = getThisRedeemersState(rt, thisVal);
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_total_ex_units(st->get(), out, err);
-        });
+        }, "Redeemers.total_ex_units");
       }
     )
   );
@@ -32178,7 +32307,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Redeemers.from_bytes", "bytes");
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Redeemers.from_bytes");
       }
     )
   );
@@ -32193,7 +32322,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Redeemers.from_hex");
       }
     )
   );
@@ -32208,7 +32337,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_from_json(json.c_str(), out, err);
-        });
+        }, "Redeemers.from_json");
       }
     )
   );
@@ -32219,7 +32348,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_redeemers_new(out, err);
-        });
+        }, "Redeemers.new");
       }
     )
   );
@@ -32254,11 +32383,12 @@ static jsi::Object makeRelayInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRelay(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRelay(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRelayInstance(rt, result);
 }
@@ -32280,7 +32410,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
         auto st = getThisRelayState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_relay_to_bytes(st->get(), out, err);
-        });
+        }, "Relay.to_bytes");
       }
     )
   );
@@ -32292,7 +32422,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
         auto st = getThisRelayState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_relay_to_hex(st->get(), out, err);
-        });
+        }, "Relay.to_hex");
       }
     )
   );
@@ -32304,7 +32434,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
         auto st = getThisRelayState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_relay_to_json(st->get(), out, err);
-        });
+        }, "Relay.to_json");
       }
     )
   );
@@ -32330,7 +32460,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
         auto st = getThisRelayState(rt, thisVal);
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_as_single_host_addr(st->get(), out, err);
-        });
+        }, "Relay.as_single_host_addr");
       }
     )
   );
@@ -32342,7 +32472,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
         auto st = getThisRelayState(rt, thisVal);
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_as_single_host_name(st->get(), out, err);
-        });
+        }, "Relay.as_single_host_name");
       }
     )
   );
@@ -32354,7 +32484,7 @@ static jsi::Object getOrCreateRelayProto(jsi::Runtime& rt) {
         auto st = getThisRelayState(rt, thisVal);
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_as_multi_host_name(st->get(), out, err);
-        });
+        }, "Relay.as_multi_host_name");
       }
     )
   );
@@ -32385,7 +32515,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Relay.from_bytes", "bytes");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Relay.from_bytes");
       }
     )
   );
@@ -32400,7 +32530,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Relay.from_hex");
       }
     )
   );
@@ -32415,7 +32545,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_from_json(json.c_str(), out, err);
-        });
+        }, "Relay.from_json");
       }
     )
   );
@@ -32430,7 +32560,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         auto single_host_addr = getSingleHostAddrState(rt, args[0].asObject(rt), "single_host_addr");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_new_single_host_addr(single_host_addr->get(), out, err);
-        });
+        }, "Relay.new_single_host_addr");
       }
     )
   );
@@ -32445,7 +32575,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         auto single_host_name = getSingleHostNameState(rt, args[0].asObject(rt), "single_host_name");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_new_single_host_name(single_host_name->get(), out, err);
-        });
+        }, "Relay.new_single_host_name");
       }
     )
   );
@@ -32460,7 +32590,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         auto multi_host_name = getMultiHostNameState(rt, args[0].asObject(rt), "multi_host_name");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relay_new_multi_host_name(multi_host_name->get(), out, err);
-        });
+        }, "Relay.new_multi_host_name");
       }
     )
   );
@@ -32495,11 +32625,12 @@ static jsi::Object makeRelaysInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslRelays(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRelays(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRelaysInstance(rt, result);
 }
@@ -32521,7 +32652,7 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
         auto st = getThisRelaysState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_relays_to_bytes(st->get(), out, err);
-        });
+        }, "Relays.to_bytes");
       }
     )
   );
@@ -32533,7 +32664,7 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
         auto st = getThisRelaysState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_relays_to_hex(st->get(), out, err);
-        });
+        }, "Relays.to_hex");
       }
     )
   );
@@ -32545,7 +32676,7 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
         auto st = getThisRelaysState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_relays_to_json(st->get(), out, err);
-        });
+        }, "Relays.to_json");
       }
     )
   );
@@ -32587,7 +32718,7 @@ static jsi::Object getOrCreateRelaysProto(jsi::Runtime& rt) {
         return jsi::Value(callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Relays.get"));
       }
     )
   );
@@ -32636,7 +32767,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Relays.from_bytes", "bytes");
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Relays.from_bytes");
       }
     )
   );
@@ -32651,7 +32782,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Relays.from_hex");
       }
     )
   );
@@ -32666,7 +32797,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_from_json(json.c_str(), out, err);
-        });
+        }, "Relays.from_json");
       }
     )
   );
@@ -32677,7 +32808,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_relays_new(out, err);
-        });
+        }, "Relays.new");
       }
     )
   );
@@ -32712,11 +32843,12 @@ static jsi::Object makeRewardAddressInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslRewardAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRewardAddress(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRewardAddressInstance(rt, result);
 }
@@ -32738,7 +32870,7 @@ static jsi::Object getOrCreateRewardAddressProto(jsi::Runtime& rt) {
         auto st = getThisRewardAddressState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_address_payment_cred(st->get(), out, err);
-        });
+        }, "RewardAddress.payment_cred");
       }
     )
   );
@@ -32750,7 +32882,7 @@ static jsi::Object getOrCreateRewardAddressProto(jsi::Runtime& rt) {
         auto st = getThisRewardAddressState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_address_to_address(st->get(), out, err);
-        });
+        }, "RewardAddress.to_address");
       }
     )
   );
@@ -32799,7 +32931,7 @@ static jsi::Object makeRewardAddressExport(jsi::Runtime& rt) {
         auto payment = getCredentialState(rt, args[1].asObject(rt), "payment");
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_address_new(network, payment->get(), out, err);
-        });
+        }, "RewardAddress.new");
       }
     )
   );
@@ -32814,7 +32946,7 @@ static jsi::Object makeRewardAddressExport(jsi::Runtime& rt) {
         auto addr = getAddressState(rt, args[0].asObject(rt), "addr");
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_address_from_address(addr->get(), out, err);
-        });
+        }, "RewardAddress.from_address");
       }
     )
   );
@@ -32849,11 +32981,12 @@ static jsi::Object makeRewardAddressesInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslRewardAddresses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslRewardAddresses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeRewardAddressesInstance(rt, result);
 }
@@ -32875,7 +33008,7 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
         auto st = getThisRewardAddressesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_to_bytes(st->get(), out, err);
-        });
+        }, "RewardAddresses.to_bytes");
       }
     )
   );
@@ -32887,7 +33020,7 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
         auto st = getThisRewardAddressesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_to_hex(st->get(), out, err);
-        });
+        }, "RewardAddresses.to_hex");
       }
     )
   );
@@ -32899,7 +33032,7 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
         auto st = getThisRewardAddressesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_to_json(st->get(), out, err);
-        });
+        }, "RewardAddresses.to_json");
       }
     )
   );
@@ -32941,7 +33074,7 @@ static jsi::Object getOrCreateRewardAddressesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "RewardAddresses.get"));
       }
     )
   );
@@ -32990,7 +33123,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "RewardAddresses.from_bytes", "bytes");
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "RewardAddresses.from_bytes");
       }
     )
   );
@@ -33005,7 +33138,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "RewardAddresses.from_hex");
       }
     )
   );
@@ -33020,7 +33153,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_from_json(json.c_str(), out, err);
-        });
+        }, "RewardAddresses.from_json");
       }
     )
   );
@@ -33031,7 +33164,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_reward_addresses_new(out, err);
-        });
+        }, "RewardAddresses.new");
       }
     )
   );
@@ -33066,11 +33199,12 @@ static jsi::Object makeScriptAllInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptAll(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptAll(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptAllInstance(rt, result);
 }
@@ -33092,7 +33226,7 @@ static jsi::Object getOrCreateScriptAllProto(jsi::Runtime& rt) {
         auto st = getThisScriptAllState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_all_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptAll.to_bytes");
       }
     )
   );
@@ -33104,7 +33238,7 @@ static jsi::Object getOrCreateScriptAllProto(jsi::Runtime& rt) {
         auto st = getThisScriptAllState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_all_to_hex(st->get(), out, err);
-        });
+        }, "ScriptAll.to_hex");
       }
     )
   );
@@ -33116,7 +33250,7 @@ static jsi::Object getOrCreateScriptAllProto(jsi::Runtime& rt) {
         auto st = getThisScriptAllState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_all_to_json(st->get(), out, err);
-        });
+        }, "ScriptAll.to_json");
       }
     )
   );
@@ -33128,7 +33262,7 @@ static jsi::Object getOrCreateScriptAllProto(jsi::Runtime& rt) {
         auto st = getThisScriptAllState(rt, thisVal);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_native_scripts(st->get(), out, err);
-        });
+        }, "ScriptAll.native_scripts");
       }
     )
   );
@@ -33159,7 +33293,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptAll.from_bytes", "bytes");
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptAll.from_bytes");
       }
     )
   );
@@ -33174,7 +33308,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ScriptAll.from_hex");
       }
     )
   );
@@ -33189,7 +33323,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_from_json(json.c_str(), out, err);
-        });
+        }, "ScriptAll.from_json");
       }
     )
   );
@@ -33204,7 +33338,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         auto native_scripts = getNativeScriptsState(rt, args[0].asObject(rt), "native_scripts");
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_all_new(native_scripts->get(), out, err);
-        });
+        }, "ScriptAll.new");
       }
     )
   );
@@ -33239,11 +33373,12 @@ static jsi::Object makeScriptAnyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptAny(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptAny(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptAnyInstance(rt, result);
 }
@@ -33265,7 +33400,7 @@ static jsi::Object getOrCreateScriptAnyProto(jsi::Runtime& rt) {
         auto st = getThisScriptAnyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_any_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptAny.to_bytes");
       }
     )
   );
@@ -33277,7 +33412,7 @@ static jsi::Object getOrCreateScriptAnyProto(jsi::Runtime& rt) {
         auto st = getThisScriptAnyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_any_to_hex(st->get(), out, err);
-        });
+        }, "ScriptAny.to_hex");
       }
     )
   );
@@ -33289,7 +33424,7 @@ static jsi::Object getOrCreateScriptAnyProto(jsi::Runtime& rt) {
         auto st = getThisScriptAnyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_any_to_json(st->get(), out, err);
-        });
+        }, "ScriptAny.to_json");
       }
     )
   );
@@ -33301,7 +33436,7 @@ static jsi::Object getOrCreateScriptAnyProto(jsi::Runtime& rt) {
         auto st = getThisScriptAnyState(rt, thisVal);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_native_scripts(st->get(), out, err);
-        });
+        }, "ScriptAny.native_scripts");
       }
     )
   );
@@ -33332,7 +33467,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptAny.from_bytes", "bytes");
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptAny.from_bytes");
       }
     )
   );
@@ -33347,7 +33482,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ScriptAny.from_hex");
       }
     )
   );
@@ -33362,7 +33497,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_from_json(json.c_str(), out, err);
-        });
+        }, "ScriptAny.from_json");
       }
     )
   );
@@ -33377,7 +33512,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         auto native_scripts = getNativeScriptsState(rt, args[0].asObject(rt), "native_scripts");
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_any_new(native_scripts->get(), out, err);
-        });
+        }, "ScriptAny.new");
       }
     )
   );
@@ -33412,11 +33547,12 @@ static jsi::Object makeScriptDataHashInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslScriptDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptDataHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptDataHashInstance(rt, result);
 }
@@ -33438,7 +33574,7 @@ static jsi::Object getOrCreateScriptDataHashProto(jsi::Runtime& rt) {
         auto st = getThisScriptDataHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptDataHash.to_bytes");
       }
     )
   );
@@ -33454,7 +33590,7 @@ static jsi::Object getOrCreateScriptDataHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "ScriptDataHash.to_bech32");
       }
     )
   );
@@ -33466,7 +33602,7 @@ static jsi::Object getOrCreateScriptDataHashProto(jsi::Runtime& rt) {
         auto st = getThisScriptDataHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_to_hex(st->get(), out, err);
-        });
+        }, "ScriptDataHash.to_hex");
       }
     )
   );
@@ -33497,7 +33633,7 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptDataHash.from_bytes", "bytes");
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptDataHash.from_bytes");
       }
     )
   );
@@ -33512,7 +33648,7 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "ScriptDataHash.from_bech32");
       }
     )
   );
@@ -33527,7 +33663,7 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_data_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "ScriptDataHash.from_hex");
       }
     )
   );
@@ -33562,11 +33698,12 @@ static jsi::Object makeScriptHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptHashInstance(rt, result);
 }
@@ -33588,7 +33725,7 @@ static jsi::Object getOrCreateScriptHashProto(jsi::Runtime& rt) {
         auto st = getThisScriptHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptHash.to_bytes");
       }
     )
   );
@@ -33604,7 +33741,7 @@ static jsi::Object getOrCreateScriptHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "ScriptHash.to_bech32");
       }
     )
   );
@@ -33616,7 +33753,7 @@ static jsi::Object getOrCreateScriptHashProto(jsi::Runtime& rt) {
         auto st = getThisScriptHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_to_hex(st->get(), out, err);
-        });
+        }, "ScriptHash.to_hex");
       }
     )
   );
@@ -33647,7 +33784,7 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptHash.from_bytes", "bytes");
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptHash.from_bytes");
       }
     )
   );
@@ -33662,7 +33799,7 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "ScriptHash.from_bech32");
       }
     )
   );
@@ -33677,7 +33814,7 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "ScriptHash.from_hex");
       }
     )
   );
@@ -33712,11 +33849,12 @@ static jsi::Object makeScriptHashesInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptHashes(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptHashesInstance(rt, result);
 }
@@ -33738,7 +33876,7 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
         auto st = getThisScriptHashesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptHashes.to_bytes");
       }
     )
   );
@@ -33750,7 +33888,7 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
         auto st = getThisScriptHashesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_to_hex(st->get(), out, err);
-        });
+        }, "ScriptHashes.to_hex");
       }
     )
   );
@@ -33762,7 +33900,7 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
         auto st = getThisScriptHashesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_to_json(st->get(), out, err);
-        });
+        }, "ScriptHashes.to_json");
       }
     )
   );
@@ -33804,7 +33942,7 @@ static jsi::Object getOrCreateScriptHashesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "ScriptHashes.get"));
       }
     )
   );
@@ -33853,7 +33991,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptHashes.from_bytes", "bytes");
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptHashes.from_bytes");
       }
     )
   );
@@ -33868,7 +34006,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ScriptHashes.from_hex");
       }
     )
   );
@@ -33883,7 +34021,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_from_json(json.c_str(), out, err);
-        });
+        }, "ScriptHashes.from_json");
       }
     )
   );
@@ -33894,7 +34032,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_hashes_new(out, err);
-        });
+        }, "ScriptHashes.new");
       }
     )
   );
@@ -33929,11 +34067,12 @@ static jsi::Object makeScriptNOfKInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptNOfK(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptNOfK(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptNOfKInstance(rt, result);
 }
@@ -33955,7 +34094,7 @@ static jsi::Object getOrCreateScriptNOfKProto(jsi::Runtime& rt) {
         auto st = getThisScriptNOfKState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptNOfK.to_bytes");
       }
     )
   );
@@ -33967,7 +34106,7 @@ static jsi::Object getOrCreateScriptNOfKProto(jsi::Runtime& rt) {
         auto st = getThisScriptNOfKState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_to_hex(st->get(), out, err);
-        });
+        }, "ScriptNOfK.to_hex");
       }
     )
   );
@@ -33979,7 +34118,7 @@ static jsi::Object getOrCreateScriptNOfKProto(jsi::Runtime& rt) {
         auto st = getThisScriptNOfKState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_to_json(st->get(), out, err);
-        });
+        }, "ScriptNOfK.to_json");
       }
     )
   );
@@ -34005,7 +34144,7 @@ static jsi::Object getOrCreateScriptNOfKProto(jsi::Runtime& rt) {
         auto st = getThisScriptNOfKState(rt, thisVal);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_native_scripts(st->get(), out, err);
-        });
+        }, "ScriptNOfK.native_scripts");
       }
     )
   );
@@ -34036,7 +34175,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptNOfK.from_bytes", "bytes");
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptNOfK.from_bytes");
       }
     )
   );
@@ -34051,7 +34190,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ScriptNOfK.from_hex");
       }
     )
   );
@@ -34066,7 +34205,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_from_json(json.c_str(), out, err);
-        });
+        }, "ScriptNOfK.from_json");
       }
     )
   );
@@ -34085,7 +34224,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         auto native_scripts = getNativeScriptsState(rt, args[1].asObject(rt), "native_scripts");
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_n_of_k_new(n, native_scripts->get(), out, err);
-        });
+        }, "ScriptNOfK.new");
       }
     )
   );
@@ -34120,11 +34259,12 @@ static jsi::Object makeScriptPubkeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptPubkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptPubkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptPubkeyInstance(rt, result);
 }
@@ -34146,7 +34286,7 @@ static jsi::Object getOrCreateScriptPubkeyProto(jsi::Runtime& rt) {
         auto st = getThisScriptPubkeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptPubkey.to_bytes");
       }
     )
   );
@@ -34158,7 +34298,7 @@ static jsi::Object getOrCreateScriptPubkeyProto(jsi::Runtime& rt) {
         auto st = getThisScriptPubkeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_to_hex(st->get(), out, err);
-        });
+        }, "ScriptPubkey.to_hex");
       }
     )
   );
@@ -34170,7 +34310,7 @@ static jsi::Object getOrCreateScriptPubkeyProto(jsi::Runtime& rt) {
         auto st = getThisScriptPubkeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_to_json(st->get(), out, err);
-        });
+        }, "ScriptPubkey.to_json");
       }
     )
   );
@@ -34182,7 +34322,7 @@ static jsi::Object getOrCreateScriptPubkeyProto(jsi::Runtime& rt) {
         auto st = getThisScriptPubkeyState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_addr_keyhash(st->get(), out, err);
-        });
+        }, "ScriptPubkey.addr_keyhash");
       }
     )
   );
@@ -34213,7 +34353,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptPubkey.from_bytes", "bytes");
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptPubkey.from_bytes");
       }
     )
   );
@@ -34228,7 +34368,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ScriptPubkey.from_hex");
       }
     )
   );
@@ -34243,7 +34383,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_from_json(json.c_str(), out, err);
-        });
+        }, "ScriptPubkey.from_json");
       }
     )
   );
@@ -34258,7 +34398,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         auto addr_keyhash = getEd25519KeyHashState(rt, args[0].asObject(rt), "addr_keyhash");
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_pubkey_new(addr_keyhash->get(), out, err);
-        });
+        }, "ScriptPubkey.new");
       }
     )
   );
@@ -34293,11 +34433,12 @@ static jsi::Object makeScriptRefInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslScriptRef(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslScriptRef(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeScriptRefInstance(rt, result);
 }
@@ -34319,7 +34460,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
         auto st = getThisScriptRefState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_to_bytes(st->get(), out, err);
-        });
+        }, "ScriptRef.to_bytes");
       }
     )
   );
@@ -34331,7 +34472,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
         auto st = getThisScriptRefState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_to_hex(st->get(), out, err);
-        });
+        }, "ScriptRef.to_hex");
       }
     )
   );
@@ -34343,7 +34484,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
         auto st = getThisScriptRefState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_to_json(st->get(), out, err);
-        });
+        }, "ScriptRef.to_json");
       }
     )
   );
@@ -34383,7 +34524,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
         auto st = getThisScriptRefState(rt, thisVal);
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_native_script(st->get(), out, err);
-        });
+        }, "ScriptRef.native_script");
       }
     )
   );
@@ -34395,7 +34536,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
         auto st = getThisScriptRefState(rt, thisVal);
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_plutus_script(st->get(), out, err);
-        });
+        }, "ScriptRef.plutus_script");
       }
     )
   );
@@ -34407,7 +34548,7 @@ static jsi::Object getOrCreateScriptRefProto(jsi::Runtime& rt) {
         auto st = getThisScriptRefState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_to_unwrapped_bytes(st->get(), out, err);
-        });
+        }, "ScriptRef.to_unwrapped_bytes");
       }
     )
   );
@@ -34438,7 +34579,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptRef.from_bytes", "bytes");
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "ScriptRef.from_bytes");
       }
     )
   );
@@ -34453,7 +34594,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "ScriptRef.from_hex");
       }
     )
   );
@@ -34468,7 +34609,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_from_json(json.c_str(), out, err);
-        });
+        }, "ScriptRef.from_json");
       }
     )
   );
@@ -34483,7 +34624,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         auto native_script = getNativeScriptState(rt, args[0].asObject(rt), "native_script");
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_new_native_script(native_script->get(), out, err);
-        });
+        }, "ScriptRef.new_native_script");
       }
     )
   );
@@ -34498,7 +34639,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         auto plutus_script = getPlutusScriptState(rt, args[0].asObject(rt), "plutus_script");
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_script_ref_new_plutus_script(plutus_script->get(), out, err);
-        });
+        }, "ScriptRef.new_plutus_script");
       }
     )
   );
@@ -34533,11 +34674,12 @@ static jsi::Object makeSingleHostAddrInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslSingleHostAddr(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslSingleHostAddr(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeSingleHostAddrInstance(rt, result);
 }
@@ -34559,7 +34701,7 @@ static jsi::Object getOrCreateSingleHostAddrProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostAddrState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_to_bytes(st->get(), out, err);
-        });
+        }, "SingleHostAddr.to_bytes");
       }
     )
   );
@@ -34571,7 +34713,7 @@ static jsi::Object getOrCreateSingleHostAddrProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostAddrState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_to_hex(st->get(), out, err);
-        });
+        }, "SingleHostAddr.to_hex");
       }
     )
   );
@@ -34583,7 +34725,7 @@ static jsi::Object getOrCreateSingleHostAddrProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostAddrState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_to_json(st->get(), out, err);
-        });
+        }, "SingleHostAddr.to_json");
       }
     )
   );
@@ -34609,7 +34751,7 @@ static jsi::Object getOrCreateSingleHostAddrProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostAddrState(rt, thisVal);
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_ipv4(st->get(), out, err);
-        });
+        }, "SingleHostAddr.ipv4");
       }
     )
   );
@@ -34621,7 +34763,7 @@ static jsi::Object getOrCreateSingleHostAddrProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostAddrState(rt, thisVal);
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_ipv6(st->get(), out, err);
-        });
+        }, "SingleHostAddr.ipv6");
       }
     )
   );
@@ -34652,7 +34794,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "SingleHostAddr.from_bytes", "bytes");
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "SingleHostAddr.from_bytes");
       }
     )
   );
@@ -34667,7 +34809,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "SingleHostAddr.from_hex");
       }
     )
   );
@@ -34682,7 +34824,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_addr_from_json(json.c_str(), out, err);
-        });
+        }, "SingleHostAddr.from_json");
       }
     )
   );
@@ -34723,21 +34865,21 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
             if (has_ipv6) {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_port_ipv4_ipv6(port, ipv4->get(), ipv6->get(), out, err);
-              });
+              }, "SingleHostAddr.new");
             } else {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_port_ipv4(port, ipv4->get(), out, err);
-              });
+              }, "SingleHostAddr.new");
             }
           } else {
             if (has_ipv6) {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_port_ipv6(port, ipv6->get(), out, err);
-              });
+              }, "SingleHostAddr.new");
             } else {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_port(port, out, err);
-              });
+              }, "SingleHostAddr.new");
             }
           }
         } else {
@@ -34745,21 +34887,21 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
             if (has_ipv6) {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_ipv4_ipv6(ipv4->get(), ipv6->get(), out, err);
-              });
+              }, "SingleHostAddr.new");
             } else {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_ipv4(ipv4->get(), out, err);
-              });
+              }, "SingleHostAddr.new");
             }
           } else {
             if (has_ipv6) {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new_with_ipv6(ipv6->get(), out, err);
-              });
+              }, "SingleHostAddr.new");
             } else {
               return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
                 return csl_bridge_single_host_addr_new(out, err);
-              });
+              }, "SingleHostAddr.new");
             }
           }
         }
@@ -34797,11 +34939,12 @@ static jsi::Object makeSingleHostNameInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslSingleHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslSingleHostName(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeSingleHostNameInstance(rt, result);
 }
@@ -34823,7 +34966,7 @@ static jsi::Object getOrCreateSingleHostNameProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostNameState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_to_bytes(st->get(), out, err);
-        });
+        }, "SingleHostName.to_bytes");
       }
     )
   );
@@ -34835,7 +34978,7 @@ static jsi::Object getOrCreateSingleHostNameProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostNameState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_to_hex(st->get(), out, err);
-        });
+        }, "SingleHostName.to_hex");
       }
     )
   );
@@ -34847,7 +34990,7 @@ static jsi::Object getOrCreateSingleHostNameProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostNameState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_to_json(st->get(), out, err);
-        });
+        }, "SingleHostName.to_json");
       }
     )
   );
@@ -34873,7 +35016,7 @@ static jsi::Object getOrCreateSingleHostNameProto(jsi::Runtime& rt) {
         auto st = getThisSingleHostNameState(rt, thisVal);
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_dns_name(st->get(), out, err);
-        });
+        }, "SingleHostName.dns_name");
       }
     )
   );
@@ -34904,7 +35047,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "SingleHostName.from_bytes", "bytes");
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "SingleHostName.from_bytes");
       }
     )
   );
@@ -34919,7 +35062,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "SingleHostName.from_hex");
       }
     )
   );
@@ -34934,7 +35077,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_single_host_name_from_json(json.c_str(), out, err);
-        });
+        }, "SingleHostName.from_json");
       }
     )
   );
@@ -34959,11 +35102,11 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         if (has_port) {
           return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_single_host_name_new_with_port(port, dns_name->get(), out, err);
-          });
+          }, "SingleHostName.new");
         } else {
           return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_single_host_name_new(dns_name->get(), out, err);
-          });
+          }, "SingleHostName.new");
         }
       }
     )
@@ -34999,11 +35142,12 @@ static jsi::Object makeStakeAndVoteDelegationInstance(jsi::Runtime& rt, const RP
   return obj;
 }
 
-static jsi::Object callCslStakeAndVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStakeAndVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStakeAndVoteDelegationInstance(rt, result);
 }
@@ -35025,7 +35169,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeAndVoteDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.to_bytes");
       }
     )
   );
@@ -35037,7 +35181,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeAndVoteDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_to_hex(st->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.to_hex");
       }
     )
   );
@@ -35049,7 +35193,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeAndVoteDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_to_json(st->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.to_json");
       }
     )
   );
@@ -35061,7 +35205,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeAndVoteDelegationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_stake_credential(st->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.stake_credential");
       }
     )
   );
@@ -35073,7 +35217,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeAndVoteDelegationState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_pool_keyhash(st->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.pool_keyhash");
       }
     )
   );
@@ -35085,7 +35229,7 @@ static jsi::Object getOrCreateStakeAndVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeAndVoteDelegationState(rt, thisVal);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_drep(st->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.drep");
       }
     )
   );
@@ -35130,7 +35274,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeAndVoteDelegation.from_bytes", "bytes");
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "StakeAndVoteDelegation.from_bytes");
       }
     )
   );
@@ -35145,7 +35289,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "StakeAndVoteDelegation.from_hex");
       }
     )
   );
@@ -35160,7 +35304,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "StakeAndVoteDelegation.from_json");
       }
     )
   );
@@ -35183,7 +35327,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         auto drep = getDRepState(rt, args[2].asObject(rt), "drep");
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_and_vote_delegation_new(stake_credential->get(), pool_keyhash->get(), drep->get(), out, err);
-        });
+        }, "StakeAndVoteDelegation.new");
       }
     )
   );
@@ -35218,11 +35362,12 @@ static jsi::Object makeStakeDelegationInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslStakeDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStakeDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStakeDelegationInstance(rt, result);
 }
@@ -35244,7 +35389,7 @@ static jsi::Object getOrCreateStakeDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "StakeDelegation.to_bytes");
       }
     )
   );
@@ -35256,7 +35401,7 @@ static jsi::Object getOrCreateStakeDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_to_hex(st->get(), out, err);
-        });
+        }, "StakeDelegation.to_hex");
       }
     )
   );
@@ -35268,7 +35413,7 @@ static jsi::Object getOrCreateStakeDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_to_json(st->get(), out, err);
-        });
+        }, "StakeDelegation.to_json");
       }
     )
   );
@@ -35280,7 +35425,7 @@ static jsi::Object getOrCreateStakeDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDelegationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_stake_credential(st->get(), out, err);
-        });
+        }, "StakeDelegation.stake_credential");
       }
     )
   );
@@ -35292,7 +35437,7 @@ static jsi::Object getOrCreateStakeDelegationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDelegationState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_pool_keyhash(st->get(), out, err);
-        });
+        }, "StakeDelegation.pool_keyhash");
       }
     )
   );
@@ -35337,7 +35482,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeDelegation.from_bytes", "bytes");
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "StakeDelegation.from_bytes");
       }
     )
   );
@@ -35352,7 +35497,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "StakeDelegation.from_hex");
       }
     )
   );
@@ -35367,7 +35512,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "StakeDelegation.from_json");
       }
     )
   );
@@ -35386,7 +35531,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         auto pool_keyhash = getEd25519KeyHashState(rt, args[1].asObject(rt), "pool_keyhash");
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_delegation_new(stake_credential->get(), pool_keyhash->get(), out, err);
-        });
+        }, "StakeDelegation.new");
       }
     )
   );
@@ -35421,11 +35566,12 @@ static jsi::Object makeStakeDeregistrationInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslStakeDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStakeDeregistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStakeDeregistrationInstance(rt, result);
 }
@@ -35447,7 +35593,7 @@ static jsi::Object getOrCreateStakeDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDeregistrationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_to_bytes(st->get(), out, err);
-        });
+        }, "StakeDeregistration.to_bytes");
       }
     )
   );
@@ -35459,7 +35605,7 @@ static jsi::Object getOrCreateStakeDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDeregistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_to_hex(st->get(), out, err);
-        });
+        }, "StakeDeregistration.to_hex");
       }
     )
   );
@@ -35471,7 +35617,7 @@ static jsi::Object getOrCreateStakeDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDeregistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_to_json(st->get(), out, err);
-        });
+        }, "StakeDeregistration.to_json");
       }
     )
   );
@@ -35483,7 +35629,7 @@ static jsi::Object getOrCreateStakeDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDeregistrationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_stake_credential(st->get(), out, err);
-        });
+        }, "StakeDeregistration.stake_credential");
       }
     )
   );
@@ -35495,7 +35641,7 @@ static jsi::Object getOrCreateStakeDeregistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeDeregistrationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_coin(st->get(), out, err);
-        });
+        }, "StakeDeregistration.coin");
       }
     )
   );
@@ -35540,7 +35686,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeDeregistration.from_bytes", "bytes");
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "StakeDeregistration.from_bytes");
       }
     )
   );
@@ -35555,7 +35701,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "StakeDeregistration.from_hex");
       }
     )
   );
@@ -35570,7 +35716,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_from_json(json.c_str(), out, err);
-        });
+        }, "StakeDeregistration.from_json");
       }
     )
   );
@@ -35585,7 +35731,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_new(stake_credential->get(), out, err);
-        });
+        }, "StakeDeregistration.new");
       }
     )
   );
@@ -35604,7 +35750,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_deregistration_new_with_explicit_refund(stake_credential->get(), coin->get(), out, err);
-        });
+        }, "StakeDeregistration.new_with_explicit_refund");
       }
     )
   );
@@ -35639,11 +35785,12 @@ static jsi::Object makeStakeRegistrationInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslStakeRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStakeRegistration(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStakeRegistrationInstance(rt, result);
 }
@@ -35665,7 +35812,7 @@ static jsi::Object getOrCreateStakeRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeRegistrationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_to_bytes(st->get(), out, err);
-        });
+        }, "StakeRegistration.to_bytes");
       }
     )
   );
@@ -35677,7 +35824,7 @@ static jsi::Object getOrCreateStakeRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeRegistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_to_hex(st->get(), out, err);
-        });
+        }, "StakeRegistration.to_hex");
       }
     )
   );
@@ -35689,7 +35836,7 @@ static jsi::Object getOrCreateStakeRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeRegistrationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_to_json(st->get(), out, err);
-        });
+        }, "StakeRegistration.to_json");
       }
     )
   );
@@ -35701,7 +35848,7 @@ static jsi::Object getOrCreateStakeRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeRegistrationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_stake_credential(st->get(), out, err);
-        });
+        }, "StakeRegistration.stake_credential");
       }
     )
   );
@@ -35713,7 +35860,7 @@ static jsi::Object getOrCreateStakeRegistrationProto(jsi::Runtime& rt) {
         auto st = getThisStakeRegistrationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_coin(st->get(), out, err);
-        });
+        }, "StakeRegistration.coin");
       }
     )
   );
@@ -35758,7 +35905,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeRegistration.from_bytes", "bytes");
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "StakeRegistration.from_bytes");
       }
     )
   );
@@ -35773,7 +35920,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "StakeRegistration.from_hex");
       }
     )
   );
@@ -35788,7 +35935,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_from_json(json.c_str(), out, err);
-        });
+        }, "StakeRegistration.from_json");
       }
     )
   );
@@ -35803,7 +35950,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         auto stake_credential = getCredentialState(rt, args[0].asObject(rt), "stake_credential");
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_new(stake_credential->get(), out, err);
-        });
+        }, "StakeRegistration.new");
       }
     )
   );
@@ -35822,7 +35969,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[1].asObject(rt), "coin");
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_new_with_explicit_deposit(stake_credential->get(), coin->get(), out, err);
-        });
+        }, "StakeRegistration.new_with_explicit_deposit");
       }
     )
   );
@@ -35857,11 +36004,12 @@ static jsi::Object makeStakeRegistrationAndDelegationInstance(jsi::Runtime& rt, 
   return obj;
 }
 
-static jsi::Object callCslStakeRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStakeRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStakeRegistrationAndDelegationInstance(rt, result);
 }
@@ -35883,7 +36031,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
         auto st = getThisStakeRegistrationAndDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.to_bytes");
       }
     )
   );
@@ -35895,7 +36043,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
         auto st = getThisStakeRegistrationAndDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_to_hex(st->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.to_hex");
       }
     )
   );
@@ -35907,7 +36055,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
         auto st = getThisStakeRegistrationAndDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_to_json(st->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.to_json");
       }
     )
   );
@@ -35919,7 +36067,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
         auto st = getThisStakeRegistrationAndDelegationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_stake_credential(st->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.stake_credential");
       }
     )
   );
@@ -35931,7 +36079,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
         auto st = getThisStakeRegistrationAndDelegationState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_pool_keyhash(st->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.pool_keyhash");
       }
     )
   );
@@ -35943,7 +36091,7 @@ static jsi::Object getOrCreateStakeRegistrationAndDelegationProto(jsi::Runtime& 
         auto st = getThisStakeRegistrationAndDelegationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_coin(st->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.coin");
       }
     )
   );
@@ -35988,7 +36136,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeRegistrationAndDelegation.from_bytes", "bytes");
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.from_bytes");
       }
     )
   );
@@ -36003,7 +36151,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.from_hex");
       }
     )
   );
@@ -36018,7 +36166,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.from_json");
       }
     )
   );
@@ -36041,7 +36189,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[2].asObject(rt), "coin");
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_registration_and_delegation_new(stake_credential->get(), pool_keyhash->get(), coin->get(), out, err);
-        });
+        }, "StakeRegistrationAndDelegation.new");
       }
     )
   );
@@ -36076,11 +36224,12 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationInstance(jsi::Runtime& 
   return obj;
 }
 
-static jsi::Object callCslStakeVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStakeVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStakeVoteRegistrationAndDelegationInstance(rt, result);
 }
@@ -36102,7 +36251,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.to_bytes");
       }
     )
   );
@@ -36114,7 +36263,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_to_hex(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.to_hex");
       }
     )
   );
@@ -36126,7 +36275,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_to_json(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.to_json");
       }
     )
   );
@@ -36138,7 +36287,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_stake_credential(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.stake_credential");
       }
     )
   );
@@ -36150,7 +36299,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_pool_keyhash(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.pool_keyhash");
       }
     )
   );
@@ -36162,7 +36311,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_drep(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.drep");
       }
     )
   );
@@ -36174,7 +36323,7 @@ static jsi::Object getOrCreateStakeVoteRegistrationAndDelegationProto(jsi::Runti
         auto st = getThisStakeVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_coin(st->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.coin");
       }
     )
   );
@@ -36219,7 +36368,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeVoteRegistrationAndDelegation.from_bytes", "bytes");
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.from_bytes");
       }
     )
   );
@@ -36234,7 +36383,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.from_hex");
       }
     )
   );
@@ -36249,7 +36398,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.from_json");
       }
     )
   );
@@ -36276,7 +36425,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         auto coin = getBigNumState(rt, args[3].asObject(rt), "coin");
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_stake_vote_registration_and_delegation_new(stake_credential->get(), pool_keyhash->get(), drep->get(), coin->get(), out, err);
-        });
+        }, "StakeVoteRegistrationAndDelegation.new");
       }
     )
   );
@@ -36311,11 +36460,12 @@ static jsi::Object makeStringsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslStrings(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslStrings(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeStringsInstance(rt, result);
 }
@@ -36355,7 +36505,7 @@ static jsi::Object getOrCreateStringsProto(jsi::Runtime& rt) {
         auto index = static_cast<int64_t>(args[0].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_strings_get(st->get(), index, out, err);
-        });
+        }, "Strings.get");
       }
     )
   );
@@ -36400,7 +36550,7 @@ static jsi::Object makeStringsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslStrings(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_strings_new(out, err);
-        });
+        }, "Strings.new");
       }
     )
   );
@@ -36435,11 +36585,12 @@ static jsi::Object makeTimelockExpiryInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslTimelockExpiry(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTimelockExpiry(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTimelockExpiryInstance(rt, result);
 }
@@ -36461,7 +36612,7 @@ static jsi::Object getOrCreateTimelockExpiryProto(jsi::Runtime& rt) {
         auto st = getThisTimelockExpiryState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_to_bytes(st->get(), out, err);
-        });
+        }, "TimelockExpiry.to_bytes");
       }
     )
   );
@@ -36473,7 +36624,7 @@ static jsi::Object getOrCreateTimelockExpiryProto(jsi::Runtime& rt) {
         auto st = getThisTimelockExpiryState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_to_hex(st->get(), out, err);
-        });
+        }, "TimelockExpiry.to_hex");
       }
     )
   );
@@ -36485,7 +36636,7 @@ static jsi::Object getOrCreateTimelockExpiryProto(jsi::Runtime& rt) {
         auto st = getThisTimelockExpiryState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_to_json(st->get(), out, err);
-        });
+        }, "TimelockExpiry.to_json");
       }
     )
   );
@@ -36511,7 +36662,7 @@ static jsi::Object getOrCreateTimelockExpiryProto(jsi::Runtime& rt) {
         auto st = getThisTimelockExpiryState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_slot_bignum(st->get(), out, err);
-        });
+        }, "TimelockExpiry.slot_bignum");
       }
     )
   );
@@ -36542,7 +36693,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TimelockExpiry.from_bytes", "bytes");
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TimelockExpiry.from_bytes");
       }
     )
   );
@@ -36557,7 +36708,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TimelockExpiry.from_hex");
       }
     )
   );
@@ -36572,7 +36723,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_from_json(json.c_str(), out, err);
-        });
+        }, "TimelockExpiry.from_json");
       }
     )
   );
@@ -36587,7 +36738,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         auto slot = static_cast<int64_t>(args[0].asNumber());
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_new(slot, out, err);
-        });
+        }, "TimelockExpiry.new");
       }
     )
   );
@@ -36602,7 +36753,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         auto slot = getBigNumState(rt, args[0].asObject(rt), "slot");
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_expiry_new_timelockexpiry(slot->get(), out, err);
-        });
+        }, "TimelockExpiry.new_timelockexpiry");
       }
     )
   );
@@ -36637,11 +36788,12 @@ static jsi::Object makeTimelockStartInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslTimelockStart(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTimelockStart(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTimelockStartInstance(rt, result);
 }
@@ -36663,7 +36815,7 @@ static jsi::Object getOrCreateTimelockStartProto(jsi::Runtime& rt) {
         auto st = getThisTimelockStartState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_to_bytes(st->get(), out, err);
-        });
+        }, "TimelockStart.to_bytes");
       }
     )
   );
@@ -36675,7 +36827,7 @@ static jsi::Object getOrCreateTimelockStartProto(jsi::Runtime& rt) {
         auto st = getThisTimelockStartState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_to_hex(st->get(), out, err);
-        });
+        }, "TimelockStart.to_hex");
       }
     )
   );
@@ -36687,7 +36839,7 @@ static jsi::Object getOrCreateTimelockStartProto(jsi::Runtime& rt) {
         auto st = getThisTimelockStartState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_to_json(st->get(), out, err);
-        });
+        }, "TimelockStart.to_json");
       }
     )
   );
@@ -36713,7 +36865,7 @@ static jsi::Object getOrCreateTimelockStartProto(jsi::Runtime& rt) {
         auto st = getThisTimelockStartState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_slot_bignum(st->get(), out, err);
-        });
+        }, "TimelockStart.slot_bignum");
       }
     )
   );
@@ -36744,7 +36896,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TimelockStart.from_bytes", "bytes");
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TimelockStart.from_bytes");
       }
     )
   );
@@ -36759,7 +36911,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TimelockStart.from_hex");
       }
     )
   );
@@ -36774,7 +36926,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_from_json(json.c_str(), out, err);
-        });
+        }, "TimelockStart.from_json");
       }
     )
   );
@@ -36789,7 +36941,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         auto slot = static_cast<int64_t>(args[0].asNumber());
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_new(slot, out, err);
-        });
+        }, "TimelockStart.new");
       }
     )
   );
@@ -36804,7 +36956,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         auto slot = getBigNumState(rt, args[0].asObject(rt), "slot");
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_timelock_start_new_timelockstart(slot->get(), out, err);
-        });
+        }, "TimelockStart.new_timelockstart");
       }
     )
   );
@@ -36839,11 +36991,12 @@ static jsi::Object makeTransactionInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransaction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionInstance(rt, result);
 }
@@ -36865,7 +37018,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
         auto st = getThisTransactionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_to_bytes(st->get(), out, err);
-        });
+        }, "Transaction.to_bytes");
       }
     )
   );
@@ -36877,7 +37030,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
         auto st = getThisTransactionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_to_hex(st->get(), out, err);
-        });
+        }, "Transaction.to_hex");
       }
     )
   );
@@ -36889,7 +37042,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
         auto st = getThisTransactionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_to_json(st->get(), out, err);
-        });
+        }, "Transaction.to_json");
       }
     )
   );
@@ -36901,7 +37054,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
         auto st = getThisTransactionState(rt, thisVal);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body(st->get(), out, err);
-        });
+        }, "Transaction.body");
       }
     )
   );
@@ -36913,7 +37066,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
         auto st = getThisTransactionState(rt, thisVal);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set(st->get(), out, err);
-        });
+        }, "Transaction.witness_set");
       }
     )
   );
@@ -36939,7 +37092,7 @@ static jsi::Object getOrCreateTransactionProto(jsi::Runtime& rt) {
         auto st = getThisTransactionState(rt, thisVal);
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_auxiliary_data(st->get(), out, err);
-        });
+        }, "Transaction.auxiliary_data");
       }
     )
   );
@@ -36988,7 +37141,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Transaction.from_bytes", "bytes");
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Transaction.from_bytes");
       }
     )
   );
@@ -37003,7 +37156,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Transaction.from_hex");
       }
     )
   );
@@ -37018,7 +37171,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_from_json(json.c_str(), out, err);
-        });
+        }, "Transaction.from_json");
       }
     )
   );
@@ -37047,11 +37200,11 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         if (has_auxiliary_data) {
           return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_transaction_new_with_auxiliary_data(body->get(), witness_set->get(), auxiliary_data->get(), out, err);
-          });
+          }, "Transaction.new");
         } else {
           return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_transaction_new(body->get(), witness_set->get(), out, err);
-          });
+          }, "Transaction.new");
         }
       }
     )
@@ -37087,11 +37240,12 @@ static jsi::Object makeTransactionBatchInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslTransactionBatch(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBatch(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBatchInstance(rt, result);
 }
@@ -37143,7 +37297,7 @@ static jsi::Object getOrCreateTransactionBatchProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBatch.get"));
       }
     )
   );
@@ -37194,11 +37348,12 @@ static jsi::Object makeTransactionBatchListInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslTransactionBatchList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBatchList(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBatchListInstance(rt, result);
 }
@@ -37250,7 +37405,7 @@ static jsi::Object getOrCreateTransactionBatchListProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionBatch(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBatchList.get"));
       }
     )
   );
@@ -37301,11 +37456,12 @@ static jsi::Object makeTransactionBodiesInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBodies(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBodiesInstance(rt, result);
 }
@@ -37327,7 +37483,7 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodiesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionBodies.to_bytes");
       }
     )
   );
@@ -37339,7 +37495,7 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodiesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_to_hex(st->get(), out, err);
-        });
+        }, "TransactionBodies.to_hex");
       }
     )
   );
@@ -37351,7 +37507,7 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodiesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_to_json(st->get(), out, err);
-        });
+        }, "TransactionBodies.to_json");
       }
     )
   );
@@ -37393,7 +37549,7 @@ static jsi::Object getOrCreateTransactionBodiesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBodies.get"));
       }
     )
   );
@@ -37442,7 +37598,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionBodies.from_bytes", "bytes");
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionBodies.from_bytes");
       }
     )
   );
@@ -37457,7 +37613,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionBodies.from_hex");
       }
     )
   );
@@ -37472,7 +37628,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionBodies.from_json");
       }
     )
   );
@@ -37483,7 +37639,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_bodies_new(out, err);
-        });
+        }, "TransactionBodies.new");
       }
     )
   );
@@ -37518,11 +37674,12 @@ static jsi::Object makeTransactionBodyInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBody(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBodyInstance(rt, result);
 }
@@ -37544,7 +37701,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionBody.to_bytes");
       }
     )
   );
@@ -37556,7 +37713,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_to_hex(st->get(), out, err);
-        });
+        }, "TransactionBody.to_hex");
       }
     )
   );
@@ -37568,7 +37725,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_to_json(st->get(), out, err);
-        });
+        }, "TransactionBody.to_json");
       }
     )
   );
@@ -37580,7 +37737,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_inputs(st->get(), out, err);
-        });
+        }, "TransactionBody.inputs");
       }
     )
   );
@@ -37592,7 +37749,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_outputs(st->get(), out, err);
-        });
+        }, "TransactionBody.outputs");
       }
     )
   );
@@ -37604,7 +37761,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_fee(st->get(), out, err);
-        });
+        }, "TransactionBody.fee");
       }
     )
   );
@@ -37630,7 +37787,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_ttl_bignum(st->get(), out, err);
-        });
+        }, "TransactionBody.ttl_bignum");
       }
     )
   );
@@ -37692,7 +37849,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_certs(st->get(), out, err);
-        });
+        }, "TransactionBody.certs");
       }
     )
   );
@@ -37722,7 +37879,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_withdrawals(st->get(), out, err);
-        });
+        }, "TransactionBody.withdrawals");
       }
     )
   );
@@ -37752,7 +37909,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_update(st->get(), out, err);
-        });
+        }, "TransactionBody.update");
       }
     )
   );
@@ -37782,7 +37939,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_auxiliary_data_hash(st->get(), out, err);
-        });
+        }, "TransactionBody.auxiliary_data_hash");
       }
     )
   );
@@ -37830,7 +37987,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_validity_start_interval_bignum(st->get(), out, err);
-        });
+        }, "TransactionBody.validity_start_interval_bignum");
       }
     )
   );
@@ -37874,7 +38031,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_mint(st->get(), out, err);
-        });
+        }, "TransactionBody.mint");
       }
     )
   );
@@ -37904,7 +38061,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_reference_inputs(st->get(), out, err);
-        });
+        }, "TransactionBody.reference_inputs");
       }
     )
   );
@@ -37934,7 +38091,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_script_data_hash(st->get(), out, err);
-        });
+        }, "TransactionBody.script_data_hash");
       }
     )
   );
@@ -37964,7 +38121,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_collateral(st->get(), out, err);
-        });
+        }, "TransactionBody.collateral");
       }
     )
   );
@@ -37994,7 +38151,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_required_signers(st->get(), out, err);
-        });
+        }, "TransactionBody.required_signers");
       }
     )
   );
@@ -38024,7 +38181,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_network_id(st->get(), out, err);
-        });
+        }, "TransactionBody.network_id");
       }
     )
   );
@@ -38054,7 +38211,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_collateral_return(st->get(), out, err);
-        });
+        }, "TransactionBody.collateral_return");
       }
     )
   );
@@ -38084,7 +38241,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_total_collateral(st->get(), out, err);
-        });
+        }, "TransactionBody.total_collateral");
       }
     )
   );
@@ -38114,7 +38271,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_voting_procedures(st->get(), out, err);
-        });
+        }, "TransactionBody.voting_procedures");
       }
     )
   );
@@ -38144,7 +38301,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_voting_proposals(st->get(), out, err);
-        });
+        }, "TransactionBody.voting_proposals");
       }
     )
   );
@@ -38174,7 +38331,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_donation(st->get(), out, err);
-        });
+        }, "TransactionBody.donation");
       }
     )
   );
@@ -38204,7 +38361,7 @@ static jsi::Object getOrCreateTransactionBodyProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBodyState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_current_treasury_value(st->get(), out, err);
-        });
+        }, "TransactionBody.current_treasury_value");
       }
     )
   );
@@ -38235,7 +38392,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionBody.from_bytes", "bytes");
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionBody.from_bytes");
       }
     )
   );
@@ -38250,7 +38407,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionBody.from_hex");
       }
     )
   );
@@ -38265,7 +38422,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionBody.from_json");
       }
     )
   );
@@ -38298,11 +38455,11 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         if (has_ttl) {
           return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_transaction_body_new_with_ttl(inputs->get(), outputs->get(), fee->get(), ttl, out, err);
-          });
+          }, "TransactionBody.new");
         } else {
           return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_transaction_body_new(inputs->get(), outputs->get(), fee->get(), out, err);
-          });
+          }, "TransactionBody.new");
         }
       }
     )
@@ -38326,7 +38483,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         auto fee = getBigNumState(rt, args[2].asObject(rt), "fee");
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_body_new_tx_body(inputs->get(), outputs->get(), fee->get(), out, err);
-        });
+        }, "TransactionBody.new_tx_body");
       }
     )
   );
@@ -38361,11 +38518,12 @@ static jsi::Object makeTransactionBuilderInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslTransactionBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBuilderInstance(rt, result);
 }
@@ -38787,7 +38945,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_native_input_scripts"));
       }
     )
   );
@@ -38811,7 +38969,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_plutus_input_scripts"));
       }
     )
   );
@@ -38835,7 +38993,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto amount = getValueState(rt, args[2].asObject(rt), "amount");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_fee_for_input(st->get(), address->get(), input->get(), amount->get(), out, err);
-        });
+        }, "TransactionBuilder.fee_for_input");
       }
     )
   );
@@ -38869,7 +39027,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto output = getTransactionOutputState(rt, args[0].asObject(rt), "output");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_fee_for_output(st->get(), output->get(), out, err);
-        });
+        }, "TransactionBuilder.fee_for_output");
       }
     )
   );
@@ -39165,7 +39323,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_auxiliary_data"));
       }
     )
   );
@@ -39341,7 +39499,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslMintBuilder(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_mint_builder"));
       }
     )
   );
@@ -39387,7 +39545,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslMint(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_mint"));
       }
     )
   );
@@ -39411,7 +39569,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_mint_scripts"));
       }
     )
   );
@@ -39565,7 +39723,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_extra_witness_datums"));
       }
     )
   );
@@ -39607,7 +39765,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_donation"));
       }
     )
   );
@@ -39649,7 +39807,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_current_treasury_value"));
       }
     )
   );
@@ -39673,7 +39831,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_reference_inputs"));
       }
     )
   );
@@ -39697,7 +39855,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_explicit_input"));
       }
     )
   );
@@ -39721,7 +39879,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_implicit_input"));
       }
     )
   );
@@ -39745,7 +39903,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_total_input"));
       }
     )
   );
@@ -39769,7 +39927,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_total_output"));
       }
     )
   );
@@ -39793,7 +39951,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_explicit_output"));
       }
     )
   );
@@ -39817,7 +39975,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_deposit"));
       }
     )
   );
@@ -39841,7 +39999,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionBuilder.get_fee_if_set"));
       }
     )
   );
@@ -39975,7 +40133,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBuilderState(rt, thisVal);
         return callCslUint32ArrayFromString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_output_sizes(st->get(), out, err);
-        });
+        }, "TransactionBuilder.output_sizes");
       }
     )
   );
@@ -39987,7 +40145,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBuilderState(rt, thisVal);
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_build(st->get(), out, err);
-        });
+        }, "TransactionBuilder.build");
       }
     )
   );
@@ -39999,7 +40157,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBuilderState(rt, thisVal);
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_build_tx(st->get(), out, err);
-        });
+        }, "TransactionBuilder.build_tx");
       }
     )
   );
@@ -40011,7 +40169,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBuilderState(rt, thisVal);
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_build_tx_unsafe(st->get(), out, err);
-        });
+        }, "TransactionBuilder.build_tx_unsafe");
       }
     )
   );
@@ -40023,7 +40181,7 @@ static jsi::Object getOrCreateTransactionBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTransactionBuilderState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_min_fee(st->get(), out, err);
-        });
+        }, "TransactionBuilder.min_fee");
       }
     )
   );
@@ -40054,7 +40212,7 @@ static jsi::Object makeTransactionBuilderExport(jsi::Runtime& rt) {
         auto cfg = getTransactionBuilderConfigState(rt, args[0].asObject(rt), "cfg");
         return callCslTransactionBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_new(cfg->get(), out, err);
-        });
+        }, "TransactionBuilder.new");
       }
     )
   );
@@ -40089,11 +40247,12 @@ static jsi::Object makeTransactionBuilderConfigInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslTransactionBuilderConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBuilderConfig(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBuilderConfigInstance(rt, result);
 }
@@ -40154,11 +40313,12 @@ static jsi::Object makeTransactionBuilderConfigBuilderInstance(jsi::Runtime& rt,
   return obj;
 }
 
-static jsi::Object callCslTransactionBuilderConfigBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionBuilderConfigBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionBuilderConfigBuilderInstance(rt, result);
 }
@@ -40184,7 +40344,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto fee_algo = getLinearFeeState(rt, args[0].asObject(rt), "fee_algo");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_fee_algo(st->get(), fee_algo->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.fee_algo");
       }
     )
   );
@@ -40200,7 +40360,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto coins_per_utxo_byte = getBigNumState(rt, args[0].asObject(rt), "coins_per_utxo_byte");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_coins_per_utxo_byte(st->get(), coins_per_utxo_byte->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.coins_per_utxo_byte");
       }
     )
   );
@@ -40216,7 +40376,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto ex_unit_prices = getExUnitPricesState(rt, args[0].asObject(rt), "ex_unit_prices");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_ex_unit_prices(st->get(), ex_unit_prices->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.ex_unit_prices");
       }
     )
   );
@@ -40232,7 +40392,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto pool_deposit = getBigNumState(rt, args[0].asObject(rt), "pool_deposit");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_pool_deposit(st->get(), pool_deposit->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.pool_deposit");
       }
     )
   );
@@ -40248,7 +40408,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto key_deposit = getBigNumState(rt, args[0].asObject(rt), "key_deposit");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_key_deposit(st->get(), key_deposit->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.key_deposit");
       }
     )
   );
@@ -40264,7 +40424,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto max_value_size = static_cast<int64_t>(args[0].asNumber());
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_max_value_size(st->get(), max_value_size, out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.max_value_size");
       }
     )
   );
@@ -40280,7 +40440,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto max_tx_size = static_cast<int64_t>(args[0].asNumber());
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_max_tx_size(st->get(), max_tx_size, out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.max_tx_size");
       }
     )
   );
@@ -40296,7 +40456,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto ref_script_coins_per_byte = getUnitIntervalState(rt, args[0].asObject(rt), "ref_script_coins_per_byte");
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_ref_script_coins_per_byte(st->get(), ref_script_coins_per_byte->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.ref_script_coins_per_byte");
       }
     )
   );
@@ -40312,7 +40472,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         bool prefer_pure_change = args[0].asBool();
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_prefer_pure_change(st->get(), prefer_pure_change, out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.prefer_pure_change");
       }
     )
   );
@@ -40328,7 +40488,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         bool deduplicate_explicit_ref_inputs_with_regular_inputs = args[0].asBool();
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_deduplicate_explicit_ref_inputs_with_regular_inputs(st->get(), deduplicate_explicit_ref_inputs_with_regular_inputs, out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.deduplicate_explicit_ref_inputs_with_regular_inputs");
       }
     )
   );
@@ -40344,7 +40504,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         bool do_not_burn_extra_change = args[0].asBool();
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_do_not_burn_extra_change(st->get(), do_not_burn_extra_change, out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.do_not_burn_extra_change");
       }
     )
   );
@@ -40356,7 +40516,7 @@ static jsi::Object getOrCreateTransactionBuilderConfigBuilderProto(jsi::Runtime&
         auto st = getThisTransactionBuilderConfigBuilderState(rt, thisVal);
         return callCslTransactionBuilderConfig(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_build(st->get(), out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.build");
       }
     )
   );
@@ -40383,7 +40543,7 @@ static jsi::Object makeTransactionBuilderConfigBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionBuilderConfigBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_builder_config_builder_new(out, err);
-        });
+        }, "TransactionBuilderConfigBuilder.new");
       }
     )
   );
@@ -40418,11 +40578,12 @@ static jsi::Object makeTransactionHashInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslTransactionHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionHashInstance(rt, result);
 }
@@ -40444,7 +40605,7 @@ static jsi::Object getOrCreateTransactionHashProto(jsi::Runtime& rt) {
         auto st = getThisTransactionHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionHash.to_bytes");
       }
     )
   );
@@ -40460,7 +40621,7 @@ static jsi::Object getOrCreateTransactionHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "TransactionHash.to_bech32");
       }
     )
   );
@@ -40472,7 +40633,7 @@ static jsi::Object getOrCreateTransactionHashProto(jsi::Runtime& rt) {
         auto st = getThisTransactionHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_to_hex(st->get(), out, err);
-        });
+        }, "TransactionHash.to_hex");
       }
     )
   );
@@ -40503,7 +40664,7 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionHash.from_bytes", "bytes");
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionHash.from_bytes");
       }
     )
   );
@@ -40518,7 +40679,7 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "TransactionHash.from_bech32");
       }
     )
   );
@@ -40533,7 +40694,7 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "TransactionHash.from_hex");
       }
     )
   );
@@ -40568,11 +40729,12 @@ static jsi::Object makeTransactionInputInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslTransactionInput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionInput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionInputInstance(rt, result);
 }
@@ -40594,7 +40756,7 @@ static jsi::Object getOrCreateTransactionInputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionInput.to_bytes");
       }
     )
   );
@@ -40606,7 +40768,7 @@ static jsi::Object getOrCreateTransactionInputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_to_hex(st->get(), out, err);
-        });
+        }, "TransactionInput.to_hex");
       }
     )
   );
@@ -40618,7 +40780,7 @@ static jsi::Object getOrCreateTransactionInputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_to_json(st->get(), out, err);
-        });
+        }, "TransactionInput.to_json");
       }
     )
   );
@@ -40630,7 +40792,7 @@ static jsi::Object getOrCreateTransactionInputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputState(rt, thisVal);
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_transaction_id(st->get(), out, err);
-        });
+        }, "TransactionInput.transaction_id");
       }
     )
   );
@@ -40675,7 +40837,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionInput.from_bytes", "bytes");
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionInput.from_bytes");
       }
     )
   );
@@ -40690,7 +40852,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionInput.from_hex");
       }
     )
   );
@@ -40705,7 +40867,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionInput.from_json");
       }
     )
   );
@@ -40724,7 +40886,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         auto index = static_cast<int64_t>(args[1].asNumber());
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_input_new(transaction_id->get(), index, out, err);
-        });
+        }, "TransactionInput.new");
       }
     )
   );
@@ -40759,11 +40921,12 @@ static jsi::Object makeTransactionInputsInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslTransactionInputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionInputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionInputsInstance(rt, result);
 }
@@ -40785,7 +40948,7 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionInputs.to_bytes");
       }
     )
   );
@@ -40797,7 +40960,7 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_to_hex(st->get(), out, err);
-        });
+        }, "TransactionInputs.to_hex");
       }
     )
   );
@@ -40809,7 +40972,7 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_to_json(st->get(), out, err);
-        });
+        }, "TransactionInputs.to_json");
       }
     )
   );
@@ -40851,7 +41014,7 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionInputs.get"));
       }
     )
   );
@@ -40881,7 +41044,7 @@ static jsi::Object getOrCreateTransactionInputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionInputsState(rt, thisVal);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_to_option(st->get(), out, err);
-        });
+        }, "TransactionInputs.to_option");
       }
     )
   );
@@ -40912,7 +41075,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionInputs.from_bytes", "bytes");
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionInputs.from_bytes");
       }
     )
   );
@@ -40927,7 +41090,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionInputs.from_hex");
       }
     )
   );
@@ -40942,7 +41105,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionInputs.from_json");
       }
     )
   );
@@ -40953,7 +41116,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_inputs_new(out, err);
-        });
+        }, "TransactionInputs.new");
       }
     )
   );
@@ -40988,11 +41151,12 @@ static jsi::Object makeTransactionMetadatumInstance(jsi::Runtime& rt, const RPtr
   return obj;
 }
 
-static jsi::Object callCslTransactionMetadatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionMetadatum(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionMetadatumInstance(rt, result);
 }
@@ -41014,7 +41178,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.to_bytes");
       }
     )
   );
@@ -41026,7 +41190,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_to_hex(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.to_hex");
       }
     )
   );
@@ -41052,7 +41216,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_as_map(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.as_map");
       }
     )
   );
@@ -41064,7 +41228,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_as_list(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.as_list");
       }
     )
   );
@@ -41076,7 +41240,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_as_int(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.as_int");
       }
     )
   );
@@ -41088,7 +41252,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_as_bytes(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.as_bytes");
       }
     )
   );
@@ -41100,7 +41264,7 @@ static jsi::Object getOrCreateTransactionMetadatumProto(jsi::Runtime& rt) {
         auto st = getThisTransactionMetadatumState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_as_text(st->get(), out, err);
-        });
+        }, "TransactionMetadatum.as_text");
       }
     )
   );
@@ -41131,7 +41295,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionMetadatum.from_bytes", "bytes");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionMetadatum.from_bytes");
       }
     )
   );
@@ -41146,7 +41310,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionMetadatum.from_hex");
       }
     )
   );
@@ -41161,7 +41325,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto map = getMetadataMapState(rt, args[0].asObject(rt), "map");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_map(map->get(), out, err);
-        });
+        }, "TransactionMetadatum.new_map");
       }
     )
   );
@@ -41176,7 +41340,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto list = getMetadataListState(rt, args[0].asObject(rt), "list");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_list(list->get(), out, err);
-        });
+        }, "TransactionMetadatum.new_list");
       }
     )
   );
@@ -41191,7 +41355,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto int_value = getIntState(rt, args[0].asObject(rt), "int_value");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_int(int_value->get(), out, err);
-        });
+        }, "TransactionMetadatum.new_int");
       }
     )
   );
@@ -41206,7 +41370,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionMetadatum.new_bytes", "bytes");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionMetadatum.new_bytes");
       }
     )
   );
@@ -41221,7 +41385,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         std::string text = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_new_text(text.c_str(), out, err);
-        });
+        }, "TransactionMetadatum.new_text");
       }
     )
   );
@@ -41256,11 +41420,12 @@ static jsi::Object makeTransactionMetadatumLabelsInstance(jsi::Runtime& rt, cons
   return obj;
 }
 
-static jsi::Object callCslTransactionMetadatumLabels(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionMetadatumLabels(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionMetadatumLabelsInstance(rt, result);
 }
@@ -41282,7 +41447,7 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
         auto st = getThisTransactionMetadatumLabelsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionMetadatumLabels.to_bytes");
       }
     )
   );
@@ -41294,7 +41459,7 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
         auto st = getThisTransactionMetadatumLabelsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_to_hex(st->get(), out, err);
-        });
+        }, "TransactionMetadatumLabels.to_hex");
       }
     )
   );
@@ -41336,7 +41501,7 @@ static jsi::Object getOrCreateTransactionMetadatumLabelsProto(jsi::Runtime& rt) 
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionMetadatumLabels.get"));
       }
     )
   );
@@ -41385,7 +41550,7 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionMetadatumLabels.from_bytes", "bytes");
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionMetadatumLabels.from_bytes");
       }
     )
   );
@@ -41400,7 +41565,7 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionMetadatumLabels.from_hex");
       }
     )
   );
@@ -41411,7 +41576,7 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_metadatum_labels_new(out, err);
-        });
+        }, "TransactionMetadatumLabels.new");
       }
     )
   );
@@ -41446,11 +41611,12 @@ static jsi::Object makeTransactionOutputInstance(jsi::Runtime& rt, const RPtr& p
   return obj;
 }
 
-static jsi::Object callCslTransactionOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionOutputInstance(rt, result);
 }
@@ -41472,7 +41638,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionOutput.to_bytes");
       }
     )
   );
@@ -41484,7 +41650,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_to_hex(st->get(), out, err);
-        });
+        }, "TransactionOutput.to_hex");
       }
     )
   );
@@ -41496,7 +41662,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_to_json(st->get(), out, err);
-        });
+        }, "TransactionOutput.to_json");
       }
     )
   );
@@ -41508,7 +41674,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_address(st->get(), out, err);
-        });
+        }, "TransactionOutput.address");
       }
     )
   );
@@ -41520,7 +41686,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount(st->get(), out, err);
-        });
+        }, "TransactionOutput.amount");
       }
     )
   );
@@ -41532,7 +41698,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_data_hash(st->get(), out, err);
-        });
+        }, "TransactionOutput.data_hash");
       }
     )
   );
@@ -41544,7 +41710,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_plutus_data(st->get(), out, err);
-        });
+        }, "TransactionOutput.plutus_data");
       }
     )
   );
@@ -41556,7 +41722,7 @@ static jsi::Object getOrCreateTransactionOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputState(rt, thisVal);
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_script_ref(st->get(), out, err);
-        });
+        }, "TransactionOutput.script_ref");
       }
     )
   );
@@ -41697,7 +41863,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionOutput.from_bytes", "bytes");
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionOutput.from_bytes");
       }
     )
   );
@@ -41712,7 +41878,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionOutput.from_hex");
       }
     )
   );
@@ -41727,7 +41893,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionOutput.from_json");
       }
     )
   );
@@ -41746,7 +41912,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         auto amount = getValueState(rt, args[1].asObject(rt), "amount");
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_new(address->get(), amount->get(), out, err);
-        });
+        }, "TransactionOutput.new");
       }
     )
   );
@@ -41781,11 +41947,12 @@ static jsi::Object makeTransactionOutputAmountBuilderInstance(jsi::Runtime& rt, 
   return obj;
 }
 
-static jsi::Object callCslTransactionOutputAmountBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionOutputAmountBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionOutputAmountBuilderInstance(rt, result);
 }
@@ -41811,7 +41978,7 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
         auto amount = getValueState(rt, args[0].asObject(rt), "amount");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_value(st->get(), amount->get(), out, err);
-        });
+        }, "TransactionOutputAmountBuilder.with_value");
       }
     )
   );
@@ -41827,7 +41994,7 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_coin(st->get(), coin->get(), out, err);
-        });
+        }, "TransactionOutputAmountBuilder.with_coin");
       }
     )
   );
@@ -41847,7 +42014,7 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
         auto multiasset = getMultiAssetState(rt, args[1].asObject(rt), "multiasset");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_coin_and_asset(st->get(), coin->get(), multiasset->get(), out, err);
-        });
+        }, "TransactionOutputAmountBuilder.with_coin_and_asset");
       }
     )
   );
@@ -41867,7 +42034,7 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
         auto data_cost = getDataCostState(rt, args[1].asObject(rt), "data_cost");
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_with_asset_and_min_required_coin_by_utxo_cost(st->get(), multiasset->get(), data_cost->get(), out, err);
-        });
+        }, "TransactionOutputAmountBuilder.with_asset_and_min_required_coin_by_utxo_cost");
       }
     )
   );
@@ -41879,7 +42046,7 @@ static jsi::Object getOrCreateTransactionOutputAmountBuilderProto(jsi::Runtime& 
         auto st = getThisTransactionOutputAmountBuilderState(rt, thisVal);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_amount_builder_build(st->get(), out, err);
-        });
+        }, "TransactionOutputAmountBuilder.build");
       }
     )
   );
@@ -41930,11 +42097,12 @@ static jsi::Object makeTransactionOutputBuilderInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslTransactionOutputBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionOutputBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionOutputBuilderInstance(rt, result);
 }
@@ -41960,7 +42128,7 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
         auto address = getAddressState(rt, args[0].asObject(rt), "address");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_address(st->get(), address->get(), out, err);
-        });
+        }, "TransactionOutputBuilder.with_address");
       }
     )
   );
@@ -41976,7 +42144,7 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
         auto data_hash = getDataHashState(rt, args[0].asObject(rt), "data_hash");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_data_hash(st->get(), data_hash->get(), out, err);
-        });
+        }, "TransactionOutputBuilder.with_data_hash");
       }
     )
   );
@@ -41992,7 +42160,7 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
         auto data = getPlutusDataState(rt, args[0].asObject(rt), "data");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_plutus_data(st->get(), data->get(), out, err);
-        });
+        }, "TransactionOutputBuilder.with_plutus_data");
       }
     )
   );
@@ -42008,7 +42176,7 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
         auto script_ref = getScriptRefState(rt, args[0].asObject(rt), "script_ref");
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_with_script_ref(st->get(), script_ref->get(), out, err);
-        });
+        }, "TransactionOutputBuilder.with_script_ref");
       }
     )
   );
@@ -42020,7 +42188,7 @@ static jsi::Object getOrCreateTransactionOutputBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputBuilderState(rt, thisVal);
         return callCslTransactionOutputAmountBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_next(st->get(), out, err);
-        });
+        }, "TransactionOutputBuilder.next");
       }
     )
   );
@@ -42047,7 +42215,7 @@ static jsi::Object makeTransactionOutputBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionOutputBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_output_builder_new(out, err);
-        });
+        }, "TransactionOutputBuilder.new");
       }
     )
   );
@@ -42082,11 +42250,12 @@ static jsi::Object makeTransactionOutputsInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslTransactionOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionOutputsInstance(rt, result);
 }
@@ -42108,7 +42277,7 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionOutputs.to_bytes");
       }
     )
   );
@@ -42120,7 +42289,7 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_to_hex(st->get(), out, err);
-        });
+        }, "TransactionOutputs.to_hex");
       }
     )
   );
@@ -42132,7 +42301,7 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionOutputsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_to_json(st->get(), out, err);
-        });
+        }, "TransactionOutputs.to_json");
       }
     )
   );
@@ -42174,7 +42343,7 @@ static jsi::Object getOrCreateTransactionOutputsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionOutputs.get"));
       }
     )
   );
@@ -42223,7 +42392,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionOutputs.from_bytes", "bytes");
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionOutputs.from_bytes");
       }
     )
   );
@@ -42238,7 +42407,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionOutputs.from_hex");
       }
     )
   );
@@ -42253,7 +42422,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionOutputs.from_json");
       }
     )
   );
@@ -42264,7 +42433,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_outputs_new(out, err);
-        });
+        }, "TransactionOutputs.new");
       }
     )
   );
@@ -42299,11 +42468,12 @@ static jsi::Object makeTransactionUnspentOutputInstance(jsi::Runtime& rt, const 
   return obj;
 }
 
-static jsi::Object callCslTransactionUnspentOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionUnspentOutput(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionUnspentOutputInstance(rt, result);
 }
@@ -42325,7 +42495,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionUnspentOutputState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionUnspentOutput.to_bytes");
       }
     )
   );
@@ -42337,7 +42507,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionUnspentOutputState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_to_hex(st->get(), out, err);
-        });
+        }, "TransactionUnspentOutput.to_hex");
       }
     )
   );
@@ -42349,7 +42519,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionUnspentOutputState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_to_json(st->get(), out, err);
-        });
+        }, "TransactionUnspentOutput.to_json");
       }
     )
   );
@@ -42361,7 +42531,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionUnspentOutputState(rt, thisVal);
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_input(st->get(), out, err);
-        });
+        }, "TransactionUnspentOutput.input");
       }
     )
   );
@@ -42373,7 +42543,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputProto(jsi::Runtime& rt) {
         auto st = getThisTransactionUnspentOutputState(rt, thisVal);
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_output(st->get(), out, err);
-        });
+        }, "TransactionUnspentOutput.output");
       }
     )
   );
@@ -42404,7 +42574,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionUnspentOutput.from_bytes", "bytes");
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionUnspentOutput.from_bytes");
       }
     )
   );
@@ -42419,7 +42589,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionUnspentOutput.from_hex");
       }
     )
   );
@@ -42434,7 +42604,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionUnspentOutput.from_json");
       }
     )
   );
@@ -42453,7 +42623,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         auto output = getTransactionOutputState(rt, args[1].asObject(rt), "output");
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_output_new(input->get(), output->get(), out, err);
-        });
+        }, "TransactionUnspentOutput.new");
       }
     )
   );
@@ -42488,11 +42658,12 @@ static jsi::Object makeTransactionUnspentOutputsInstance(jsi::Runtime& rt, const
   return obj;
 }
 
-static jsi::Object callCslTransactionUnspentOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionUnspentOutputs(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionUnspentOutputsInstance(rt, result);
 }
@@ -42514,7 +42685,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionUnspentOutputsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_outputs_to_json(st->get(), out, err);
-        });
+        }, "TransactionUnspentOutputs.to_json");
       }
     )
   );
@@ -42556,7 +42727,7 @@ static jsi::Object getOrCreateTransactionUnspentOutputsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionUnspentOutputs.get"));
       }
     )
   );
@@ -42605,7 +42776,7 @@ static jsi::Object makeTransactionUnspentOutputsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionUnspentOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_outputs_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionUnspentOutputs.from_json");
       }
     )
   );
@@ -42616,7 +42787,7 @@ static jsi::Object makeTransactionUnspentOutputsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionUnspentOutputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_unspent_outputs_new(out, err);
-        });
+        }, "TransactionUnspentOutputs.new");
       }
     )
   );
@@ -42651,11 +42822,12 @@ static jsi::Object makeTransactionWitnessSetInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslTransactionWitnessSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionWitnessSet(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionWitnessSetInstance(rt, result);
 }
@@ -42677,7 +42849,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.to_bytes");
       }
     )
   );
@@ -42689,7 +42861,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_to_hex(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.to_hex");
       }
     )
   );
@@ -42701,7 +42873,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_to_json(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.to_json");
       }
     )
   );
@@ -42731,7 +42903,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_vkeys(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.vkeys");
       }
     )
   );
@@ -42761,7 +42933,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_native_scripts(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.native_scripts");
       }
     )
   );
@@ -42791,7 +42963,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_bootstraps(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.bootstraps");
       }
     )
   );
@@ -42821,7 +42993,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_plutus_scripts(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.plutus_scripts");
       }
     )
   );
@@ -42851,7 +43023,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_plutus_data(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.plutus_data");
       }
     )
   );
@@ -42881,7 +43053,7 @@ static jsi::Object getOrCreateTransactionWitnessSetProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetState(rt, thisVal);
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_redeemers(st->get(), out, err);
-        });
+        }, "TransactionWitnessSet.redeemers");
       }
     )
   );
@@ -42912,7 +43084,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionWitnessSet.from_bytes", "bytes");
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionWitnessSet.from_bytes");
       }
     )
   );
@@ -42927,7 +43099,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionWitnessSet.from_hex");
       }
     )
   );
@@ -42942,7 +43114,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionWitnessSet.from_json");
       }
     )
   );
@@ -42953,7 +43125,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_set_new(out, err);
-        });
+        }, "TransactionWitnessSet.new");
       }
     )
   );
@@ -42988,11 +43160,12 @@ static jsi::Object makeTransactionWitnessSetsInstance(jsi::Runtime& rt, const RP
   return obj;
 }
 
-static jsi::Object callCslTransactionWitnessSets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTransactionWitnessSets(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTransactionWitnessSetsInstance(rt, result);
 }
@@ -43014,7 +43187,7 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_to_bytes(st->get(), out, err);
-        });
+        }, "TransactionWitnessSets.to_bytes");
       }
     )
   );
@@ -43026,7 +43199,7 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_to_hex(st->get(), out, err);
-        });
+        }, "TransactionWitnessSets.to_hex");
       }
     )
   );
@@ -43038,7 +43211,7 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
         auto st = getThisTransactionWitnessSetsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_to_json(st->get(), out, err);
-        });
+        }, "TransactionWitnessSets.to_json");
       }
     )
   );
@@ -43080,7 +43253,7 @@ static jsi::Object getOrCreateTransactionWitnessSetsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TransactionWitnessSets.get"));
       }
     )
   );
@@ -43129,7 +43302,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionWitnessSets.from_bytes", "bytes");
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TransactionWitnessSets.from_bytes");
       }
     )
   );
@@ -43144,7 +43317,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TransactionWitnessSets.from_hex");
       }
     )
   );
@@ -43159,7 +43332,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_from_json(json.c_str(), out, err);
-        });
+        }, "TransactionWitnessSets.from_json");
       }
     )
   );
@@ -43170,7 +43343,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_transaction_witness_sets_new(out, err);
-        });
+        }, "TransactionWitnessSets.new");
       }
     )
   );
@@ -43205,11 +43378,12 @@ static jsi::Object makeTreasuryWithdrawalsInstance(jsi::Runtime& rt, const RPtr&
   return obj;
 }
 
-static jsi::Object callCslTreasuryWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTreasuryWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTreasuryWithdrawalsInstance(rt, result);
 }
@@ -43231,7 +43405,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_to_json(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawals.to_json");
       }
     )
   );
@@ -43259,7 +43433,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TreasuryWithdrawals.get"));
       }
     )
   );
@@ -43293,7 +43467,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsState(rt, thisVal);
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_keys(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawals.keys");
       }
     )
   );
@@ -43338,7 +43512,7 @@ static jsi::Object makeTreasuryWithdrawalsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTreasuryWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_from_json(json.c_str(), out, err);
-        });
+        }, "TreasuryWithdrawals.from_json");
       }
     )
   );
@@ -43349,7 +43523,7 @@ static jsi::Object makeTreasuryWithdrawalsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTreasuryWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_new(out, err);
-        });
+        }, "TreasuryWithdrawals.new");
       }
     )
   );
@@ -43384,11 +43558,12 @@ static jsi::Object makeTreasuryWithdrawalsActionInstance(jsi::Runtime& rt, const
   return obj;
 }
 
-static jsi::Object callCslTreasuryWithdrawalsAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTreasuryWithdrawalsAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTreasuryWithdrawalsActionInstance(rt, result);
 }
@@ -43410,7 +43585,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsActionProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_to_bytes(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.to_bytes");
       }
     )
   );
@@ -43422,7 +43597,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsActionProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_to_hex(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.to_hex");
       }
     )
   );
@@ -43434,7 +43609,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsActionProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_to_json(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.to_json");
       }
     )
   );
@@ -43446,7 +43621,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsActionProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsActionState(rt, thisVal);
         return callCslTreasuryWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_withdrawals(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.withdrawals");
       }
     )
   );
@@ -43458,7 +43633,7 @@ static jsi::Object getOrCreateTreasuryWithdrawalsActionProto(jsi::Runtime& rt) {
         auto st = getThisTreasuryWithdrawalsActionState(rt, thisVal);
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_policy_hash(st->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.policy_hash");
       }
     )
   );
@@ -43489,7 +43664,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TreasuryWithdrawalsAction.from_bytes", "bytes");
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.from_bytes");
       }
     )
   );
@@ -43504,7 +43679,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.from_hex");
       }
     )
   );
@@ -43519,7 +43694,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_from_json(json.c_str(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.from_json");
       }
     )
   );
@@ -43534,7 +43709,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         auto withdrawals = getTreasuryWithdrawalsState(rt, args[0].asObject(rt), "withdrawals");
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_new(withdrawals->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.new");
       }
     )
   );
@@ -43553,7 +43728,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         auto policy_hash = getScriptHashState(rt, args[1].asObject(rt), "policy_hash");
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_treasury_withdrawals_action_new_with_policy_hash(withdrawals->get(), policy_hash->get(), out, err);
-        });
+        }, "TreasuryWithdrawalsAction.new_with_policy_hash");
       }
     )
   );
@@ -43588,11 +43763,12 @@ static jsi::Object makeTxInputsBuilderInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslTxInputsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslTxInputsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeTxInputsBuilderInstance(rt, result);
 }
@@ -43818,7 +43994,7 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TxInputsBuilder.get_ref_inputs"));
       }
     )
   );
@@ -43842,7 +44018,7 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TxInputsBuilder.get_native_input_scripts"));
       }
     )
   );
@@ -43866,7 +44042,7 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "TxInputsBuilder.get_plutus_input_scripts"));
       }
     )
   );
@@ -43928,7 +44104,7 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_tx_inputs_builder_total_value(st->get(), out, err);
-        });
+        }, "TxInputsBuilder.total_value");
       }
     )
   );
@@ -43940,7 +44116,7 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_tx_inputs_builder_inputs(st->get(), out, err);
-        });
+        }, "TxInputsBuilder.inputs");
       }
     )
   );
@@ -43952,7 +44128,7 @@ static jsi::Object getOrCreateTxInputsBuilderProto(jsi::Runtime& rt) {
         auto st = getThisTxInputsBuilderState(rt, thisVal);
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_tx_inputs_builder_inputs_option(st->get(), out, err);
-        });
+        }, "TxInputsBuilder.inputs_option");
       }
     )
   );
@@ -43979,7 +44155,7 @@ static jsi::Object makeTxInputsBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslTxInputsBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_tx_inputs_builder_new(out, err);
-        });
+        }, "TxInputsBuilder.new");
       }
     )
   );
@@ -44014,11 +44190,12 @@ static jsi::Object makeURLInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslURL(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslURL(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeURLInstance(rt, result);
 }
@@ -44040,7 +44217,7 @@ static jsi::Object getOrCreateURLProto(jsi::Runtime& rt) {
         auto st = getThisURLState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_to_bytes(st->get(), out, err);
-        });
+        }, "URL.to_bytes");
       }
     )
   );
@@ -44052,7 +44229,7 @@ static jsi::Object getOrCreateURLProto(jsi::Runtime& rt) {
         auto st = getThisURLState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_to_hex(st->get(), out, err);
-        });
+        }, "URL.to_hex");
       }
     )
   );
@@ -44064,7 +44241,7 @@ static jsi::Object getOrCreateURLProto(jsi::Runtime& rt) {
         auto st = getThisURLState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_to_json(st->get(), out, err);
-        });
+        }, "URL.to_json");
       }
     )
   );
@@ -44076,7 +44253,7 @@ static jsi::Object getOrCreateURLProto(jsi::Runtime& rt) {
         auto st = getThisURLState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_url(st->get(), out, err);
-        });
+        }, "URL.url");
       }
     )
   );
@@ -44107,7 +44284,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "URL.from_bytes", "bytes");
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "URL.from_bytes");
       }
     )
   );
@@ -44122,7 +44299,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "URL.from_hex");
       }
     )
   );
@@ -44137,7 +44314,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_from_json(json.c_str(), out, err);
-        });
+        }, "URL.from_json");
       }
     )
   );
@@ -44152,7 +44329,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         std::string url = args[0].asString(rt).utf8(rt);
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_u_r_l_new(url.c_str(), out, err);
-        });
+        }, "URL.new");
       }
     )
   );
@@ -44187,11 +44364,12 @@ static jsi::Object makeUnitIntervalInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslUnitInterval(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslUnitInterval(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeUnitIntervalInstance(rt, result);
 }
@@ -44213,7 +44391,7 @@ static jsi::Object getOrCreateUnitIntervalProto(jsi::Runtime& rt) {
         auto st = getThisUnitIntervalState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_to_bytes(st->get(), out, err);
-        });
+        }, "UnitInterval.to_bytes");
       }
     )
   );
@@ -44225,7 +44403,7 @@ static jsi::Object getOrCreateUnitIntervalProto(jsi::Runtime& rt) {
         auto st = getThisUnitIntervalState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_to_hex(st->get(), out, err);
-        });
+        }, "UnitInterval.to_hex");
       }
     )
   );
@@ -44237,7 +44415,7 @@ static jsi::Object getOrCreateUnitIntervalProto(jsi::Runtime& rt) {
         auto st = getThisUnitIntervalState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_to_json(st->get(), out, err);
-        });
+        }, "UnitInterval.to_json");
       }
     )
   );
@@ -44249,7 +44427,7 @@ static jsi::Object getOrCreateUnitIntervalProto(jsi::Runtime& rt) {
         auto st = getThisUnitIntervalState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_numerator(st->get(), out, err);
-        });
+        }, "UnitInterval.numerator");
       }
     )
   );
@@ -44261,7 +44439,7 @@ static jsi::Object getOrCreateUnitIntervalProto(jsi::Runtime& rt) {
         auto st = getThisUnitIntervalState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_denominator(st->get(), out, err);
-        });
+        }, "UnitInterval.denominator");
       }
     )
   );
@@ -44292,7 +44470,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "UnitInterval.from_bytes", "bytes");
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "UnitInterval.from_bytes");
       }
     )
   );
@@ -44307,7 +44485,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "UnitInterval.from_hex");
       }
     )
   );
@@ -44322,7 +44500,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_from_json(json.c_str(), out, err);
-        });
+        }, "UnitInterval.from_json");
       }
     )
   );
@@ -44341,7 +44519,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         auto denominator = getBigNumState(rt, args[1].asObject(rt), "denominator");
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_unit_interval_new(numerator->get(), denominator->get(), out, err);
-        });
+        }, "UnitInterval.new");
       }
     )
   );
@@ -44376,11 +44554,12 @@ static jsi::Object makeUpdateInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslUpdate(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeUpdateInstance(rt, result);
 }
@@ -44402,7 +44581,7 @@ static jsi::Object getOrCreateUpdateProto(jsi::Runtime& rt) {
         auto st = getThisUpdateState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_update_to_bytes(st->get(), out, err);
-        });
+        }, "Update.to_bytes");
       }
     )
   );
@@ -44414,7 +44593,7 @@ static jsi::Object getOrCreateUpdateProto(jsi::Runtime& rt) {
         auto st = getThisUpdateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_update_to_hex(st->get(), out, err);
-        });
+        }, "Update.to_hex");
       }
     )
   );
@@ -44426,7 +44605,7 @@ static jsi::Object getOrCreateUpdateProto(jsi::Runtime& rt) {
         auto st = getThisUpdateState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_update_to_json(st->get(), out, err);
-        });
+        }, "Update.to_json");
       }
     )
   );
@@ -44438,7 +44617,7 @@ static jsi::Object getOrCreateUpdateProto(jsi::Runtime& rt) {
         auto st = getThisUpdateState(rt, thisVal);
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_proposed_protocol_parameter_updates(st->get(), out, err);
-        });
+        }, "Update.proposed_protocol_parameter_updates");
       }
     )
   );
@@ -44483,7 +44662,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Update.from_bytes", "bytes");
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Update.from_bytes");
       }
     )
   );
@@ -44498,7 +44677,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Update.from_hex");
       }
     )
   );
@@ -44513,7 +44692,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_from_json(json.c_str(), out, err);
-        });
+        }, "Update.from_json");
       }
     )
   );
@@ -44532,7 +44711,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         auto epoch = static_cast<int64_t>(args[1].asNumber());
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_new(proposed_protocol_parameter_updates->get(), epoch, out, err);
-        });
+        }, "Update.new");
       }
     )
   );
@@ -44567,11 +44746,12 @@ static jsi::Object makeUpdateCommitteeActionInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslUpdateCommitteeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslUpdateCommitteeAction(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeUpdateCommitteeActionInstance(rt, result);
 }
@@ -44593,7 +44773,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
         auto st = getThisUpdateCommitteeActionState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_to_bytes(st->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.to_bytes");
       }
     )
   );
@@ -44605,7 +44785,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
         auto st = getThisUpdateCommitteeActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_to_hex(st->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.to_hex");
       }
     )
   );
@@ -44617,7 +44797,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
         auto st = getThisUpdateCommitteeActionState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_to_json(st->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.to_json");
       }
     )
   );
@@ -44629,7 +44809,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
         auto st = getThisUpdateCommitteeActionState(rt, thisVal);
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_gov_action_id(st->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.gov_action_id");
       }
     )
   );
@@ -44641,7 +44821,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
         auto st = getThisUpdateCommitteeActionState(rt, thisVal);
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_committee(st->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.committee");
       }
     )
   );
@@ -44653,7 +44833,7 @@ static jsi::Object getOrCreateUpdateCommitteeActionProto(jsi::Runtime& rt) {
         auto st = getThisUpdateCommitteeActionState(rt, thisVal);
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_members_to_remove(st->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.members_to_remove");
       }
     )
   );
@@ -44684,7 +44864,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "UpdateCommitteeAction.from_bytes", "bytes");
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "UpdateCommitteeAction.from_bytes");
       }
     )
   );
@@ -44699,7 +44879,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "UpdateCommitteeAction.from_hex");
       }
     )
   );
@@ -44714,7 +44894,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_from_json(json.c_str(), out, err);
-        });
+        }, "UpdateCommitteeAction.from_json");
       }
     )
   );
@@ -44733,7 +44913,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         auto members_to_remove = getCredentialsState(rt, args[1].asObject(rt), "members_to_remove");
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_new(committee->get(), members_to_remove->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.new");
       }
     )
   );
@@ -44756,7 +44936,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         auto members_to_remove = getCredentialsState(rt, args[2].asObject(rt), "members_to_remove");
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_update_committee_action_new_with_action_id(gov_action_id->get(), committee->get(), members_to_remove->get(), out, err);
-        });
+        }, "UpdateCommitteeAction.new_with_action_id");
       }
     )
   );
@@ -44791,11 +44971,12 @@ static jsi::Object makeVRFCertInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVRFCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVRFCert(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVRFCertInstance(rt, result);
 }
@@ -44817,7 +44998,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
         auto st = getThisVRFCertState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_to_bytes(st->get(), out, err);
-        });
+        }, "VRFCert.to_bytes");
       }
     )
   );
@@ -44829,7 +45010,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
         auto st = getThisVRFCertState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_to_hex(st->get(), out, err);
-        });
+        }, "VRFCert.to_hex");
       }
     )
   );
@@ -44841,7 +45022,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
         auto st = getThisVRFCertState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_to_json(st->get(), out, err);
-        });
+        }, "VRFCert.to_json");
       }
     )
   );
@@ -44853,7 +45034,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
         auto st = getThisVRFCertState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_output(st->get(), out, err);
-        });
+        }, "VRFCert.output");
       }
     )
   );
@@ -44865,7 +45046,7 @@ static jsi::Object getOrCreateVRFCertProto(jsi::Runtime& rt) {
         auto st = getThisVRFCertState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_proof(st->get(), out, err);
-        });
+        }, "VRFCert.proof");
       }
     )
   );
@@ -44896,7 +45077,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VRFCert.from_bytes", "bytes");
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VRFCert.from_bytes");
       }
     )
   );
@@ -44911,7 +45092,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VRFCert.from_hex");
       }
     )
   );
@@ -44926,7 +45107,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_from_json(json.c_str(), out, err);
-        });
+        }, "VRFCert.from_json");
       }
     )
   );
@@ -44945,7 +45126,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         auto proof = parseUint8Array(rt, args[1].asObject(rt), "VRFCert.new", "proof");
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_cert_new(output.data(), static_cast<size_t>(output.size()), proof.data(), static_cast<size_t>(proof.size()), out, err);
-        });
+        }, "VRFCert.new");
       }
     )
   );
@@ -44980,11 +45161,12 @@ static jsi::Object makeVRFKeyHashInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVRFKeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVRFKeyHash(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVRFKeyHashInstance(rt, result);
 }
@@ -45006,7 +45188,7 @@ static jsi::Object getOrCreateVRFKeyHashProto(jsi::Runtime& rt) {
         auto st = getThisVRFKeyHashState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_to_bytes(st->get(), out, err);
-        });
+        }, "VRFKeyHash.to_bytes");
       }
     )
   );
@@ -45022,7 +45204,7 @@ static jsi::Object getOrCreateVRFKeyHashProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "VRFKeyHash.to_bech32");
       }
     )
   );
@@ -45034,7 +45216,7 @@ static jsi::Object getOrCreateVRFKeyHashProto(jsi::Runtime& rt) {
         auto st = getThisVRFKeyHashState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_to_hex(st->get(), out, err);
-        });
+        }, "VRFKeyHash.to_hex");
       }
     )
   );
@@ -45065,7 +45247,7 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VRFKeyHash.from_bytes", "bytes");
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VRFKeyHash.from_bytes");
       }
     )
   );
@@ -45080,7 +45262,7 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "VRFKeyHash.from_bech32");
       }
     )
   );
@@ -45095,7 +45277,7 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_key_hash_from_hex(hex.c_str(), out, err);
-        });
+        }, "VRFKeyHash.from_hex");
       }
     )
   );
@@ -45130,11 +45312,12 @@ static jsi::Object makeVRFVKeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVRFVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVRFVKey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVRFVKeyInstance(rt, result);
 }
@@ -45156,7 +45339,7 @@ static jsi::Object getOrCreateVRFVKeyProto(jsi::Runtime& rt) {
         auto st = getThisVRFVKeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_to_bytes(st->get(), out, err);
-        });
+        }, "VRFVKey.to_bytes");
       }
     )
   );
@@ -45172,7 +45355,7 @@ static jsi::Object getOrCreateVRFVKeyProto(jsi::Runtime& rt) {
         std::string prefix = args[0].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_to_bech32(st->get(), prefix.c_str(), out, err);
-        });
+        }, "VRFVKey.to_bech32");
       }
     )
   );
@@ -45184,7 +45367,7 @@ static jsi::Object getOrCreateVRFVKeyProto(jsi::Runtime& rt) {
         auto st = getThisVRFVKeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_to_hex(st->get(), out, err);
-        });
+        }, "VRFVKey.to_hex");
       }
     )
   );
@@ -45215,7 +45398,7 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VRFVKey.from_bytes", "bytes");
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VRFVKey.from_bytes");
       }
     )
   );
@@ -45230,7 +45413,7 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
         std::string bech_str = args[0].asString(rt).utf8(rt);
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_from_bech32(bech_str.c_str(), out, err);
-        });
+        }, "VRFVKey.from_bech32");
       }
     )
   );
@@ -45245,7 +45428,7 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
         std::string hex = args[0].asString(rt).utf8(rt);
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_v_r_f_v_key_from_hex(hex.c_str(), out, err);
-        });
+        }, "VRFVKey.from_hex");
       }
     )
   );
@@ -45280,11 +45463,12 @@ static jsi::Object makeValueInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslValue(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslValue(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeValueInstance(rt, result);
 }
@@ -45306,7 +45490,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto st = getThisValueState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_value_to_bytes(st->get(), out, err);
-        });
+        }, "Value.to_bytes");
       }
     )
   );
@@ -45318,7 +45502,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto st = getThisValueState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_value_to_hex(st->get(), out, err);
-        });
+        }, "Value.to_hex");
       }
     )
   );
@@ -45330,7 +45514,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto st = getThisValueState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_value_to_json(st->get(), out, err);
-        });
+        }, "Value.to_json");
       }
     )
   );
@@ -45356,7 +45540,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto st = getThisValueState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_coin(st->get(), out, err);
-        });
+        }, "Value.coin");
       }
     )
   );
@@ -45386,7 +45570,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto st = getThisValueState(rt, thisVal);
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_multiasset(st->get(), out, err);
-        });
+        }, "Value.multiasset");
       }
     )
   );
@@ -45420,7 +45604,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto rhs = getValueState(rt, args[0].asObject(rt), "rhs");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_checked_add(st->get(), rhs->get(), out, err);
-        });
+        }, "Value.checked_add");
       }
     )
   );
@@ -45436,7 +45620,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto rhs_value = getValueState(rt, args[0].asObject(rt), "rhs_value");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_checked_sub(st->get(), rhs_value->get(), out, err);
-        });
+        }, "Value.checked_sub");
       }
     )
   );
@@ -45452,7 +45636,7 @@ static jsi::Object getOrCreateValueProto(jsi::Runtime& rt) {
         auto rhs_value = getValueState(rt, args[0].asObject(rt), "rhs_value");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_clamped_sub(st->get(), rhs_value->get(), out, err);
-        });
+        }, "Value.clamped_sub");
       }
     )
   );
@@ -45501,7 +45685,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Value.from_bytes", "bytes");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Value.from_bytes");
       }
     )
   );
@@ -45516,7 +45700,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Value.from_hex");
       }
     )
   );
@@ -45531,7 +45715,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_from_json(json.c_str(), out, err);
-        });
+        }, "Value.from_json");
       }
     )
   );
@@ -45546,7 +45730,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[0].asObject(rt), "coin");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_new(coin->get(), out, err);
-        });
+        }, "Value.new");
       }
     )
   );
@@ -45561,7 +45745,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         auto multiasset = getMultiAssetState(rt, args[0].asObject(rt), "multiasset");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_new_from_assets(multiasset->get(), out, err);
-        });
+        }, "Value.new_from_assets");
       }
     )
   );
@@ -45580,7 +45764,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         auto multiasset = getMultiAssetState(rt, args[1].asObject(rt), "multiasset");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_new_with_assets(coin->get(), multiasset->get(), out, err);
-        });
+        }, "Value.new_with_assets");
       }
     )
   );
@@ -45591,7 +45775,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_value_zero(out, err);
-        });
+        }, "Value.zero");
       }
     )
   );
@@ -45626,11 +45810,12 @@ static jsi::Object makeVersionedBlockInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVersionedBlock(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVersionedBlockInstance(rt, result);
 }
@@ -45652,7 +45837,7 @@ static jsi::Object getOrCreateVersionedBlockProto(jsi::Runtime& rt) {
         auto st = getThisVersionedBlockState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_to_bytes(st->get(), out, err);
-        });
+        }, "VersionedBlock.to_bytes");
       }
     )
   );
@@ -45664,7 +45849,7 @@ static jsi::Object getOrCreateVersionedBlockProto(jsi::Runtime& rt) {
         auto st = getThisVersionedBlockState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_to_hex(st->get(), out, err);
-        });
+        }, "VersionedBlock.to_hex");
       }
     )
   );
@@ -45676,7 +45861,7 @@ static jsi::Object getOrCreateVersionedBlockProto(jsi::Runtime& rt) {
         auto st = getThisVersionedBlockState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_to_json(st->get(), out, err);
-        });
+        }, "VersionedBlock.to_json");
       }
     )
   );
@@ -45688,7 +45873,7 @@ static jsi::Object getOrCreateVersionedBlockProto(jsi::Runtime& rt) {
         auto st = getThisVersionedBlockState(rt, thisVal);
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_block(st->get(), out, err);
-        });
+        }, "VersionedBlock.block");
       }
     )
   );
@@ -45733,7 +45918,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VersionedBlock.from_bytes", "bytes");
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VersionedBlock.from_bytes");
       }
     )
   );
@@ -45748,7 +45933,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VersionedBlock.from_hex");
       }
     )
   );
@@ -45763,7 +45948,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_from_json(json.c_str(), out, err);
-        });
+        }, "VersionedBlock.from_json");
       }
     )
   );
@@ -45782,7 +45967,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         auto era_code = static_cast<int64_t>(args[1].asNumber());
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_versioned_block_new(block->get(), era_code, out, err);
-        });
+        }, "VersionedBlock.new");
       }
     )
   );
@@ -45817,11 +46002,12 @@ static jsi::Object makeVkeyInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVkey(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVkeyInstance(rt, result);
 }
@@ -45843,7 +46029,7 @@ static jsi::Object getOrCreateVkeyProto(jsi::Runtime& rt) {
         auto st = getThisVkeyState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_vkey_to_bytes(st->get(), out, err);
-        });
+        }, "Vkey.to_bytes");
       }
     )
   );
@@ -45855,7 +46041,7 @@ static jsi::Object getOrCreateVkeyProto(jsi::Runtime& rt) {
         auto st = getThisVkeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vkey_to_hex(st->get(), out, err);
-        });
+        }, "Vkey.to_hex");
       }
     )
   );
@@ -45867,7 +46053,7 @@ static jsi::Object getOrCreateVkeyProto(jsi::Runtime& rt) {
         auto st = getThisVkeyState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vkey_to_json(st->get(), out, err);
-        });
+        }, "Vkey.to_json");
       }
     )
   );
@@ -45879,7 +46065,7 @@ static jsi::Object getOrCreateVkeyProto(jsi::Runtime& rt) {
         auto st = getThisVkeyState(rt, thisVal);
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_public_key(st->get(), out, err);
-        });
+        }, "Vkey.public_key");
       }
     )
   );
@@ -45910,7 +46096,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Vkey.from_bytes", "bytes");
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Vkey.from_bytes");
       }
     )
   );
@@ -45925,7 +46111,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Vkey.from_hex");
       }
     )
   );
@@ -45940,7 +46126,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_from_json(json.c_str(), out, err);
-        });
+        }, "Vkey.from_json");
       }
     )
   );
@@ -45955,7 +46141,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         auto pk = getPublicKeyState(rt, args[0].asObject(rt), "pk");
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkey_new(pk->get(), out, err);
-        });
+        }, "Vkey.new");
       }
     )
   );
@@ -45990,11 +46176,12 @@ static jsi::Object makeVkeysInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVkeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVkeys(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVkeysInstance(rt, result);
 }
@@ -46046,7 +46233,7 @@ static jsi::Object getOrCreateVkeysProto(jsi::Runtime& rt) {
         return jsi::Value(callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Vkeys.get"));
       }
     )
   );
@@ -46091,7 +46278,7 @@ static jsi::Object makeVkeysExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVkeys(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeys_new(out, err);
-        });
+        }, "Vkeys.new");
       }
     )
   );
@@ -46126,11 +46313,12 @@ static jsi::Object makeVkeywitnessInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVkeywitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVkeywitness(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVkeywitnessInstance(rt, result);
 }
@@ -46152,7 +46340,7 @@ static jsi::Object getOrCreateVkeywitnessProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_to_bytes(st->get(), out, err);
-        });
+        }, "Vkeywitness.to_bytes");
       }
     )
   );
@@ -46164,7 +46352,7 @@ static jsi::Object getOrCreateVkeywitnessProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_to_hex(st->get(), out, err);
-        });
+        }, "Vkeywitness.to_hex");
       }
     )
   );
@@ -46176,7 +46364,7 @@ static jsi::Object getOrCreateVkeywitnessProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_to_json(st->get(), out, err);
-        });
+        }, "Vkeywitness.to_json");
       }
     )
   );
@@ -46188,7 +46376,7 @@ static jsi::Object getOrCreateVkeywitnessProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessState(rt, thisVal);
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_vkey(st->get(), out, err);
-        });
+        }, "Vkeywitness.vkey");
       }
     )
   );
@@ -46200,7 +46388,7 @@ static jsi::Object getOrCreateVkeywitnessProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessState(rt, thisVal);
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_signature(st->get(), out, err);
-        });
+        }, "Vkeywitness.signature");
       }
     )
   );
@@ -46231,7 +46419,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Vkeywitness.from_bytes", "bytes");
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Vkeywitness.from_bytes");
       }
     )
   );
@@ -46246,7 +46434,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Vkeywitness.from_hex");
       }
     )
   );
@@ -46261,7 +46449,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_from_json(json.c_str(), out, err);
-        });
+        }, "Vkeywitness.from_json");
       }
     )
   );
@@ -46280,7 +46468,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitness_new(vkey->get(), signature->get(), out, err);
-        });
+        }, "Vkeywitness.new");
       }
     )
   );
@@ -46315,11 +46503,12 @@ static jsi::Object makeVkeywitnessesInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslVkeywitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVkeywitnesses(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVkeywitnessesInstance(rt, result);
 }
@@ -46341,7 +46530,7 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessesState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_to_bytes(st->get(), out, err);
-        });
+        }, "Vkeywitnesses.to_bytes");
       }
     )
   );
@@ -46353,7 +46542,7 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_to_hex(st->get(), out, err);
-        });
+        }, "Vkeywitnesses.to_hex");
       }
     )
   );
@@ -46365,7 +46554,7 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
         auto st = getThisVkeywitnessesState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_to_json(st->get(), out, err);
-        });
+        }, "Vkeywitnesses.to_json");
       }
     )
   );
@@ -46407,7 +46596,7 @@ static jsi::Object getOrCreateVkeywitnessesProto(jsi::Runtime& rt) {
         return jsi::Value(callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Vkeywitnesses.get"));
       }
     )
   );
@@ -46456,7 +46645,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Vkeywitnesses.from_bytes", "bytes");
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Vkeywitnesses.from_bytes");
       }
     )
   );
@@ -46471,7 +46660,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Vkeywitnesses.from_hex");
       }
     )
   );
@@ -46486,7 +46675,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_from_json(json.c_str(), out, err);
-        });
+        }, "Vkeywitnesses.from_json");
       }
     )
   );
@@ -46497,7 +46686,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vkeywitnesses_new(out, err);
-        });
+        }, "Vkeywitnesses.new");
       }
     )
   );
@@ -46532,11 +46721,12 @@ static jsi::Object makeVoteDelegationInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVoteDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVoteDelegationInstance(rt, result);
 }
@@ -46558,7 +46748,7 @@ static jsi::Object getOrCreateVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisVoteDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "VoteDelegation.to_bytes");
       }
     )
   );
@@ -46570,7 +46760,7 @@ static jsi::Object getOrCreateVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisVoteDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_to_hex(st->get(), out, err);
-        });
+        }, "VoteDelegation.to_hex");
       }
     )
   );
@@ -46582,7 +46772,7 @@ static jsi::Object getOrCreateVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisVoteDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_to_json(st->get(), out, err);
-        });
+        }, "VoteDelegation.to_json");
       }
     )
   );
@@ -46594,7 +46784,7 @@ static jsi::Object getOrCreateVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisVoteDelegationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_stake_credential(st->get(), out, err);
-        });
+        }, "VoteDelegation.stake_credential");
       }
     )
   );
@@ -46606,7 +46796,7 @@ static jsi::Object getOrCreateVoteDelegationProto(jsi::Runtime& rt) {
         auto st = getThisVoteDelegationState(rt, thisVal);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_drep(st->get(), out, err);
-        });
+        }, "VoteDelegation.drep");
       }
     )
   );
@@ -46651,7 +46841,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VoteDelegation.from_bytes", "bytes");
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VoteDelegation.from_bytes");
       }
     )
   );
@@ -46666,7 +46856,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VoteDelegation.from_hex");
       }
     )
   );
@@ -46681,7 +46871,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "VoteDelegation.from_json");
       }
     )
   );
@@ -46700,7 +46890,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         auto drep = getDRepState(rt, args[1].asObject(rt), "drep");
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_delegation_new(stake_credential->get(), drep->get(), out, err);
-        });
+        }, "VoteDelegation.new");
       }
     )
   );
@@ -46735,11 +46925,12 @@ static jsi::Object makeVoteRegistrationAndDelegationInstance(jsi::Runtime& rt, c
   return obj;
 }
 
-static jsi::Object callCslVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVoteRegistrationAndDelegation(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVoteRegistrationAndDelegationInstance(rt, result);
 }
@@ -46761,7 +46952,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
         auto st = getThisVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_to_bytes(st->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.to_bytes");
       }
     )
   );
@@ -46773,7 +46964,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
         auto st = getThisVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_to_hex(st->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.to_hex");
       }
     )
   );
@@ -46785,7 +46976,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
         auto st = getThisVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_to_json(st->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.to_json");
       }
     )
   );
@@ -46797,7 +46988,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
         auto st = getThisVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_stake_credential(st->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.stake_credential");
       }
     )
   );
@@ -46809,7 +47000,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
         auto st = getThisVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_drep(st->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.drep");
       }
     )
   );
@@ -46821,7 +47012,7 @@ static jsi::Object getOrCreateVoteRegistrationAndDelegationProto(jsi::Runtime& r
         auto st = getThisVoteRegistrationAndDelegationState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_coin(st->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.coin");
       }
     )
   );
@@ -46866,7 +47057,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VoteRegistrationAndDelegation.from_bytes", "bytes");
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.from_bytes");
       }
     )
   );
@@ -46881,7 +47072,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.from_hex");
       }
     )
   );
@@ -46896,7 +47087,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_from_json(json.c_str(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.from_json");
       }
     )
   );
@@ -46919,7 +47110,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         auto coin = getBigNumState(rt, args[2].asObject(rt), "coin");
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_vote_registration_and_delegation_new(stake_credential->get(), drep->get(), coin->get(), out, err);
-        });
+        }, "VoteRegistrationAndDelegation.new");
       }
     )
   );
@@ -46954,11 +47145,12 @@ static jsi::Object makeVoterInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVoter(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVoter(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVoterInstance(rt, result);
 }
@@ -46980,7 +47172,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_bytes(st->get(), out, err);
-        });
+        }, "Voter.to_bytes");
       }
     )
   );
@@ -46992,7 +47184,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_hex(st->get(), out, err);
-        });
+        }, "Voter.to_hex");
       }
     )
   );
@@ -47004,7 +47196,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_json(st->get(), out, err);
-        });
+        }, "Voter.to_json");
       }
     )
   );
@@ -47030,7 +47222,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_constitutional_committee_hot_credential(st->get(), out, err);
-        });
+        }, "Voter.to_constitutional_committee_hot_credential");
       }
     )
   );
@@ -47042,7 +47234,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_drep_credential(st->get(), out, err);
-        });
+        }, "Voter.to_drep_credential");
       }
     )
   );
@@ -47054,7 +47246,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_stake_pool_key_hash(st->get(), out, err);
-        });
+        }, "Voter.to_stake_pool_key_hash");
       }
     )
   );
@@ -47080,7 +47272,7 @@ static jsi::Object getOrCreateVoterProto(jsi::Runtime& rt) {
         auto st = getThisVoterState(rt, thisVal);
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_to_key_hash(st->get(), out, err);
-        });
+        }, "Voter.to_key_hash");
       }
     )
   );
@@ -47111,7 +47303,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Voter.from_bytes", "bytes");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Voter.from_bytes");
       }
     )
   );
@@ -47126,7 +47318,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Voter.from_hex");
       }
     )
   );
@@ -47141,7 +47333,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_from_json(json.c_str(), out, err);
-        });
+        }, "Voter.from_json");
       }
     )
   );
@@ -47156,7 +47348,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_new_constitutional_committee_hot_credential(cred->get(), out, err);
-        });
+        }, "Voter.new_constitutional_committee_hot_credential");
       }
     )
   );
@@ -47171,7 +47363,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         auto cred = getCredentialState(rt, args[0].asObject(rt), "cred");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_new_drep_credential(cred->get(), out, err);
-        });
+        }, "Voter.new_drep_credential");
       }
     )
   );
@@ -47186,7 +47378,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         auto key_hash = getEd25519KeyHashState(rt, args[0].asObject(rt), "key_hash");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voter_new_stake_pool_key_hash(key_hash->get(), out, err);
-        });
+        }, "Voter.new_stake_pool_key_hash");
       }
     )
   );
@@ -47221,11 +47413,12 @@ static jsi::Object makeVotersInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslVoters(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVoters(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotersInstance(rt, result);
 }
@@ -47247,7 +47440,7 @@ static jsi::Object getOrCreateVotersProto(jsi::Runtime& rt) {
         auto st = getThisVotersState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voters_to_json(st->get(), out, err);
-        });
+        }, "Voters.to_json");
       }
     )
   );
@@ -47293,7 +47486,7 @@ static jsi::Object getOrCreateVotersProto(jsi::Runtime& rt) {
         return jsi::Value(callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Voters.get"));
       }
     )
   );
@@ -47338,7 +47531,7 @@ static jsi::Object makeVotersExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVoters(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voters_from_json(json.c_str(), out, err);
-        });
+        }, "Voters.from_json");
       }
     )
   );
@@ -47349,7 +47542,7 @@ static jsi::Object makeVotersExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVoters(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voters_new(out, err);
-        });
+        }, "Voters.new");
       }
     )
   );
@@ -47384,11 +47577,12 @@ static jsi::Object makeVotingBuilderInstance(jsi::Runtime& rt, const RPtr& ptr) 
   return obj;
 }
 
-static jsi::Object callCslVotingBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVotingBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotingBuilderInstance(rt, result);
 }
@@ -47508,7 +47702,7 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingBuilder.get_plutus_witnesses"));
       }
     )
   );
@@ -47532,7 +47726,7 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingBuilder.get_ref_inputs"));
       }
     )
   );
@@ -47556,7 +47750,7 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingBuilder.get_native_scripts"));
       }
     )
   );
@@ -47582,7 +47776,7 @@ static jsi::Object getOrCreateVotingBuilderProto(jsi::Runtime& rt) {
         auto st = getThisVotingBuilderState(rt, thisVal);
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_builder_build(st->get(), out, err);
-        });
+        }, "VotingBuilder.build");
       }
     )
   );
@@ -47609,7 +47803,7 @@ static jsi::Object makeVotingBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVotingBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_builder_new(out, err);
-        });
+        }, "VotingBuilder.new");
       }
     )
   );
@@ -47644,11 +47838,12 @@ static jsi::Object makeVotingProcedureInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslVotingProcedure(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVotingProcedure(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotingProcedureInstance(rt, result);
 }
@@ -47670,7 +47865,7 @@ static jsi::Object getOrCreateVotingProcedureProto(jsi::Runtime& rt) {
         auto st = getThisVotingProcedureState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_to_bytes(st->get(), out, err);
-        });
+        }, "VotingProcedure.to_bytes");
       }
     )
   );
@@ -47682,7 +47877,7 @@ static jsi::Object getOrCreateVotingProcedureProto(jsi::Runtime& rt) {
         auto st = getThisVotingProcedureState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_to_hex(st->get(), out, err);
-        });
+        }, "VotingProcedure.to_hex");
       }
     )
   );
@@ -47694,7 +47889,7 @@ static jsi::Object getOrCreateVotingProcedureProto(jsi::Runtime& rt) {
         auto st = getThisVotingProcedureState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_to_json(st->get(), out, err);
-        });
+        }, "VotingProcedure.to_json");
       }
     )
   );
@@ -47720,7 +47915,7 @@ static jsi::Object getOrCreateVotingProcedureProto(jsi::Runtime& rt) {
         auto st = getThisVotingProcedureState(rt, thisVal);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_anchor(st->get(), out, err);
-        });
+        }, "VotingProcedure.anchor");
       }
     )
   );
@@ -47751,7 +47946,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProcedure.from_bytes", "bytes");
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VotingProcedure.from_bytes");
       }
     )
   );
@@ -47766,7 +47961,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VotingProcedure.from_hex");
       }
     )
   );
@@ -47781,7 +47976,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_from_json(json.c_str(), out, err);
-        });
+        }, "VotingProcedure.from_json");
       }
     )
   );
@@ -47796,7 +47991,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         auto vote = static_cast<int32_t>(args[0].asNumber());
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_new(vote, out, err);
-        });
+        }, "VotingProcedure.new");
       }
     )
   );
@@ -47815,7 +48010,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         auto anchor = getAnchorState(rt, args[1].asObject(rt), "anchor");
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedure_new_with_anchor(vote, anchor->get(), out, err);
-        });
+        }, "VotingProcedure.new_with_anchor");
       }
     )
   );
@@ -47850,11 +48045,12 @@ static jsi::Object makeVotingProceduresInstance(jsi::Runtime& rt, const RPtr& pt
   return obj;
 }
 
-static jsi::Object callCslVotingProcedures(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVotingProcedures(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotingProceduresInstance(rt, result);
 }
@@ -47876,7 +48072,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
         auto st = getThisVotingProceduresState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_to_bytes(st->get(), out, err);
-        });
+        }, "VotingProcedures.to_bytes");
       }
     )
   );
@@ -47888,7 +48084,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
         auto st = getThisVotingProceduresState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_to_hex(st->get(), out, err);
-        });
+        }, "VotingProcedures.to_hex");
       }
     )
   );
@@ -47900,7 +48096,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
         auto st = getThisVotingProceduresState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_to_json(st->get(), out, err);
-        });
+        }, "VotingProcedures.to_json");
       }
     )
   );
@@ -47958,7 +48154,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
         return jsi::Value(callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingProcedures.get"));
       }
     )
   );
@@ -47982,7 +48178,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
         return jsi::Value(callCslVoters(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingProcedures.get_voters"));
       }
     )
   );
@@ -48010,7 +48206,7 @@ static jsi::Object getOrCreateVotingProceduresProto(jsi::Runtime& rt) {
         return jsi::Value(callCslGovernanceActionIds(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingProcedures.get_governance_action_ids_by_voter"));
       }
     )
   );
@@ -48041,7 +48237,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProcedures.from_bytes", "bytes");
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VotingProcedures.from_bytes");
       }
     )
   );
@@ -48056,7 +48252,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VotingProcedures.from_hex");
       }
     )
   );
@@ -48071,7 +48267,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_from_json(json.c_str(), out, err);
-        });
+        }, "VotingProcedures.from_json");
       }
     )
   );
@@ -48082,7 +48278,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_procedures_new(out, err);
-        });
+        }, "VotingProcedures.new");
       }
     )
   );
@@ -48117,11 +48313,12 @@ static jsi::Object makeVotingProposalInstance(jsi::Runtime& rt, const RPtr& ptr)
   return obj;
 }
 
-static jsi::Object callCslVotingProposal(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVotingProposal(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotingProposalInstance(rt, result);
 }
@@ -48143,7 +48340,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_to_bytes(st->get(), out, err);
-        });
+        }, "VotingProposal.to_bytes");
       }
     )
   );
@@ -48155,7 +48352,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_to_hex(st->get(), out, err);
-        });
+        }, "VotingProposal.to_hex");
       }
     )
   );
@@ -48167,7 +48364,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_to_json(st->get(), out, err);
-        });
+        }, "VotingProposal.to_json");
       }
     )
   );
@@ -48179,7 +48376,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_governance_action(st->get(), out, err);
-        });
+        }, "VotingProposal.governance_action");
       }
     )
   );
@@ -48191,7 +48388,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_anchor(st->get(), out, err);
-        });
+        }, "VotingProposal.anchor");
       }
     )
   );
@@ -48203,7 +48400,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslRewardAddress(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_reward_account(st->get(), out, err);
-        });
+        }, "VotingProposal.reward_account");
       }
     )
   );
@@ -48215,7 +48412,7 @@ static jsi::Object getOrCreateVotingProposalProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalState(rt, thisVal);
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_deposit(st->get(), out, err);
-        });
+        }, "VotingProposal.deposit");
       }
     )
   );
@@ -48246,7 +48443,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProposal.from_bytes", "bytes");
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VotingProposal.from_bytes");
       }
     )
   );
@@ -48261,7 +48458,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VotingProposal.from_hex");
       }
     )
   );
@@ -48276,7 +48473,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_from_json(json.c_str(), out, err);
-        });
+        }, "VotingProposal.from_json");
       }
     )
   );
@@ -48303,7 +48500,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         auto deposit = getBigNumState(rt, args[3].asObject(rt), "deposit");
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_new(governance_action->get(), anchor->get(), reward_account->get(), deposit->get(), out, err);
-        });
+        }, "VotingProposal.new");
       }
     )
   );
@@ -48338,11 +48535,12 @@ static jsi::Object makeVotingProposalBuilderInstance(jsi::Runtime& rt, const RPt
   return obj;
 }
 
-static jsi::Object callCslVotingProposalBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVotingProposalBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotingProposalBuilderInstance(rt, result);
 }
@@ -48416,7 +48614,7 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingProposalBuilder.get_plutus_witnesses"));
       }
     )
   );
@@ -48440,7 +48638,7 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingProposalBuilder.get_ref_inputs"));
       }
     )
   );
@@ -48466,7 +48664,7 @@ static jsi::Object getOrCreateVotingProposalBuilderProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalBuilderState(rt, thisVal);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_builder_build(st->get(), out, err);
-        });
+        }, "VotingProposalBuilder.build");
       }
     )
   );
@@ -48493,7 +48691,7 @@ static jsi::Object makeVotingProposalBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVotingProposalBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposal_builder_new(out, err);
-        });
+        }, "VotingProposalBuilder.new");
       }
     )
   );
@@ -48528,11 +48726,12 @@ static jsi::Object makeVotingProposalsInstance(jsi::Runtime& rt, const RPtr& ptr
   return obj;
 }
 
-static jsi::Object callCslVotingProposals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslVotingProposals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeVotingProposalsInstance(rt, result);
 }
@@ -48554,7 +48753,7 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_to_bytes(st->get(), out, err);
-        });
+        }, "VotingProposals.to_bytes");
       }
     )
   );
@@ -48566,7 +48765,7 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_to_hex(st->get(), out, err);
-        });
+        }, "VotingProposals.to_hex");
       }
     )
   );
@@ -48578,7 +48777,7 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_to_json(st->get(), out, err);
-        });
+        }, "VotingProposals.to_json");
       }
     )
   );
@@ -48620,7 +48819,7 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "VotingProposals.get"));
       }
     )
   );
@@ -48668,7 +48867,7 @@ static jsi::Object getOrCreateVotingProposalsProto(jsi::Runtime& rt) {
         auto st = getThisVotingProposalsState(rt, thisVal);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_to_option(st->get(), out, err);
-        });
+        }, "VotingProposals.to_option");
       }
     )
   );
@@ -48699,7 +48898,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProposals.from_bytes", "bytes");
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "VotingProposals.from_bytes");
       }
     )
   );
@@ -48714,7 +48913,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "VotingProposals.from_hex");
       }
     )
   );
@@ -48729,7 +48928,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_from_json(json.c_str(), out, err);
-        });
+        }, "VotingProposals.from_json");
       }
     )
   );
@@ -48740,7 +48939,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_voting_proposals_new(out, err);
-        });
+        }, "VotingProposals.new");
       }
     )
   );
@@ -48775,11 +48974,12 @@ static jsi::Object makeWithdrawalsInstance(jsi::Runtime& rt, const RPtr& ptr) {
   return obj;
 }
 
-static jsi::Object callCslWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslWithdrawals(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeWithdrawalsInstance(rt, result);
 }
@@ -48801,7 +49001,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
         auto st = getThisWithdrawalsState(rt, thisVal);
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_to_bytes(st->get(), out, err);
-        });
+        }, "Withdrawals.to_bytes");
       }
     )
   );
@@ -48813,7 +49013,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
         auto st = getThisWithdrawalsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_to_hex(st->get(), out, err);
-        });
+        }, "Withdrawals.to_hex");
       }
     )
   );
@@ -48825,7 +49025,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
         auto st = getThisWithdrawalsState(rt, thisVal);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_to_json(st->get(), out, err);
-        });
+        }, "Withdrawals.to_json");
       }
     )
   );
@@ -48871,7 +49071,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Withdrawals.insert"));
       }
     )
   );
@@ -48899,7 +49099,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "Withdrawals.get"));
       }
     )
   );
@@ -48911,7 +49111,7 @@ static jsi::Object getOrCreateWithdrawalsProto(jsi::Runtime& rt) {
         auto st = getThisWithdrawalsState(rt, thisVal);
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_keys(st->get(), out, err);
-        });
+        }, "Withdrawals.keys");
       }
     )
   );
@@ -48942,7 +49142,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Withdrawals.from_bytes", "bytes");
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "Withdrawals.from_bytes");
       }
     )
   );
@@ -48957,7 +49157,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
         std::string hex_str = args[0].asString(rt).utf8(rt);
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_from_hex(hex_str.c_str(), out, err);
-        });
+        }, "Withdrawals.from_hex");
       }
     )
   );
@@ -48972,7 +49172,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
         std::string json = args[0].asString(rt).utf8(rt);
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_from_json(json.c_str(), out, err);
-        });
+        }, "Withdrawals.from_json");
       }
     )
   );
@@ -48983,7 +49183,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_new(out, err);
-        });
+        }, "Withdrawals.new");
       }
     )
   );
@@ -49018,11 +49218,12 @@ static jsi::Object makeWithdrawalsBuilderInstance(jsi::Runtime& rt, const RPtr& 
   return obj;
 }
 
-static jsi::Object callCslWithdrawalsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn) {
+static jsi::Object callCslWithdrawalsBuilder(jsi::Runtime& rt, std::function<bool(RPtr*, CharPtr*)> fn, const char* location = "") {
   RPtr result{nullptr};
   ScopedCharPtr err;
   if (!fn(&result, &err.ptr)) {
-    throw jsi::JSError(rt, err.ptr ? err.ptr : "Unknown CSL error");
+    std::string errorMsg = err.ptr ? err.ptr : (std::string(location) + ": Unknown CSL error");
+    throw jsi::JSError(rt, errorMsg);
   }
   return makeWithdrawalsBuilderInstance(rt, result);
 }
@@ -49130,7 +49331,7 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslPlutusWitnesses(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "WithdrawalsBuilder.get_plutus_witnesses"));
       }
     )
   );
@@ -49154,7 +49355,7 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "WithdrawalsBuilder.get_ref_inputs"));
       }
     )
   );
@@ -49178,7 +49379,7 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "WithdrawalsBuilder.get_native_scripts"));
       }
     )
   );
@@ -49202,7 +49403,7 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "WithdrawalsBuilder.get_total_withdrawals"));
       }
     )
   );
@@ -49228,7 +49429,7 @@ static jsi::Object getOrCreateWithdrawalsBuilderProto(jsi::Runtime& rt) {
         auto st = getThisWithdrawalsBuilderState(rt, thisVal);
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_builder_build(st->get(), out, err);
-        });
+        }, "WithdrawalsBuilder.build");
       }
     )
   );
@@ -49255,7 +49456,7 @@ static jsi::Object makeWithdrawalsBuilderExport(jsi::Runtime& rt) {
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
         return callCslWithdrawalsBuilder(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_withdrawals_builder_new(out, err);
-        });
+        }, "WithdrawalsBuilder.new");
       }
     )
   );
@@ -49287,7 +49488,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto ex_unit_prices = getExUnitPricesState(rt, args[1].asObject(rt), "ex_unit_prices");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_calculate_ex_units_ceil_cost(ex_units->get(), ex_unit_prices->get(), out, err);
-        });
+        }, "calculate_ex_units_ceil_cost");
       }
     )
   );
@@ -49310,7 +49511,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto config = getTransactionBuilderConfigState(rt, args[2].asObject(rt), "config");
         return callCslTransactionBatchList(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_create_send_all(address->get(), utxos->get(), config->get(), out, err);
-        });
+        }, "create_send_all");
       }
     )
   );
@@ -49325,7 +49526,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto metadata = getTransactionMetadatumState(rt, args[0].asObject(rt), "metadata");
         return callCslArray(rt, [&](DataPtr* out, CharPtr* err) {
           return csl_bridge_decode_arbitrary_bytes_from_metadatum(metadata->get(), out, err);
-        });
+        }, "decode_arbitrary_bytes_from_metadatum");
       }
     )
   );
@@ -49344,7 +49545,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_decode_metadatum_to_json_str(metadatum->get(), schema, out, err);
-        });
+        }, "decode_metadatum_to_json_str");
       }
     )
   );
@@ -49363,7 +49564,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_decode_plutus_datum_to_json_str(datum->get(), schema, out, err);
-        });
+        }, "decode_plutus_datum_to_json_str");
       }
     )
   );
@@ -49382,7 +49583,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         std::string data = args[1].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_decrypt_with_password(password.c_str(), data.c_str(), out, err);
-        });
+        }, "decrypt_with_password");
       }
     )
   );
@@ -49397,7 +49598,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "encode_arbitrary_bytes_as_metadatum", "bytes");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_arbitrary_bytes_as_metadatum(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
-        });
+        }, "encode_arbitrary_bytes_as_metadatum");
       }
     )
   );
@@ -49416,7 +49617,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_json_str_to_metadatum(json.c_str(), schema, out, err);
-        });
+        }, "encode_json_str_to_metadatum");
       }
     )
   );
@@ -49439,7 +49640,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[2].asNumber());
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_json_str_to_native_script(json.c_str(), self_xpub.c_str(), schema, out, err);
-        });
+        }, "encode_json_str_to_native_script");
       }
     )
   );
@@ -49458,7 +49659,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto schema = static_cast<int32_t>(args[1].asNumber());
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_encode_json_str_to_plutus_datum(json.c_str(), schema, out, err);
-        });
+        }, "encode_json_str_to_plutus_datum");
       }
     )
   );
@@ -49485,7 +49686,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         std::string data = args[3].asString(rt).utf8(rt);
         return callCslString(rt, [&](CharPtr* out, CharPtr* err) {
           return csl_bridge_encrypt_with_password(password.c_str(), salt.c_str(), nonce.c_str(), data.c_str(), out, err);
-        });
+        }, "encrypt_with_password");
       }
     )
   );
@@ -49520,7 +49721,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         return jsi::Value(callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "get_deposit"));
       }
     )
   );
@@ -49555,7 +49756,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         return jsi::Value(callCslValue(rt, [&](RPtr* out, CharPtr* err) {
           *out = result;
           return true;
-        }));
+        }, "get_implicit_input"));
       }
     )
   );
@@ -49587,7 +49788,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto auxiliary_data = getAuxiliaryDataState(rt, args[0].asObject(rt), "auxiliary_data");
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hash_auxiliary_data(auxiliary_data->get(), out, err);
-        });
+        }, "hash_auxiliary_data");
       }
     )
   );
@@ -49602,7 +49803,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto plutus_data = getPlutusDataState(rt, args[0].asObject(rt), "plutus_data");
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_hash_plutus_data(plutus_data->get(), out, err);
-        });
+        }, "hash_plutus_data");
       }
     )
   );
@@ -49631,11 +49832,11 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         if (has_datums) {
           return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_hash_script_data_with_datums(redeemers->get(), cost_models->get(), datums->get(), out, err);
-          });
+          }, "hash_script_data");
         } else {
           return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
             return csl_bridge_hash_script_data(redeemers->get(), cost_models->get(), out, err);
-          });
+          }, "hash_script_data");
         }
       }
     )
@@ -49659,7 +49860,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto key = getLegacyDaedalusPrivateKeyState(rt, args[2].asObject(rt), "key");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_make_daedalus_bootstrap_witness(tx_body_hash->get(), addr->get(), key->get(), out, err);
-        });
+        }, "make_daedalus_bootstrap_witness");
       }
     )
   );
@@ -49682,7 +49883,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto key = getBip32PrivateKeyState(rt, args[2].asObject(rt), "key");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_make_icarus_bootstrap_witness(tx_body_hash->get(), addr->get(), key->get(), out, err);
-        });
+        }, "make_icarus_bootstrap_witness");
       }
     )
   );
@@ -49701,7 +49902,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto sk = getPrivateKeyState(rt, args[1].asObject(rt), "sk");
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_make_vkey_witness(tx_body_hash->get(), sk->get(), out, err);
-        });
+        }, "make_vkey_witness");
       }
     )
   );
@@ -49720,7 +49921,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto data_cost = getDataCostState(rt, args[1].asObject(rt), "data_cost");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_ada_for_output(output->get(), data_cost->get(), out, err);
-        });
+        }, "min_ada_for_output");
       }
     )
   );
@@ -49739,7 +49940,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto linear_fee = getLinearFeeState(rt, args[1].asObject(rt), "linear_fee");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_fee(tx->get(), linear_fee->get(), out, err);
-        });
+        }, "min_fee");
       }
     )
   );
@@ -49758,7 +49959,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto ref_script_coins_per_byte = getUnitIntervalState(rt, args[1].asObject(rt), "ref_script_coins_per_byte");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_ref_script_fee(total_ref_scripts_size, ref_script_coins_per_byte->get(), out, err);
-        });
+        }, "min_ref_script_fee");
       }
     )
   );
@@ -49777,7 +49978,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         auto ex_unit_prices = getExUnitPricesState(rt, args[1].asObject(rt), "ex_unit_prices");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
           return csl_bridge_min_script_fee(tx->get(), ex_unit_prices->get(), out, err);
-        });
+        }, "min_script_fee");
       }
     )
   );
