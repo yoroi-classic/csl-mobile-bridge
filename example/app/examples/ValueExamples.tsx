@@ -90,6 +90,7 @@ export default class ValueExamples {
       // Set and get MultiAsset
       const emptyValueStr = "500000";
       const emptyValue = Value.new(BigNum.from_str(emptyValueStr));
+      validate(results, "Has no MultiAsset before set", true, emptyValue.multiasset() == null);
       emptyValue.set_multiasset(multiAsset);
       validate(results, "Has MultiAsset after set", true, emptyValue.multiasset() !== null);
 

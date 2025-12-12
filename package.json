@@ -1,6 +1,6 @@
 {
   "name": "@emurgo/csl-mobile-bridge-jsi",
-  "version": "2.0.0-alpha.11",
+  "version": "2.0.0-alpha.12",
   "description": "React-native bindings for Emurgo's cardano-serialization-lib",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
