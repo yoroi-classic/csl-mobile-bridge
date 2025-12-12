@@ -1,5 +1,5 @@
 module.exports = {
-  'parser': '@babel/eslint-parser',
+  'parser': '@babel/preset-typescript',
   'plugins': [
     '@typescript-eslint',
   ],
