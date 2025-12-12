@@ -61,22 +61,36 @@ static jsi::Object callCslArray(jsi::Runtime& rt, std::function<bool(DataPtr*, C
     }
     return jsi::Array(rt, 0);
   }
+  
+  // Fast path: use ArrayBuffer + memcpy for efficient data transfer
+  auto ArrayBufferCtor = rt.global().getPropertyAsObject(rt, "ArrayBuffer");
   auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
+  
+  if (ArrayBufferCtor.isFunction(rt) && Uint8ArrayCtor.isFunction(rt)) {
+    auto arrayBufferVal = ArrayBufferCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(data.ptr.len));
+    if (arrayBufferVal.isObject()) {
+      auto arrayBuffer = arrayBufferVal.asObject(rt);
+      if (arrayBuffer.isArrayBuffer(rt)) {
+        auto ab = arrayBuffer.getArrayBuffer(rt);
+        // Use memcpy for fast bulk copy
+        memcpy(ab.data(rt), data.ptr.ptr, data.ptr.len);
+        // Create Uint8Array view over the ArrayBuffer
+        return Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, arrayBuffer).asObject(rt);
+      }
+    }
+  }
+  
+  // Fallback: element-by-element copy (slower, for environments without ArrayBuffer.isArrayBuffer)
   if (Uint8ArrayCtor.isFunction(rt)) {
     auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(data.ptr.len));
     auto uint8Array = uint8ArrayVal.asObject(rt);
-    if (uint8Array.isArray(rt)) {
-      auto arr = uint8Array.asArray(rt);
-      for (size_t i = 0; i < data.ptr.len; ++i) {
-        arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(data.ptr.ptr[i])));
-      }
-    } else {
-      for (size_t i = 0; i < data.ptr.len; ++i) {
-        uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(data.ptr.ptr[i])));
-      }
+    for (size_t i = 0; i < data.ptr.len; ++i) {
+      uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(data.ptr.ptr[i])));
     }
     return uint8Array;
   }
+  
+  // Last resort fallback: plain JS Array
   jsi::Array arr(rt, data.ptr.len);
   for (size_t i = 0; i < data.ptr.len; ++i) {
     arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(data.ptr.ptr[i])));
@@ -115,22 +129,36 @@ static jsi::Object callCslArrayFromString(jsi::Runtime& rt, std::function<bool(C
   auto base64Str = jsi::String::createFromUtf8(rt, out.ptr);
   auto decodedStr = atob.asFunction(rt).call(rt, base64Str).asString(rt).utf8(rt);
   size_t decodedLen = decodedStr.length();
+  
+  // Fast path: use ArrayBuffer + memcpy for efficient data transfer
+  auto ArrayBufferCtor = rt.global().getPropertyAsObject(rt, "ArrayBuffer");
   auto Uint8ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint8Array");
+  
+  if (ArrayBufferCtor.isFunction(rt) && Uint8ArrayCtor.isFunction(rt)) {
+    auto arrayBufferVal = ArrayBufferCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(decodedLen));
+    if (arrayBufferVal.isObject()) {
+      auto arrayBuffer = arrayBufferVal.asObject(rt);
+      if (arrayBuffer.isArrayBuffer(rt)) {
+        auto ab = arrayBuffer.getArrayBuffer(rt);
+        // Use memcpy for fast bulk copy
+        memcpy(ab.data(rt), decodedStr.data(), decodedLen);
+        // Create Uint8Array view over the ArrayBuffer
+        return Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, arrayBuffer).asObject(rt);
+      }
+    }
+  }
+  
+  // Fallback: element-by-element copy (slower)
   if (Uint8ArrayCtor.isFunction(rt)) {
     auto uint8ArrayVal = Uint8ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(decodedLen));
     auto uint8Array = uint8ArrayVal.asObject(rt);
-    if (uint8Array.isArray(rt)) {
-      auto arr = uint8Array.asArray(rt);
-      for (size_t i = 0; i < decodedLen; ++i) {
-        arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
-      }
-    } else {
-      for (size_t i = 0; i < decodedLen; ++i) {
-        uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
-      }
+    for (size_t i = 0; i < decodedLen; ++i) {
+      uint8Array.setProperty(rt, jsi::String::createFromUtf8(rt, std::to_string(i)), jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
     }
     return uint8Array;
   }
+  
+  // Last resort fallback: plain JS Array
   jsi::Array arr(rt, decodedLen);
   for (size_t i = 0; i < decodedLen; ++i) {
     arr.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(static_cast<unsigned char>(decodedStr[i]))));
@@ -188,7 +216,27 @@ static jsi::Object callCslUint32ArrayFromString(jsi::Runtime& rt, std::function<
   }
   // Convert bytes to uint32 array (little-endian)
   size_t numUint32 = bytes.size() / 4;
+  size_t byteLen = numUint32 * 4;
+  
+  // Fast path: use ArrayBuffer + memcpy for efficient data transfer
+  auto ArrayBufferCtor = rt.global().getPropertyAsObject(rt, "ArrayBuffer");
   auto Uint32ArrayCtor = rt.global().getPropertyAsObject(rt, "Uint32Array");
+  
+  if (ArrayBufferCtor.isFunction(rt) && Uint32ArrayCtor.isFunction(rt)) {
+    auto arrayBufferVal = ArrayBufferCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(byteLen));
+    if (arrayBufferVal.isObject()) {
+      auto arrayBuffer = arrayBufferVal.asObject(rt);
+      if (arrayBuffer.isArrayBuffer(rt)) {
+        auto ab = arrayBuffer.getArrayBuffer(rt);
+        // Use memcpy - bytes are already in little-endian format
+        memcpy(ab.data(rt), bytes.data(), byteLen);
+        // Create Uint32Array view over the ArrayBuffer
+        return Uint32ArrayCtor.asFunction(rt).callAsConstructor(rt, arrayBuffer).asObject(rt);
+      }
+    }
+  }
+  
+  // Fallback: element-by-element copy (slower)
   if (Uint32ArrayCtor.isFunction(rt)) {
     auto uint32ArrayVal = Uint32ArrayCtor.asFunction(rt).callAsConstructor(rt, static_cast<double>(numUint32));
     auto uint32Array = uint32ArrayVal.asObject(rt);
@@ -201,7 +249,8 @@ static jsi::Object callCslUint32ArrayFromString(jsi::Runtime& rt, std::function<
     }
     return uint32Array;
   }
-  // Fallback to plain array
+  
+  // Last resort fallback: plain JS Array
   jsi::Array arr(rt, numUint32);
   for (size_t i = 0; i < numUint32; ++i) {
     uint32_t val = static_cast<uint32_t>(bytes[i * 4])
