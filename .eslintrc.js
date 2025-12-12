@@ -26,9 +26,9 @@ module.exports = {
   },
   'overrides': [
     {
-      'files': ['**/*.d.ts', '**/*.tsx, **/*.ts'],
+      'files': ['**/*.d.ts', '**/*.tsx', '**/*.ts'],
       'env': { 'browser': true, 'es6': true, 'node': true },
-      'parser': '@babel/eslint-parser',
+      'parser': '@babel/preset-typescript',
       'plugins': [
         '@typescript-eslint',
       ],

@@ -61,6 +61,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.9",
+    "@babel/preset-typescript": "^7.28.5",
     "@commitlint/config-conventional": "^17.0.2",
     "@evilmartians/lefthook": "^1.5.0",
     "@react-native/eslint-config": "^0.72.2",
@@ -72,8 +73,8 @@
     "commitlint": "^17.0.2",
     "del-cli": "^5.0.0",
     "eslint": "^8.4.1",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "flowgen": "^1.21.0",
     "jest": "^28.1.1",
     "pod-install": "^0.1.0",
