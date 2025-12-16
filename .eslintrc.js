@@ -1,5 +1,5 @@
 module.exports = {
-  'parser': '@babel/preset-typescript',
+  'parser': '@babel/eslint-parser',
   'plugins': [
     '@typescript-eslint',
   ],
@@ -28,7 +28,7 @@ module.exports = {
     {
       'files': ['**/*.d.ts', '**/*.tsx', '**/*.ts'],
       'env': { 'browser': true, 'es6': true, 'node': true },
-      'parser': '@babel/preset-typescript',
+      'parser': '@typescript-eslint/parser',
       'plugins': [
         '@typescript-eslint',
       ],
