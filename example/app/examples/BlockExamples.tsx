@@ -34,7 +34,7 @@ import {
   TransactionMetadatum,
   MetadataMap,
   TransactionHash
-} from "@emurgo/csl-mobile-bridge-jsi";
+} from "@emurgo/csl-mobile-bridge";
 import { ExampleSection } from '../types';
 
 export default class BlockExamples {

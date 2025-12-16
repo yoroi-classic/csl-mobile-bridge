@@ -11,7 +11,7 @@ import {
   Int,
   AssetNames,
   ScriptHashes
-} from "@emurgo/csl-mobile-bridge-jsi";
+} from "@emurgo/csl-mobile-bridge";
 import { ExampleSection } from '../types';
 
 // Helper function to validate expected vs actual values
