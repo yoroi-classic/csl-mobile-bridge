@@ -356,6 +356,13 @@ static std::vector<uint8_t> parseUint8Array(jsi::Runtime& rt, const jsi::Object&
   throw jsi::JSError(rt, std::string(funcName) + "(" + argName + ") requires Uint8Array");
 }
 
+// Safe data pointer helper - ensures non-null pointer even for empty vectors
+// Rust's std::slice::from_raw_parts requires non-null pointer even with len=0
+static inline const uint8_t* safeDataPtr(const std::vector<uint8_t>& vec) {
+  static const uint8_t empty_byte = 0;
+  return vec.empty() ? &empty_byte : vec.data();
+}
+
 static std::string bytesToBase64(const uint8_t* data, size_t len) {
   if (len == 0) {
     return "";
@@ -5393,7 +5400,7 @@ static jsi::Object makeAddressExport(jsi::Runtime& rt) {
         }
         auto data = parseUint8Array(rt, args[0].asObject(rt), "Address.from_bytes", "data");
         return callCslAddress(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_address_from_bytes(data.data(), static_cast<size_t>(data.size()), out, err);
+          return csl_bridge_address_from_bytes(safeDataPtr(data), static_cast<size_t>(data.size()), out, err);
         }, "Address.from_bytes");
       }
     )
@@ -5579,7 +5586,7 @@ static jsi::Object makeAnchorExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Anchor.from_bytes", "bytes");
         return callCslAnchor(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_anchor_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_anchor_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Anchor.from_bytes");
       }
     )
@@ -5749,7 +5756,7 @@ static jsi::Object makeAnchorDataHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AnchorDataHash.from_bytes", "bytes");
         return callCslAnchorDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_anchor_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_anchor_data_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "AnchorDataHash.from_bytes");
       }
     )
@@ -5908,7 +5915,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AssetName.from_bytes", "bytes");
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_asset_name_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "AssetName.from_bytes");
       }
     )
@@ -5953,7 +5960,7 @@ static jsi::Object makeAssetNameExport(jsi::Runtime& rt) {
         }
         auto name = parseUint8Array(rt, args[0].asObject(rt), "AssetName.new", "name");
         return callCslAssetName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_name_new(name.data(), static_cast<size_t>(name.size()), out, err);
+          return csl_bridge_asset_name_new(safeDataPtr(name), static_cast<size_t>(name.size()), out, err);
         }, "AssetName.new");
       }
     )
@@ -6130,7 +6137,7 @@ static jsi::Object makeAssetNamesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AssetNames.from_bytes", "bytes");
         return callCslAssetNames(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_asset_names_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_asset_names_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "AssetNames.from_bytes");
       }
     )
@@ -6374,7 +6381,7 @@ static jsi::Object makeAssetsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Assets.from_bytes", "bytes");
         return callCslAssets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_assets_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_assets_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Assets.from_bytes");
       }
     )
@@ -6690,7 +6697,7 @@ static jsi::Object makeAuxiliaryDataExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AuxiliaryData.from_bytes", "bytes");
         return callCslAuxiliaryData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_auxiliary_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_auxiliary_data_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "AuxiliaryData.from_bytes");
       }
     )
@@ -6852,7 +6859,7 @@ static jsi::Object makeAuxiliaryDataHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "AuxiliaryDataHash.from_bytes", "bytes");
         return callCslAuxiliaryDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_auxiliary_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_auxiliary_data_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "AuxiliaryDataHash.from_bytes");
       }
     )
@@ -7522,7 +7529,7 @@ static jsi::Object makeBigIntExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BigInt.from_bytes", "bytes");
         return callCslBigInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_big_int_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_big_int_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "BigInt.from_bytes");
       }
     )
@@ -7848,7 +7855,7 @@ static jsi::Object makeBigNumExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BigNum.from_bytes", "bytes");
         return callCslBigNum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_big_num_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_big_num_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "BigNum.from_bytes");
       }
     )
@@ -8126,7 +8133,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Bip32PrivateKey.from_128_xprv", "bytes");
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_private_key_from_128_xprv(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_bip32_private_key_from_128_xprv(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Bip32PrivateKey.from_128_xprv");
       }
     )
@@ -8152,7 +8159,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Bip32PrivateKey.from_bytes", "bytes");
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_private_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_bip32_private_key_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Bip32PrivateKey.from_bytes");
       }
     )
@@ -8186,7 +8193,7 @@ static jsi::Object makeBip32PrivateKeyExport(jsi::Runtime& rt) {
         }
         auto password = parseUint8Array(rt, args[1].asObject(rt), "Bip32PrivateKey.from_bip39_entropy", "password");
         return callCslBip32PrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_private_key_from_bip39_entropy(entropy.data(), static_cast<size_t>(entropy.size()), password.data(), static_cast<size_t>(password.size()), out, err);
+          return csl_bridge_bip32_private_key_from_bip39_entropy(safeDataPtr(entropy), static_cast<size_t>(entropy.size()), safeDataPtr(password), static_cast<size_t>(password.size()), out, err);
         }, "Bip32PrivateKey.from_bip39_entropy");
       }
     )
@@ -8358,7 +8365,7 @@ static jsi::Object makeBip32PublicKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Bip32PublicKey.from_bytes", "bytes");
         return callCslBip32PublicKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bip32_public_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_bip32_public_key_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Bip32PublicKey.from_bytes");
       }
     )
@@ -8565,7 +8572,7 @@ static jsi::Object makeBlockExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Block.from_bytes", "bytes");
         return callCslBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_block_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Block.from_bytes");
       }
     )
@@ -8747,7 +8754,7 @@ static jsi::Object makeBlockHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BlockHash.from_bytes", "bytes");
         return callCslBlockHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_block_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_block_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "BlockHash.from_bytes");
       }
     )
@@ -8942,7 +8949,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BootstrapWitness.from_bytes", "bytes");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witness_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_bootstrap_witness_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "BootstrapWitness.from_bytes");
       }
     )
@@ -8999,7 +9006,7 @@ static jsi::Object makeBootstrapWitnessExport(jsi::Runtime& rt) {
         }
         auto attributes = parseUint8Array(rt, args[3].asObject(rt), "BootstrapWitness.new", "attributes");
         return callCslBootstrapWitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witness_new(vkey->get(), signature->get(), chain_code.data(), static_cast<size_t>(chain_code.size()), attributes.data(), static_cast<size_t>(attributes.size()), out, err);
+          return csl_bridge_bootstrap_witness_new(vkey->get(), signature->get(), safeDataPtr(chain_code), static_cast<size_t>(chain_code.size()), safeDataPtr(attributes), static_cast<size_t>(attributes.size()), out, err);
         }, "BootstrapWitness.new");
       }
     )
@@ -9176,7 +9183,7 @@ static jsi::Object makeBootstrapWitnessesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "BootstrapWitnesses.from_bytes", "bytes");
         return callCslBootstrapWitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_bootstrap_witnesses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_bootstrap_witnesses_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "BootstrapWitnesses.from_bytes");
       }
     )
@@ -9388,7 +9395,7 @@ static jsi::Object makeByronAddressExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ByronAddress.from_bytes", "bytes");
         return callCslByronAddress(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_byron_address_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_byron_address_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ByronAddress.from_bytes");
       }
     )
@@ -10067,7 +10074,7 @@ static jsi::Object makeCertificateExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Certificate.from_bytes", "bytes");
         return callCslCertificate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificate_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_certificate_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Certificate.from_bytes");
       }
     )
@@ -10559,7 +10566,7 @@ static jsi::Object makeCertificatesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Certificates.from_bytes", "bytes");
         return callCslCertificates(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_certificates_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_certificates_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Certificates.from_bytes");
       }
     )
@@ -11214,7 +11221,7 @@ static jsi::Object makeCommitteeExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Committee.from_bytes", "bytes");
         return callCslCommittee(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_committee_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_committee_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Committee.from_bytes");
       }
     )
@@ -11426,7 +11433,7 @@ static jsi::Object makeCommitteeColdResignExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "CommitteeColdResign.from_bytes", "bytes");
         return callCslCommitteeColdResign(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_committee_cold_resign_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_committee_cold_resign_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "CommitteeColdResign.from_bytes");
       }
     )
@@ -11645,7 +11652,7 @@ static jsi::Object makeCommitteeHotAuthExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "CommitteeHotAuth.from_bytes", "bytes");
         return callCslCommitteeHotAuth(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_committee_hot_auth_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_committee_hot_auth_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "CommitteeHotAuth.from_bytes");
       }
     )
@@ -11847,7 +11854,7 @@ static jsi::Object makeConstitutionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Constitution.from_bytes", "bytes");
         return callCslConstitution(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_constitution_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_constitution_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Constitution.from_bytes");
       }
     )
@@ -12040,7 +12047,7 @@ static jsi::Object makeConstrPlutusDataExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ConstrPlutusData.from_bytes", "bytes");
         return callCslConstrPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_constr_plutus_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_constr_plutus_data_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ConstrPlutusData.from_bytes");
       }
     )
@@ -12253,7 +12260,7 @@ static jsi::Object makeCostModelExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "CostModel.from_bytes", "bytes");
         return callCslCostModel(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_cost_model_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_cost_model_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "CostModel.from_bytes");
       }
     )
@@ -12513,7 +12520,7 @@ static jsi::Object makeCostmdlsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Costmdls.from_bytes", "bytes");
         return callCslCostmdls(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_costmdls_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_costmdls_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Costmdls.from_bytes");
       }
     )
@@ -12777,7 +12784,7 @@ static jsi::Object makeCredentialExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Credential.from_bytes", "bytes");
         return callCslCredential(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_credential_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_credential_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Credential.from_bytes");
       }
     )
@@ -12984,7 +12991,7 @@ static jsi::Object makeCredentialsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Credentials.from_bytes", "bytes");
         return callCslCredentials(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_credentials_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_credentials_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Credentials.from_bytes");
       }
     )
@@ -13154,7 +13161,7 @@ static jsi::Object makeDNSRecordAorAAAAExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DNSRecordAorAAAA.from_bytes", "bytes");
         return callCslDNSRecordAorAAAA(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_n_s_record_aor_a_a_a_a_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_n_s_record_aor_a_a_a_a_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DNSRecordAorAAAA.from_bytes");
       }
     )
@@ -13328,7 +13335,7 @@ static jsi::Object makeDNSRecordSRVExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DNSRecordSRV.from_bytes", "bytes");
         return callCslDNSRecordSRV(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_n_s_record_s_r_v_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_n_s_record_s_r_v_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DNSRecordSRV.from_bytes");
       }
     )
@@ -13568,7 +13575,7 @@ static jsi::Object makeDRepExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRep.from_bytes", "bytes");
         return callCslDRep(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DRep.from_bytes");
       }
     )
@@ -13835,7 +13842,7 @@ static jsi::Object makeDRepDeregistrationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepDeregistration.from_bytes", "bytes");
         return callCslDRepDeregistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_deregistration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_deregistration_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DRepDeregistration.from_bytes");
       }
     )
@@ -14063,7 +14070,7 @@ static jsi::Object makeDRepRegistrationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepRegistration.from_bytes", "bytes");
         return callCslDRepRegistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_registration_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DRepRegistration.from_bytes");
       }
     )
@@ -14302,7 +14309,7 @@ static jsi::Object makeDRepUpdateExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepUpdate.from_bytes", "bytes");
         return callCslDRepUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_update_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DRepUpdate.from_bytes");
       }
     )
@@ -14783,7 +14790,7 @@ static jsi::Object makeDRepVotingThresholdsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DRepVotingThresholds.from_bytes", "bytes");
         return callCslDRepVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_d_rep_voting_thresholds_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_d_rep_voting_thresholds_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DRepVotingThresholds.from_bytes");
       }
     )
@@ -15078,7 +15085,7 @@ static jsi::Object makeDataHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "DataHash.from_bytes", "bytes");
         return callCslDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_data_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "DataHash.from_bytes");
       }
     )
@@ -15325,7 +15332,7 @@ static jsi::Object makeEd25519KeyHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ed25519KeyHash.from_bytes", "bytes");
         return callCslEd25519KeyHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_key_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ed25519_key_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Ed25519KeyHash.from_bytes");
       }
     )
@@ -15574,7 +15581,7 @@ static jsi::Object makeEd25519KeyHashesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ed25519KeyHashes.from_bytes", "bytes");
         return callCslEd25519KeyHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_key_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ed25519_key_hashes_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Ed25519KeyHashes.from_bytes");
       }
     )
@@ -15762,7 +15769,7 @@ static jsi::Object makeEd25519SignatureExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ed25519Signature.from_bytes", "bytes");
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ed25519_signature_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ed25519_signature_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Ed25519Signature.from_bytes");
       }
     )
@@ -16053,7 +16060,7 @@ static jsi::Object makeExUnitPricesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ExUnitPrices.from_bytes", "bytes");
         return callCslExUnitPrices(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ex_unit_prices_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ex_unit_prices_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ExUnitPrices.from_bytes");
       }
     )
@@ -16243,7 +16250,7 @@ static jsi::Object makeExUnitsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ExUnits.from_bytes", "bytes");
         return callCslExUnits(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ex_units_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ex_units_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ExUnits.from_bytes");
       }
     )
@@ -16445,7 +16452,7 @@ static jsi::Object makeFixedBlockExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedBlock.from_bytes", "bytes");
         return callCslFixedBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_block_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "FixedBlock.from_bytes");
       }
     )
@@ -16574,7 +16581,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         }
         auto raw_body = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.set_body", "raw_body");
         ScopedCharPtr err;
-        if (!csl_bridge_fixed_transaction_set_body(st->get(), raw_body.data(), static_cast<size_t>(raw_body.size()), &err.ptr)) {
+        if (!csl_bridge_fixed_transaction_set_body(st->get(), safeDataPtr(raw_body), static_cast<size_t>(raw_body.size()), &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "FixedTransaction.set_body: Unknown CSL error");
         }
         return jsi::Value::undefined();
@@ -16592,7 +16599,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         }
         auto raw_witness_set = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.set_witness_set", "raw_witness_set");
         ScopedCharPtr err;
-        if (!csl_bridge_fixed_transaction_set_witness_set(st->get(), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), &err.ptr)) {
+        if (!csl_bridge_fixed_transaction_set_witness_set(st->get(), safeDataPtr(raw_witness_set), static_cast<size_t>(raw_witness_set.size()), &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "FixedTransaction.set_witness_set: Unknown CSL error");
         }
         return jsi::Value::undefined();
@@ -16666,7 +16673,7 @@ static jsi::Object getOrCreateFixedTransactionProto(jsi::Runtime& rt) {
         }
         auto raw_auxiliary_data = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.set_auxiliary_data", "raw_auxiliary_data");
         ScopedCharPtr err;
-        if (!csl_bridge_fixed_transaction_set_auxiliary_data(st->get(), raw_auxiliary_data.data(), static_cast<size_t>(raw_auxiliary_data.size()), &err.ptr)) {
+        if (!csl_bridge_fixed_transaction_set_auxiliary_data(st->get(), safeDataPtr(raw_auxiliary_data), static_cast<size_t>(raw_auxiliary_data.size()), &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "FixedTransaction.set_auxiliary_data: Unknown CSL error");
         }
         return jsi::Value::undefined();
@@ -16855,7 +16862,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.from_bytes", "bytes");
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_transaction_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "FixedTransaction.from_bytes");
       }
     )
@@ -16893,7 +16900,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         }
         bool is_valid = args[2].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_new(raw_body.data(), static_cast<size_t>(raw_body.size()), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), is_valid, out, err);
+          return csl_bridge_fixed_transaction_new(safeDataPtr(raw_body), static_cast<size_t>(raw_body.size()), safeDataPtr(raw_witness_set), static_cast<size_t>(raw_witness_set.size()), is_valid, out, err);
         }, "FixedTransaction.new");
       }
     )
@@ -16920,7 +16927,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         }
         bool is_valid = args[3].asBool();
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_new_with_auxiliary(raw_body.data(), static_cast<size_t>(raw_body.size()), raw_witness_set.data(), static_cast<size_t>(raw_witness_set.size()), raw_auxiliary_data.data(), static_cast<size_t>(raw_auxiliary_data.size()), is_valid, out, err);
+          return csl_bridge_fixed_transaction_new_with_auxiliary(safeDataPtr(raw_body), static_cast<size_t>(raw_body.size()), safeDataPtr(raw_witness_set), static_cast<size_t>(raw_witness_set.size()), safeDataPtr(raw_auxiliary_data), static_cast<size_t>(raw_auxiliary_data.size()), is_valid, out, err);
         }, "FixedTransaction.new_with_auxiliary");
       }
     )
@@ -16935,7 +16942,7 @@ static jsi::Object makeFixedTransactionExport(jsi::Runtime& rt) {
         }
         auto raw_body = parseUint8Array(rt, args[0].asObject(rt), "FixedTransaction.new_from_body_bytes", "raw_body");
         return callCslFixedTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_new_from_body_bytes(raw_body.data(), static_cast<size_t>(raw_body.size()), out, err);
+          return csl_bridge_fixed_transaction_new_from_body_bytes(safeDataPtr(raw_body), static_cast<size_t>(raw_body.size()), out, err);
         }, "FixedTransaction.new_from_body_bytes");
       }
     )
@@ -17076,7 +17083,7 @@ static jsi::Object makeFixedTransactionBodiesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedTransactionBodies.from_bytes", "bytes");
         return callCslFixedTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_bodies_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_transaction_bodies_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "FixedTransactionBodies.from_bytes");
       }
     )
@@ -17219,7 +17226,7 @@ static jsi::Object makeFixedTransactionBodyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedTransactionBody.from_bytes", "bytes");
         return callCslFixedTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_transaction_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_transaction_body_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "FixedTransactionBody.from_bytes");
       }
     )
@@ -17375,7 +17382,7 @@ static jsi::Object makeFixedTxWitnessesSetExport(jsi::Runtime& rt) {
         }
         auto data = parseUint8Array(rt, args[0].asObject(rt), "FixedTxWitnessesSet.from_bytes", "data");
         return callCslFixedTxWitnessesSet(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_tx_witnesses_set_from_bytes(data.data(), static_cast<size_t>(data.size()), out, err);
+          return csl_bridge_fixed_tx_witnesses_set_from_bytes(safeDataPtr(data), static_cast<size_t>(data.size()), out, err);
         }, "FixedTxWitnessesSet.from_bytes");
       }
     )
@@ -17482,7 +17489,7 @@ static jsi::Object makeFixedVersionedBlockExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "FixedVersionedBlock.from_bytes", "bytes");
         return callCslFixedVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_fixed_versioned_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_fixed_versioned_block_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "FixedVersionedBlock.from_bytes");
       }
     )
@@ -17700,7 +17707,7 @@ static jsi::Object makeGeneralTransactionMetadataExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GeneralTransactionMetadata.from_bytes", "bytes");
         return callCslGeneralTransactionMetadata(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_general_transaction_metadata_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_general_transaction_metadata_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GeneralTransactionMetadata.from_bytes");
       }
     )
@@ -17862,7 +17869,7 @@ static jsi::Object makeGenesisDelegateHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisDelegateHash.from_bytes", "bytes");
         return callCslGenesisDelegateHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_delegate_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_delegate_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GenesisDelegateHash.from_bytes");
       }
     )
@@ -18013,7 +18020,7 @@ static jsi::Object makeGenesisHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisHash.from_bytes", "bytes");
         return callCslGenesisHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GenesisHash.from_bytes");
       }
     )
@@ -18220,7 +18227,7 @@ static jsi::Object makeGenesisHashesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisHashes.from_bytes", "bytes");
         return callCslGenesisHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_hashes_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GenesisHashes.from_bytes");
       }
     )
@@ -18414,7 +18421,7 @@ static jsi::Object makeGenesisKeyDelegationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GenesisKeyDelegation.from_bytes", "bytes");
         return callCslGenesisKeyDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_genesis_key_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_genesis_key_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GenesisKeyDelegation.from_bytes");
       }
     )
@@ -18766,7 +18773,7 @@ static jsi::Object makeGovernanceActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GovernanceAction.from_bytes", "bytes");
         return callCslGovernanceAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_governance_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_governance_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GovernanceAction.from_bytes");
       }
     )
@@ -19044,7 +19051,7 @@ static jsi::Object makeGovernanceActionIdExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "GovernanceActionId.from_bytes", "bytes");
         return callCslGovernanceActionId(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_governance_action_id_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_governance_action_id_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "GovernanceActionId.from_bytes");
       }
     )
@@ -19410,7 +19417,7 @@ static jsi::Object makeHardForkInitiationActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "HardForkInitiationAction.from_bytes", "bytes");
         return callCslHardForkInitiationAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_hard_fork_initiation_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_hard_fork_initiation_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "HardForkInitiationAction.from_bytes");
       }
     )
@@ -19615,7 +19622,7 @@ static jsi::Object makeHeaderExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Header.from_bytes", "bytes");
         return callCslHeader(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_header_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Header.from_bytes");
       }
     )
@@ -20019,7 +20026,7 @@ static jsi::Object makeHeaderBodyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "HeaderBody.from_bytes", "bytes");
         return callCslHeaderBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_header_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_header_body_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "HeaderBody.from_bytes");
       }
     )
@@ -20489,7 +20496,7 @@ static jsi::Object makeIntExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Int.from_bytes", "bytes");
         return callCslInt(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_int_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_int_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Int.from_bytes");
       }
     )
@@ -20708,7 +20715,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ipv4.from_bytes", "bytes");
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv4_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ipv4_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Ipv4.from_bytes");
       }
     )
@@ -20753,7 +20760,7 @@ static jsi::Object makeIpv4Export(jsi::Runtime& rt) {
         }
         auto data = parseUint8Array(rt, args[0].asObject(rt), "Ipv4.new", "data");
         return callCslIpv4(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv4_new(data.data(), static_cast<size_t>(data.size()), out, err);
+          return csl_bridge_ipv4_new(safeDataPtr(data), static_cast<size_t>(data.size()), out, err);
         }, "Ipv4.new");
       }
     )
@@ -20882,7 +20889,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Ipv6.from_bytes", "bytes");
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv6_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_ipv6_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Ipv6.from_bytes");
       }
     )
@@ -20927,7 +20934,7 @@ static jsi::Object makeIpv6Export(jsi::Runtime& rt) {
         }
         auto data = parseUint8Array(rt, args[0].asObject(rt), "Ipv6.new", "data");
         return callCslIpv6(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_ipv6_new(data.data(), static_cast<size_t>(data.size()), out, err);
+          return csl_bridge_ipv6_new(safeDataPtr(data), static_cast<size_t>(data.size()), out, err);
         }, "Ipv6.new");
       }
     )
@@ -21020,7 +21027,7 @@ static jsi::Object makeKESSignatureExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "KESSignature.from_bytes", "bytes");
         return callCslKESSignature(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_k_e_s_signature_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_k_e_s_signature_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "KESSignature.from_bytes");
       }
     )
@@ -21141,7 +21148,7 @@ static jsi::Object makeKESVKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "KESVKey.from_bytes", "bytes");
         return callCslKESVKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_k_e_s_v_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_k_e_s_v_key_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "KESVKey.from_bytes");
       }
     )
@@ -21302,7 +21309,7 @@ static jsi::Object makeLanguageExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Language.from_bytes", "bytes");
         return callCslLanguage(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_language_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_language_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Language.from_bytes");
       }
     )
@@ -21618,7 +21625,7 @@ static jsi::Object makeLegacyDaedalusPrivateKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "LegacyDaedalusPrivateKey.from_bytes", "bytes");
         return callCslLegacyDaedalusPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_legacy_daedalus_private_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_legacy_daedalus_private_key_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "LegacyDaedalusPrivateKey.from_bytes");
       }
     )
@@ -21930,7 +21937,7 @@ static jsi::Object makeMIRToStakeCredentialsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MIRToStakeCredentials.from_bytes", "bytes");
         return callCslMIRToStakeCredentials(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_m_i_r_to_stake_credentials_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_m_i_r_to_stake_credentials_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MIRToStakeCredentials.from_bytes");
       }
     )
@@ -22253,7 +22260,7 @@ static jsi::Object makeMetadataListExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MetadataList.from_bytes", "bytes");
         return callCslMetadataList(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_list_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_metadata_list_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MetadataList.from_bytes");
       }
     )
@@ -22608,7 +22615,7 @@ static jsi::Object makeMetadataMapExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MetadataMap.from_bytes", "bytes");
         return callCslMetadataMap(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_metadata_map_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_metadata_map_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MetadataMap.from_bytes");
       }
     )
@@ -22861,7 +22868,7 @@ static jsi::Object makeMintExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Mint.from_bytes", "bytes");
         return callCslMint(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_mint_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_mint_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Mint.from_bytes");
       }
     )
@@ -23825,7 +23832,7 @@ static jsi::Object makeMoveInstantaneousRewardExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MoveInstantaneousReward.from_bytes", "bytes");
         return callCslMoveInstantaneousReward(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_move_instantaneous_reward_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_move_instantaneous_reward_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MoveInstantaneousReward.from_bytes");
       }
     )
@@ -24022,7 +24029,7 @@ static jsi::Object makeMoveInstantaneousRewardsCertExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MoveInstantaneousRewardsCert.from_bytes", "bytes");
         return callCslMoveInstantaneousRewardsCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_move_instantaneous_rewards_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_move_instantaneous_rewards_cert_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MoveInstantaneousRewardsCert.from_bytes");
       }
     )
@@ -24354,7 +24361,7 @@ static jsi::Object makeMultiAssetExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MultiAsset.from_bytes", "bytes");
         return callCslMultiAsset(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_asset_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_multi_asset_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MultiAsset.from_bytes");
       }
     )
@@ -24524,7 +24531,7 @@ static jsi::Object makeMultiHostNameExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "MultiHostName.from_bytes", "bytes");
         return callCslMultiHostName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_multi_host_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_multi_host_name_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "MultiHostName.from_bytes");
       }
     )
@@ -24880,7 +24887,7 @@ static jsi::Object makeNativeScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NativeScript.from_bytes", "bytes");
         return callCslNativeScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_native_script_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_native_script_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "NativeScript.from_bytes");
       }
     )
@@ -25327,7 +25334,7 @@ static jsi::Object makeNativeScriptsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NativeScripts.from_bytes", "bytes");
         return callCslNativeScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_native_scripts_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_native_scripts_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "NativeScripts.from_bytes");
       }
     )
@@ -25488,7 +25495,7 @@ static jsi::Object makeNetworkIdExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NetworkId.from_bytes", "bytes");
         return callCslNetworkId(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_network_id_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_network_id_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "NetworkId.from_bytes");
       }
     )
@@ -25853,7 +25860,7 @@ static jsi::Object makeNewConstitutionActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NewConstitutionAction.from_bytes", "bytes");
         return callCslNewConstitutionAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_new_constitution_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_new_constitution_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "NewConstitutionAction.from_bytes");
       }
     )
@@ -26058,7 +26065,7 @@ static jsi::Object makeNoConfidenceActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "NoConfidenceAction.from_bytes", "bytes");
         return callCslNoConfidenceAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_no_confidence_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_no_confidence_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "NoConfidenceAction.from_bytes");
       }
     )
@@ -26253,7 +26260,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Nonce.from_bytes", "bytes");
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_nonce_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_nonce_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Nonce.from_bytes");
       }
     )
@@ -26309,7 +26316,7 @@ static jsi::Object makeNonceExport(jsi::Runtime& rt) {
         }
         auto hash = parseUint8Array(rt, args[0].asObject(rt), "Nonce.new_from_hash", "hash");
         return callCslNonce(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_nonce_new_from_hash(hash.data(), static_cast<size_t>(hash.size()), out, err);
+          return csl_bridge_nonce_new_from_hash(safeDataPtr(hash), static_cast<size_t>(hash.size()), out, err);
         }, "Nonce.new_from_hash");
       }
     )
@@ -26478,7 +26485,7 @@ static jsi::Object makeOperationalCertExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "OperationalCert.from_bytes", "bytes");
         return callCslOperationalCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_operational_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_operational_cert_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "OperationalCert.from_bytes");
       }
     )
@@ -26856,7 +26863,7 @@ static jsi::Object makeParameterChangeActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ParameterChangeAction.from_bytes", "bytes");
         return callCslParameterChangeAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_parameter_change_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_parameter_change_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ParameterChangeAction.from_bytes");
       }
     )
@@ -27231,7 +27238,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusData.from_bytes", "bytes");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_data_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_data_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusData.from_bytes");
       }
     )
@@ -27355,7 +27362,7 @@ static jsi::Object makePlutusDataExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusData.new_bytes", "bytes");
         return callCslPlutusData(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_data_new_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_data_new_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusData.new_bytes");
       }
     )
@@ -27554,7 +27561,7 @@ static jsi::Object makePlutusListExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusList.from_bytes", "bytes");
         return callCslPlutusList(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_list_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_list_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusList.from_bytes");
       }
     )
@@ -27771,7 +27778,7 @@ static jsi::Object makePlutusMapExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusMap.from_bytes", "bytes");
         return callCslPlutusMap(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_map_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_map_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusMap.from_bytes");
       }
     )
@@ -28075,7 +28082,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.from_bytes", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScript.from_bytes");
       }
     )
@@ -28105,7 +28112,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.new", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_new(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScript.new");
       }
     )
@@ -28120,7 +28127,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.new_v2", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new_v2(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_new_v2(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScript.new_v2");
       }
     )
@@ -28135,7 +28142,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.new_v3", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new_v3(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_new_v3(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScript.new_v3");
       }
     )
@@ -28154,7 +28161,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_new_with_version(bytes.data(), static_cast<size_t>(bytes.size()), language->get(), out, err);
+          return csl_bridge_plutus_script_new_with_version(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), language->get(), out, err);
         }, "PlutusScript.new_with_version");
       }
     )
@@ -28169,7 +28176,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.from_bytes_v2", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes_v2(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_from_bytes_v2(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScript.from_bytes_v2");
       }
     )
@@ -28184,7 +28191,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScript.from_bytes_v3", "bytes");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes_v3(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_script_from_bytes_v3(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScript.from_bytes_v3");
       }
     )
@@ -28203,7 +28210,7 @@ static jsi::Object makePlutusScriptExport(jsi::Runtime& rt) {
         }
         auto language = getLanguageState(rt, args[1].asObject(rt), "language");
         return callCslPlutusScript(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_script_from_bytes_with_version(bytes.data(), static_cast<size_t>(bytes.size()), language->get(), out, err);
+          return csl_bridge_plutus_script_from_bytes_with_version(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), language->get(), out, err);
         }, "PlutusScript.from_bytes_with_version");
       }
     )
@@ -28542,7 +28549,7 @@ static jsi::Object makePlutusScriptsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PlutusScripts.from_bytes", "bytes");
         return callCslPlutusScripts(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_plutus_scripts_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_plutus_scripts_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PlutusScripts.from_bytes");
       }
     )
@@ -29427,7 +29434,7 @@ static jsi::Object makePoolMetadataExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolMetadata.from_bytes", "bytes");
         return callCslPoolMetadata(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_metadata_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_pool_metadata_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PoolMetadata.from_bytes");
       }
     )
@@ -29597,7 +29604,7 @@ static jsi::Object makePoolMetadataHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolMetadataHash.from_bytes", "bytes");
         return callCslPoolMetadataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_metadata_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_pool_metadata_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PoolMetadataHash.from_bytes");
       }
     )
@@ -29864,7 +29871,7 @@ static jsi::Object makePoolParamsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolParams.from_bytes", "bytes");
         return callCslPoolParams(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_params_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_pool_params_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PoolParams.from_bytes");
       }
     )
@@ -30081,7 +30088,7 @@ static jsi::Object makePoolRegistrationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolRegistration.from_bytes", "bytes");
         return callCslPoolRegistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_pool_registration_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PoolRegistration.from_bytes");
       }
     )
@@ -30269,7 +30276,7 @@ static jsi::Object makePoolRetirementExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolRetirement.from_bytes", "bytes");
         return callCslPoolRetirement(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_retirement_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_pool_retirement_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PoolRetirement.from_bytes");
       }
     )
@@ -30495,7 +30502,7 @@ static jsi::Object makePoolVotingThresholdsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PoolVotingThresholds.from_bytes", "bytes");
         return callCslPoolVotingThresholds(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_pool_voting_thresholds_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_pool_voting_thresholds_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PoolVotingThresholds.from_bytes");
       }
     )
@@ -30658,7 +30665,7 @@ static jsi::Object getOrCreatePrivateKeyProto(jsi::Runtime& rt) {
         }
         auto message = parseUint8Array(rt, args[0].asObject(rt), "PrivateKey.sign", "message");
         return callCslEd25519Signature(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_private_key_sign(st->get(), message.data(), static_cast<size_t>(message.size()), out, err);
+          return csl_bridge_private_key_sign(st->get(), safeDataPtr(message), static_cast<size_t>(message.size()), out, err);
         }, "PrivateKey.sign");
       }
     )
@@ -30738,7 +30745,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PrivateKey.from_extended_bytes", "bytes");
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_private_key_from_extended_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_private_key_from_extended_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PrivateKey.from_extended_bytes");
       }
     )
@@ -30753,7 +30760,7 @@ static jsi::Object makePrivateKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PrivateKey.from_normal_bytes", "bytes");
         return callCslPrivateKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_private_key_from_normal_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_private_key_from_normal_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PrivateKey.from_normal_bytes");
       }
     )
@@ -30971,7 +30978,7 @@ static jsi::Object makeProposedProtocolParameterUpdatesExport(jsi::Runtime& rt) 
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ProposedProtocolParameterUpdates.from_bytes", "bytes");
         return callCslProposedProtocolParameterUpdates(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_proposed_protocol_parameter_updates_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_proposed_protocol_parameter_updates_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ProposedProtocolParameterUpdates.from_bytes");
       }
     )
@@ -32395,7 +32402,7 @@ static jsi::Object makeProtocolParamUpdateExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ProtocolParamUpdate.from_bytes", "bytes");
         return callCslProtocolParamUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_protocol_param_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_protocol_param_update_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ProtocolParamUpdate.from_bytes");
       }
     )
@@ -32581,7 +32588,7 @@ static jsi::Object makeProtocolVersionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ProtocolVersion.from_bytes", "bytes");
         return callCslProtocolVersion(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_protocol_version_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_protocol_version_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ProtocolVersion.from_bytes");
       }
     )
@@ -32724,7 +32731,7 @@ static jsi::Object getOrCreatePublicKeyProto(jsi::Runtime& rt) {
         }
         auto signature = getEd25519SignatureState(rt, args[1].asObject(rt), "signature");
         bool res = false; ScopedCharPtr err;
-        if (!csl_bridge_public_key_verify(st->get(), data.data(), static_cast<size_t>(data.size()), signature->get(), &res, &err.ptr)) {
+        if (!csl_bridge_public_key_verify(st->get(), safeDataPtr(data), static_cast<size_t>(data.size()), signature->get(), &res, &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "PublicKey.verify: Unknown CSL error");
         }
         return jsi::Value(res);
@@ -32796,7 +32803,7 @@ static jsi::Object makePublicKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "PublicKey.from_bytes", "bytes");
         return callCslPublicKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_public_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_public_key_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "PublicKey.from_bytes");
       }
     )
@@ -33113,7 +33120,7 @@ static jsi::Object makeRedeemerExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Redeemer.from_bytes", "bytes");
         return callCslRedeemer(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemer_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_redeemer_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Redeemer.from_bytes");
       }
     )
@@ -33301,7 +33308,7 @@ static jsi::Object makeRedeemerTagExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "RedeemerTag.from_bytes", "bytes");
         return callCslRedeemerTag(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemer_tag_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_redeemer_tag_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "RedeemerTag.from_bytes");
       }
     )
@@ -33603,7 +33610,7 @@ static jsi::Object makeRedeemersExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Redeemers.from_bytes", "bytes");
         return callCslRedeemers(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_redeemers_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_redeemers_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Redeemers.from_bytes");
       }
     )
@@ -33847,7 +33854,7 @@ static jsi::Object makeRelayExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Relay.from_bytes", "bytes");
         return callCslRelay(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_relay_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_relay_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Relay.from_bytes");
       }
     )
@@ -34099,7 +34106,7 @@ static jsi::Object makeRelaysExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Relays.from_bytes", "bytes");
         return callCslRelays(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_relays_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_relays_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Relays.from_bytes");
       }
     )
@@ -34467,7 +34474,7 @@ static jsi::Object makeRewardAddressesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "RewardAddresses.from_bytes", "bytes");
         return callCslRewardAddresses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_reward_addresses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_reward_addresses_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "RewardAddresses.from_bytes");
       }
     )
@@ -34637,7 +34644,7 @@ static jsi::Object makeScriptAllExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptAll.from_bytes", "bytes");
         return callCslScriptAll(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_all_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_all_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptAll.from_bytes");
       }
     )
@@ -34811,7 +34818,7 @@ static jsi::Object makeScriptAnyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptAny.from_bytes", "bytes");
         return callCslScriptAny(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_any_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_any_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptAny.from_bytes");
       }
     )
@@ -34977,7 +34984,7 @@ static jsi::Object makeScriptDataHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptDataHash.from_bytes", "bytes");
         return callCslScriptDataHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_data_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_data_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptDataHash.from_bytes");
       }
     )
@@ -35128,7 +35135,7 @@ static jsi::Object makeScriptHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptHash.from_bytes", "bytes");
         return callCslScriptHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptHash.from_bytes");
       }
     )
@@ -35335,7 +35342,7 @@ static jsi::Object makeScriptHashesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptHashes.from_bytes", "bytes");
         return callCslScriptHashes(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_hashes_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_hashes_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptHashes.from_bytes");
       }
     )
@@ -35519,7 +35526,7 @@ static jsi::Object makeScriptNOfKExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptNOfK.from_bytes", "bytes");
         return callCslScriptNOfK(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_n_of_k_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_n_of_k_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptNOfK.from_bytes");
       }
     )
@@ -35697,7 +35704,7 @@ static jsi::Object makeScriptPubkeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptPubkey.from_bytes", "bytes");
         return callCslScriptPubkey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_pubkey_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_pubkey_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptPubkey.from_bytes");
       }
     )
@@ -35947,7 +35954,7 @@ static jsi::Object makeScriptRefExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "ScriptRef.from_bytes", "bytes");
         return callCslScriptRef(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_script_ref_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_script_ref_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "ScriptRef.from_bytes");
       }
     )
@@ -36189,7 +36196,7 @@ static jsi::Object makeSingleHostAddrExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "SingleHostAddr.from_bytes", "bytes");
         return callCslSingleHostAddr(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_addr_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_single_host_addr_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "SingleHostAddr.from_bytes");
       }
     )
@@ -36445,7 +36452,7 @@ static jsi::Object makeSingleHostNameExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "SingleHostName.from_bytes", "bytes");
         return callCslSingleHostName(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_single_host_name_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_single_host_name_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "SingleHostName.from_bytes");
       }
     )
@@ -36672,7 +36679,7 @@ static jsi::Object makeStakeAndVoteDelegationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeAndVoteDelegation.from_bytes", "bytes");
         return callCslStakeAndVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_and_vote_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_stake_and_vote_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "StakeAndVoteDelegation.from_bytes");
       }
     )
@@ -36880,7 +36887,7 @@ static jsi::Object makeStakeDelegationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeDelegation.from_bytes", "bytes");
         return callCslStakeDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_stake_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "StakeDelegation.from_bytes");
       }
     )
@@ -37096,7 +37103,7 @@ static jsi::Object makeStakeDeregistrationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeDeregistration.from_bytes", "bytes");
         return callCslStakeDeregistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_deregistration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_stake_deregistration_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "StakeDeregistration.from_bytes");
       }
     )
@@ -37327,7 +37334,7 @@ static jsi::Object makeStakeRegistrationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeRegistration.from_bytes", "bytes");
         return callCslStakeRegistration(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_registration_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_stake_registration_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "StakeRegistration.from_bytes");
       }
     )
@@ -37558,7 +37565,7 @@ static jsi::Object makeStakeRegistrationAndDelegationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeRegistrationAndDelegation.from_bytes", "bytes");
         return callCslStakeRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_stake_registration_and_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "StakeRegistrationAndDelegation.from_bytes");
       }
     )
@@ -37790,7 +37797,7 @@ static jsi::Object makeStakeVoteRegistrationAndDelegationExport(jsi::Runtime& rt
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "StakeVoteRegistrationAndDelegation.from_bytes", "bytes");
         return callCslStakeVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_stake_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_stake_vote_registration_and_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "StakeVoteRegistrationAndDelegation.from_bytes");
       }
     )
@@ -38124,7 +38131,7 @@ static jsi::Object makeTimelockExpiryExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TimelockExpiry.from_bytes", "bytes");
         return callCslTimelockExpiry(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_timelock_expiry_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_timelock_expiry_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TimelockExpiry.from_bytes");
       }
     )
@@ -38327,7 +38334,7 @@ static jsi::Object makeTimelockStartExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TimelockStart.from_bytes", "bytes");
         return callCslTimelockStart(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_timelock_start_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_timelock_start_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TimelockStart.from_bytes");
       }
     )
@@ -38584,7 +38591,7 @@ static jsi::Object makeTransactionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Transaction.from_bytes", "bytes");
         return callCslTransaction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Transaction.from_bytes");
       }
     )
@@ -39041,7 +39048,7 @@ static jsi::Object makeTransactionBodiesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionBodies.from_bytes", "bytes");
         return callCslTransactionBodies(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_bodies_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_bodies_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionBodies.from_bytes");
       }
     )
@@ -40057,7 +40064,7 @@ static jsi::Object makeTransactionBodyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionBody.from_bytes", "bytes");
         return callCslTransactionBody(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_body_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_body_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionBody.from_bytes");
       }
     )
@@ -42329,7 +42336,7 @@ static jsi::Object makeTransactionHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionHash.from_bytes", "bytes");
         return callCslTransactionHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionHash.from_bytes");
       }
     )
@@ -42502,7 +42509,7 @@ static jsi::Object makeTransactionInputExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionInput.from_bytes", "bytes");
         return callCslTransactionInput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_input_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_input_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionInput.from_bytes");
       }
     )
@@ -42752,7 +42759,7 @@ static jsi::Object makeTransactionInputsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionInputs.from_bytes", "bytes");
         return callCslTransactionInputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_inputs_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_inputs_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionInputs.from_bytes");
       }
     )
@@ -42972,7 +42979,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionMetadatum.from_bytes", "bytes");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_metadatum_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionMetadatum.from_bytes");
       }
     )
@@ -43047,7 +43054,7 @@ static jsi::Object makeTransactionMetadatumExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionMetadatum.new_bytes", "bytes");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_new_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_metadatum_new_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionMetadatum.new_bytes");
       }
     )
@@ -43227,7 +43234,7 @@ static jsi::Object makeTransactionMetadatumLabelsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionMetadatumLabels.from_bytes", "bytes");
         return callCslTransactionMetadatumLabels(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_metadatum_labels_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_metadatum_labels_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionMetadatumLabels.from_bytes");
       }
     )
@@ -43579,7 +43586,7 @@ static jsi::Object makeTransactionOutputExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionOutput.from_bytes", "bytes");
         return callCslTransactionOutput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_output_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_output_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionOutput.from_bytes");
       }
     )
@@ -44108,7 +44115,7 @@ static jsi::Object makeTransactionOutputsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionOutputs.from_bytes", "bytes");
         return callCslTransactionOutputs(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_outputs_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_outputs_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionOutputs.from_bytes");
       }
     )
@@ -44290,7 +44297,7 @@ static jsi::Object makeTransactionUnspentOutputExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionUnspentOutput.from_bytes", "bytes");
         return callCslTransactionUnspentOutput(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_unspent_output_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_unspent_output_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionUnspentOutput.from_bytes");
       }
     )
@@ -44872,7 +44879,7 @@ static jsi::Object makeTransactionWitnessSetExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionWitnessSet.from_bytes", "bytes");
         return callCslTransactionWitnessSet(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_witness_set_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_witness_set_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionWitnessSet.from_bytes");
       }
     )
@@ -45090,7 +45097,7 @@ static jsi::Object makeTransactionWitnessSetsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TransactionWitnessSets.from_bytes", "bytes");
         return callCslTransactionWitnessSets(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_transaction_witness_sets_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_transaction_witness_sets_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TransactionWitnessSets.from_bytes");
       }
     )
@@ -45464,7 +45471,7 @@ static jsi::Object makeTreasuryWithdrawalsActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "TreasuryWithdrawalsAction.from_bytes", "bytes");
         return callCslTreasuryWithdrawalsAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_treasury_withdrawals_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_treasury_withdrawals_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "TreasuryWithdrawalsAction.from_bytes");
       }
     )
@@ -46096,7 +46103,7 @@ static jsi::Object makeURLExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "URL.from_bytes", "bytes");
         return callCslURL(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_u_r_l_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_u_r_l_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "URL.from_bytes");
       }
     )
@@ -46282,7 +46289,7 @@ static jsi::Object makeUnitIntervalExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "UnitInterval.from_bytes", "bytes");
         return callCslUnitInterval(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_unit_interval_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_unit_interval_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "UnitInterval.from_bytes");
       }
     )
@@ -46474,7 +46481,7 @@ static jsi::Object makeUpdateExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Update.from_bytes", "bytes");
         return callCslUpdate(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_update_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_update_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Update.from_bytes");
       }
     )
@@ -46688,7 +46695,7 @@ static jsi::Object makeUpdateCommitteeActionExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "UpdateCommitteeAction.from_bytes", "bytes");
         return callCslUpdateCommitteeAction(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_update_committee_action_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_update_committee_action_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "UpdateCommitteeAction.from_bytes");
       }
     )
@@ -46901,7 +46908,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VRFCert.from_bytes", "bytes");
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_cert_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_v_r_f_cert_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VRFCert.from_bytes");
       }
     )
@@ -46950,7 +46957,7 @@ static jsi::Object makeVRFCertExport(jsi::Runtime& rt) {
         }
         auto proof = parseUint8Array(rt, args[1].asObject(rt), "VRFCert.new", "proof");
         return callCslVRFCert(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_cert_new(output.data(), static_cast<size_t>(output.size()), proof.data(), static_cast<size_t>(proof.size()), out, err);
+          return csl_bridge_v_r_f_cert_new(safeDataPtr(output), static_cast<size_t>(output.size()), safeDataPtr(proof), static_cast<size_t>(proof.size()), out, err);
         }, "VRFCert.new");
       }
     )
@@ -47071,7 +47078,7 @@ static jsi::Object makeVRFKeyHashExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VRFKeyHash.from_bytes", "bytes");
         return callCslVRFKeyHash(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_key_hash_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_v_r_f_key_hash_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VRFKeyHash.from_bytes");
       }
     )
@@ -47222,7 +47229,7 @@ static jsi::Object makeVRFVKeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VRFVKey.from_bytes", "bytes");
         return callCslVRFVKey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_v_r_f_v_key_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_v_r_f_v_key_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VRFVKey.from_bytes");
       }
     )
@@ -47524,7 +47531,7 @@ static jsi::Object makeValueExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Value.from_bytes", "bytes");
         return callCslValue(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_value_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_value_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Value.from_bytes");
       }
     )
@@ -47757,7 +47764,7 @@ static jsi::Object makeVersionedBlockExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VersionedBlock.from_bytes", "bytes");
         return callCslVersionedBlock(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_versioned_block_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_versioned_block_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VersionedBlock.from_bytes");
       }
     )
@@ -47935,7 +47942,7 @@ static jsi::Object makeVkeyExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Vkey.from_bytes", "bytes");
         return callCslVkey(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkey_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_vkey_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Vkey.from_bytes");
       }
     )
@@ -48258,7 +48265,7 @@ static jsi::Object makeVkeywitnessExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Vkeywitness.from_bytes", "bytes");
         return callCslVkeywitness(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkeywitness_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_vkeywitness_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Vkeywitness.from_bytes");
       }
     )
@@ -48484,7 +48491,7 @@ static jsi::Object makeVkeywitnessesExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Vkeywitnesses.from_bytes", "bytes");
         return callCslVkeywitnesses(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vkeywitnesses_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_vkeywitnesses_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Vkeywitnesses.from_bytes");
       }
     )
@@ -48680,7 +48687,7 @@ static jsi::Object makeVoteDelegationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VoteDelegation.from_bytes", "bytes");
         return callCslVoteDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vote_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_vote_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VoteDelegation.from_bytes");
       }
     )
@@ -48896,7 +48903,7 @@ static jsi::Object makeVoteRegistrationAndDelegationExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VoteRegistrationAndDelegation.from_bytes", "bytes");
         return callCslVoteRegistrationAndDelegation(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_vote_registration_and_delegation_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_vote_registration_and_delegation_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VoteRegistrationAndDelegation.from_bytes");
       }
     )
@@ -49190,7 +49197,7 @@ static jsi::Object makeVoterExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Voter.from_bytes", "bytes");
         return callCslVoter(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voter_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_voter_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Voter.from_bytes");
       }
     )
@@ -49845,7 +49852,7 @@ static jsi::Object makeVotingProcedureExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProcedure.from_bytes", "bytes");
         return callCslVotingProcedure(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedure_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_voting_procedure_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VotingProcedure.from_bytes");
       }
     )
@@ -50136,7 +50143,7 @@ static jsi::Object makeVotingProceduresExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProcedures.from_bytes", "bytes");
         return callCslVotingProcedures(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_procedures_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_voting_procedures_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VotingProcedures.from_bytes");
       }
     )
@@ -50342,7 +50349,7 @@ static jsi::Object makeVotingProposalExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProposal.from_bytes", "bytes");
         return callCslVotingProposal(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposal_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_voting_proposal_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VotingProposal.from_bytes");
       }
     )
@@ -50809,7 +50816,7 @@ static jsi::Object makeVotingProposalsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "VotingProposals.from_bytes", "bytes");
         return callCslVotingProposals(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_voting_proposals_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_voting_proposals_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "VotingProposals.from_bytes");
       }
     )
@@ -51053,7 +51060,7 @@ static jsi::Object makeWithdrawalsExport(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "Withdrawals.from_bytes", "bytes");
         return callCslWithdrawals(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_withdrawals_from_bytes(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_withdrawals_from_bytes(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "Withdrawals.from_bytes");
       }
     )
@@ -51509,7 +51516,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         }
         auto bytes = parseUint8Array(rt, args[0].asObject(rt), "encode_arbitrary_bytes_as_metadatum", "bytes");
         return callCslTransactionMetadatum(rt, [&](RPtr* out, CharPtr* err) {
-          return csl_bridge_encode_arbitrary_bytes_as_metadatum(bytes.data(), static_cast<size_t>(bytes.size()), out, err);
+          return csl_bridge_encode_arbitrary_bytes_as_metadatum(safeDataPtr(bytes), static_cast<size_t>(bytes.size()), out, err);
         }, "encode_arbitrary_bytes_as_metadatum");
       }
     )
@@ -51682,7 +51689,7 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         }
         auto tx_bytes = parseUint8Array(rt, args[0].asObject(rt), "has_transaction_set_tag", "tx_bytes");
         int32_t res{}; ScopedCharPtr err;
-        if (!csl_bridge_has_transaction_set_tag(tx_bytes.data(), static_cast<size_t>(tx_bytes.size()), &res, &err.ptr)) {
+        if (!csl_bridge_has_transaction_set_tag(safeDataPtr(tx_bytes), static_cast<size_t>(tx_bytes.size()), &res, &err.ptr)) {
           throw jsi::JSError(rt, err.ptr ? err.ptr : "has_transaction_set_tag: Unknown CSL error");
         }
         return jsi::Value(static_cast<double>(res));
