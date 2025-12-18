@@ -1,35 +1,62 @@
-// metro.config.js
-//
-// with multiple workarounds for this issue with symlinks:
-// https://github.com/facebook/metro/issues/1
-//
-// with thanks to @johnryan (<https://github.com/johnryan>)
-// for the pointers to multiple workaround solutions here:
-// https://github.com/facebook/metro/issues/1#issuecomment-541642857
-//
-// see also this discussion:
-// https://github.com/brodybits/create-react-native-module/issues/232
+const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
+const escape = require('escape-string-regexp');
+const exclusionList = require('metro-config/src/defaults/exclusionList');
+const pak = require('../package.json');
 
-const path = require('path')
+const root = path.resolve(__dirname, '..');
+const modules = Object.keys({ ...pak.peerDependencies });
+
+// Path to the library at the repo root
+const cslMobileBridgePath = root; // since lib is at repo root
+
+const defaultConfig = getDefaultConfig(__dirname);
 
 module.exports = {
-  // workaround for an issue with symlinks encountered starting with
-  // metro@0.55 / React Native 0.61
-  // (not needed with React Native 0.60 / metro@0.54)
+  ...defaultConfig,
+
+  // 👀 watch the root too, so changes in src/ are picked up
+  watchFolders: [root],
+
   resolver: {
-    extraNodeModules: new Proxy(
-      {},
-      {get: (_, name) => path.resolve('.', 'node_modules', name)},
+    ...defaultConfig.resolver,
+
+    resolveRequest: (context, moduleName, platform) => {
+      const shims = {
+        'buffer': '@craftzdog/react-native-buffer',
+      }
+      return context.resolveRequest(
+        context,
+        shims[moduleName] ?? moduleName,
+        platform,
+      )
+    },
+
+    // keep deduping peer deps
+    blacklistRE: exclusionList(
+      modules.map(
+        (m) =>
+          new RegExp(`^${escape(path.join(root, 'node_modules', m))}\\/.*$`)
+      )
     ),
+
+    // 👀 map the package name to the root
+    extraNodeModules: {
+      ...modules.reduce((acc, name) => {
+        acc[name] = path.join(__dirname, 'node_modules', name);
+        return acc;
+      }, {}),
+      '@emurgo/csl-mobile-bridge-jsi': cslMobileBridgePath,
+    },
   },
+
   transformer: {
+    ...defaultConfig.transformer,
     getTransformOptions: async () => ({
       transform: {
-        // this defeats the RCTDeviceEventEmitter is not a registered callable module
+        experimentalImportSupport: false,
         inlineRequires: true,
       },
     }),
   },
-  // quick workaround for another issue with symlinks
-  watchFolders: [path.resolve(__dirname, '..')],
-}
+};
