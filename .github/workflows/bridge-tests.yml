@@ -34,11 +34,8 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install JavaScript dependencies
-        run: yarn install
+        run: node .yarn/releases/yarn-3.6.1.cjs install
 
       - name: Run bridge tests
-        run: yarn test --runInBand
+        run: node .yarn/releases/yarn-3.6.1.cjs test --runInBand
