@@ -35,7 +35,7 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Install JavaScript dependencies
-        run: node .yarn/releases/yarn-3.6.1.cjs install --no-immutable
+        run: node .yarn/releases/yarn-3.6.1.cjs install
 
       - name: Run bridge tests
         run: node .yarn/releases/yarn-3.6.1.cjs test --runInBand

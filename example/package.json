@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@craftzdog/react-native-buffer": "6.1.0",
-    "@emurgo/csl-mobile-bridge": "file:..",
+    "@emurgo/csl-mobile-bridge": "workspace:*",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
