@@ -4,16 +4,17 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
-1. Install dependencies
+1. Install dependencies from the repository root
 
    ```bash
-   npm install
+   cd ..
+   node .yarn/releases/yarn-3.6.1.cjs install
    ```
 
 2. Start the app
 
    ```bash
-   npx expo start
+   node .yarn/releases/yarn-3.6.1.cjs example start
    ```
 
 In the output, you'll find options to open the app in a
