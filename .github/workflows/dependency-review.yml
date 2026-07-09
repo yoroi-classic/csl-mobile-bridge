@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/dependabot.yml"
-      - ".github/workflows/dependency-review.yml"
+      - ".github/workflows/**"
       - "package.json"
       - "example/package.json"
       - "rust/Cargo.toml"
