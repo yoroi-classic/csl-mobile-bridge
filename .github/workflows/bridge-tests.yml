@@ -1,16 +1,22 @@
 name: Bridge tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
-      - '.github/workflows/bridge-tests.yml'
+      - '.github/dependabot.yml'
+      - '.github/workflows/**'
+      - '.nvmrc'
       - '.yarn/**'
       - '.yarnrc.yml'
       - 'android/**'
       - 'babel.config.js'
       - 'cpp/**'
+      - 'emurgo-csl-mobile-bridge.podspec'
+      - 'example/package.json'
       - 'ios/**'
       - 'package.json'
+      - 'README.md'
       - 'react-native.config.js'
       - 'rust/**'
       - 'src/**'
@@ -21,8 +27,8 @@ permissions:
   contents: read
 
 jobs:
-  jest:
-    name: Jest bridge tests
+  checks:
+    name: Bridge tests and package checks
     runs-on: ubuntu-latest
 
     steps:
@@ -35,7 +41,10 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Install JavaScript dependencies
-        run: node .yarn/releases/yarn-3.6.1.cjs install
+        run: node .yarn/releases/yarn-3.6.1.cjs install --immutable
 
-      - name: Run bridge tests
-        run: node .yarn/releases/yarn-3.6.1.cjs test --runInBand
+      - name: Run bridge API tests
+        run: node .yarn/releases/yarn-3.6.1.cjs test:ci
+
+      - name: Run package checks
+        run: node .yarn/releases/yarn-3.6.1.cjs check:package

@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => "11.0" }
-  s.source       = { :git => "https://github.com/Emurgo/csl-mobile-bridge.git", :tag => "#{s.version}" }
+  s.source       = { :git => "#{package["repository"]["baseUrl"]}.git", :tag => "v#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{hpp,cpp,c,h}"
   s.requires_arc = true

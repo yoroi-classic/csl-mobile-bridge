@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/%40emurgo%2Fcsl-mobile-bridge.svg)](https://badge.fury.io/js/%40emurgo%2Fcsl-mobile-bridge)
 
-React Native library providing JavaScript bindings for Emurgo's Cardano Serialization Library with native Rust components.
+React Native library providing JavaScript bindings for Cardano Serialization Library with native Rust components.
 
 ## 📦 Installation
 
@@ -53,19 +53,22 @@ For contributors and library developers.
 # 1. Setup Rust targets (or install manually as shown in Requirements)
 ./setup-rust-environment.sh
 
-# 2. Install dependencies
-yarn install && yarn prepare
+# 2. Install dependencies and build package outputs
+node .yarn/releases/yarn-3.6.1.cjs install --immutable
+node .yarn/releases/yarn-3.6.1.cjs prepare
 
 # 3. Run example app
-yarn example ios    # or: yarn example android
+node .yarn/releases/yarn-3.6.1.cjs example ios
+# or:
+node .yarn/releases/yarn-3.6.1.cjs example android
 ```
 
 ### Prerequisites
 
 | Tool | Version | Check Command |
 |------|---------|---------------|
-| Node.js | ≥ 18.0.0 | `node --version` |
-| Yarn | ≥ 3.6.1 | `yarn --version` |
+| Node.js | 22.x | `node --version` |
+| Yarn | 3.6.1 | `node .yarn/releases/yarn-3.6.1.cjs --version` |
 | Rust | ≥ 1.70.0 | `rustc --version` |
 | Xcode | Latest | `xcodebuild -version` |
 | Java JDK | 17 | `java -version` |
@@ -117,14 +120,18 @@ Use the setup script or install manually (see [Requirements](#requirements)):
 
 ```bash
 # iOS
-yarn example ios
+node .yarn/releases/yarn-3.6.1.cjs example ios
 
 # Android (start emulator first)
-yarn example android
+node .yarn/releases/yarn-3.6.1.cjs example android
 
 # Metro bundler only
-yarn example start
+node .yarn/releases/yarn-3.6.1.cjs example start
 ```
+
+### CML Transition
+
+This package keeps the current CSL bridge API stable while Yoroi consumers migrate toward dcSpark Cardano Multiplatform Lib. Toolchain changes should continue running the bridge API fixture tests and package checks against the current exports until the replacement CML surface is defined.
 
 ---
 
@@ -160,18 +167,18 @@ cd example
 rm -rf ios/build
 pod install --repo-update
 cd ..
-yarn example ios
+node .yarn/releases/yarn-3.6.1.cjs example ios
 ```
 
 #### Android Gradle failures
 ```bash
 cd example/android && ./gradlew clean && cd ../..
-yarn example android
+node .yarn/releases/yarn-3.6.1.cjs example android
 ```
 
 #### Metro cache issues
 ```bash
-yarn example start --reset-cache
+node .yarn/releases/yarn-3.6.1.cjs example start --reset-cache
 ```
 
 #### Port 8081 in use
@@ -183,12 +190,13 @@ lsof -ti:8081 | xargs kill -9
 
 ```bash
 rm -rf node_modules example/node_modules
-yarn install
-yarn prepare
+node .yarn/releases/yarn-3.6.1.cjs install --immutable
+node .yarn/releases/yarn-3.6.1.cjs prepare
 ```
 
 ## Resources
 
-- [Cardano Serialization Library](https://github.com/Emurgo/cardano-serialization-lib)
-- [GitHub Issues](https://github.com/Emurgo/csl-mobile-bridge/issues)
+- [Cardano Serialization Library](https://github.com/dcSpark/cardano-serialization-lib)
+- [Cardano Multiplatform Lib](https://github.com/dcSpark/cardano-multiplatform-lib)
+- [GitHub Issues](https://github.com/yoroi-classic/csl-mobile-bridge/issues)
 - [React Native Docs](https://reactnative.dev/docs/environment-setup)
