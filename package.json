@@ -1,7 +1,7 @@
 {
   "name": "@emurgo/csl-mobile-bridge",
   "version": "9.0.1",
-  "description": "React-native bindings for Emurgo's cardano-serialization-lib",
+  "description": "React Native bindings for Cardano Serialization Library",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
@@ -32,7 +32,9 @@
   "scripts": {
     "example": "yarn workspace @emurgo/csl-mobile-bridge-example",
     "test": "jest",
-    "typecheck": "tsc --noEmit",
+    "test:ci": "jest --runInBand",
+    "typecheck": "tsc --noEmit --project tsconfig.build.json",
+    "check:package": "yarn typecheck && bob build",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
@@ -45,17 +47,17 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Emurgo/csl-mobile-bridge.git",
-    "baseUrl": "https://github.com/Emurgo/csl-mobile-bridge"
+    "url": "git+https://github.com/yoroi-classic/csl-mobile-bridge.git",
+    "baseUrl": "https://github.com/yoroi-classic/csl-mobile-bridge"
   },
-  "author": "EMURGO",
+  "author": "yoroi-classic contributors",
   "license": "MIT",
   "licenseFilename": "LICENSE",
   "readmeFilename": "README.md",
   "bugs": {
-    "url": "https://github.com/Emurgo/csl-mobile-bridge/issues"
+    "url": "https://github.com/yoroi-classic/csl-mobile-bridge/issues"
   },
-  "homepage": "https://github.com/Emurgo/csl-mobile-bridge#readme",
+  "homepage": "https://github.com/yoroi-classic/csl-mobile-bridge#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
