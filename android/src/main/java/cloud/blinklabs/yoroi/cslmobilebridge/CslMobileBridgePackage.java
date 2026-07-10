@@ -1,4 +1,4 @@
-package com.emurgo.cslmobilebridge;
+package cloud.blinklabs.yoroi.cslmobilebridge;
 
 import androidx.annotation.NonNull;
 import com.facebook.react.ReactPackage;

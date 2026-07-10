@@ -4,7 +4,7 @@ package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
 
 Pod::Spec.new do |s|
-  s.name         = "emurgo-csl-mobile-bridge"
+  s.name         = "yoroi-classic-csl-mobile-bridge"
   s.version      = package["version"]
   s.summary      = package["description"]
   s.homepage     = package["homepage"]
@@ -17,7 +17,7 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{hpp,cpp,c,h}"
   s.requires_arc = true
 
-  s.module_name = 'EmurgoCslMobileBridge'
+  s.module_name = 'YoroiClassicCslMobileBridge'
 
   s.script_phase = {
     :name => "Build Rust Binary",

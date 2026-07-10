@@ -1,5 +1,5 @@
 {
-  "name": "@emurgo/csl-mobile-bridge-example",
+  "name": "@yoroi-classic/csl-mobile-bridge-example",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@craftzdog/react-native-buffer": "6.1.0",
-    "@emurgo/csl-mobile-bridge": "workspace:*",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
+    "@yoroi-classic/csl-mobile-bridge": "workspace:*",
     "expo": "~53.0.24",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",

@@ -46,7 +46,7 @@ module.exports = {
         acc[name] = path.join(__dirname, 'node_modules', name);
         return acc;
       }, {}),
-      '@emurgo/csl-mobile-bridge-jsi': cslMobileBridgePath,
+      '@yoroi-classic/csl-mobile-bridge-jsi': cslMobileBridgePath,
     },
   },
 
