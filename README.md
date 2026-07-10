@@ -1,7 +1,5 @@
 # CSL Mobile Bridge
 
-[![npm version](https://badge.fury.io/js/%40emurgo%2Fcsl-mobile-bridge.svg)](https://badge.fury.io/js/%40emurgo%2Fcsl-mobile-bridge)
-
 React Native library providing JavaScript bindings for Cardano Serialization Library with native Rust components.
 
 ## 📦 Installation
@@ -28,13 +26,13 @@ python3 --version
 ### Install Package
 
 ```bash
-npm install @emurgo/csl-mobile-bridge --save
+npm install github:yoroi-classic/csl-mobile-bridge --save
 ```
 
 ## Usage
 
 ```javascript
-import { BigNum } from '@emurgo/csl-mobile-bridge';
+import { BigNum } from '@yoroi-classic/csl-mobile-bridge';
 ```
 
 See more examples in `example/app/examples`.
@@ -132,6 +130,8 @@ node .yarn/releases/yarn-3.6.1.cjs example start
 ### CML Transition
 
 This package keeps the current CSL bridge API stable while Yoroi consumers migrate toward dcSpark Cardano Multiplatform Lib. Toolchain changes should continue running the bridge API fixture tests and package checks against the current exports until the replacement CML surface is defined.
+
+The package metadata is owned by `yoroi-classic`; do not publish this bridge to npmjs. Consumers should use GitHub refs until the CML replacement package is ready.
 
 ---
 

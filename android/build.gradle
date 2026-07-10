@@ -65,7 +65,7 @@ def supportsNamespace() {
 
 android {
   if (supportsNamespace()) {
-    namespace "com.emurgo.cslmobilebridge"
+    namespace "cloud.blinklabs.yoroi.cslmobilebridge"
 
     sourceSets {
       main {

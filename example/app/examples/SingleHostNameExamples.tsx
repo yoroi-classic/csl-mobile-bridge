@@ -2,7 +2,7 @@ import React from 'react';
 import {
   SingleHostName,
   DNSRecordAorAAAA
-} from "@emurgo/csl-mobile-bridge";
+} from "@yoroi-classic/csl-mobile-bridge";
 import { ExampleSection } from '../types';
 
 // Helper function to validate expected vs actual values

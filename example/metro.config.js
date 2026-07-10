@@ -23,13 +23,13 @@ module.exports = {
 
     resolveRequest: (context, moduleName, platform) => {
       const shims = {
-        'buffer': '@craftzdog/react-native-buffer',
-      }
+        buffer: '@craftzdog/react-native-buffer',
+      };
       return context.resolveRequest(
         context,
         shims[moduleName] ?? moduleName,
-        platform,
-      )
+        platform
+      );
     },
 
     // keep deduping peer deps
@@ -46,7 +46,7 @@ module.exports = {
         acc[name] = path.join(__dirname, 'node_modules', name);
         return acc;
       }, {}),
-      '@emurgo/csl-mobile-bridge-jsi': cslMobileBridgePath,
+      '@yoroi-classic/csl-mobile-bridge': cslMobileBridgePath,
     },
   },
 

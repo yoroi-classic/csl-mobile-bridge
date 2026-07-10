@@ -1,5 +1,5 @@
 {
-  "name": "@emurgo/csl-mobile-bridge",
+  "name": "@yoroi-classic/csl-mobile-bridge",
   "version": "9.0.1",
   "description": "React Native bindings for Cardano Serialization Library",
   "main": "lib/commonjs/index",
@@ -30,11 +30,13 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @emurgo/csl-mobile-bridge-example",
+    "example": "yarn workspace @yoroi-classic/csl-mobile-bridge-example",
     "test": "jest",
     "test:ci": "jest --runInBand",
+    "test:rust": "cargo test --locked --manifest-path rust/Cargo.toml",
     "typecheck": "tsc --noEmit --project tsconfig.build.json",
     "check:package": "yarn typecheck && bob build",
+    "verify": "yarn test:ci && yarn check:package && yarn test:rust",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
@@ -58,9 +60,6 @@
     "url": "https://github.com/yoroi-classic/csl-mobile-bridge/issues"
   },
   "homepage": "https://github.com/yoroi-classic/csl-mobile-bridge#readme",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
-  },
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.9",
     "@babel/preset-typescript": "^7.28.5",
@@ -115,7 +114,7 @@
       "tagName": "v${version}"
     },
     "npm": {
-      "publish": true
+      "publish": false
     },
     "github": {
       "release": true

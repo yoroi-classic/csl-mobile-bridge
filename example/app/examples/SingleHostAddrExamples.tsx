@@ -3,7 +3,7 @@ import {
   SingleHostAddr,
   Ipv4,
   Ipv6,
-} from "@emurgo/csl-mobile-bridge";
+} from "@yoroi-classic/csl-mobile-bridge";
 import { ExampleSection } from '../types';
 
 // Helper function to validate expected vs actual values

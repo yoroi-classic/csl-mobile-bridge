@@ -22,7 +22,7 @@ import {
   Withdrawals,
   RewardAddress,
   Transaction
-} from "@emurgo/csl-mobile-bridge";
+} from "@yoroi-classic/csl-mobile-bridge";
 import {Buffer} from 'buffer'
 import { ExampleSection } from '../types';
 

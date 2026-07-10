@@ -5,9 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@emurgo/csl-mobile-bridge": ["../src"],
+      "@yoroi-classic/csl-mobile-bridge": ["../src"],
       // or if you want the built declarations instead of source:
-      // "@emurgo/csl-mobile-bridge": ["../lib/typescript/src"]
+      // "@yoroi-classic/csl-mobile-bridge": ["../lib/typescript/src"]
     }
   },
   "include": [

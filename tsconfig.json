@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "@emurgo/csl-mobile-bridge": ["./src/index"]
+      "@yoroi-classic/csl-mobile-bridge": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

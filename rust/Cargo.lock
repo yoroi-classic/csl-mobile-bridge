@@ -219,8 +219,9 @@ checksum = "8aebca1129a03dc6dc2b127edd729435bbc4a37e1d5f4d7513165089ceb02634"
 
 [[package]]
 name = "cryptoxide"
-version = "0.4.2"
-source = "git+https://github.com/emurgo/cryptoxide?tag=0.4.4#cbc69c01642b263541c6225a28c00257db1875fa"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "382ce8820a5bb815055d3553a610e8cb542b2d767bbacea99038afda96cd760d"
 
 [[package]]
 name = "csl-mobile-bridge"
