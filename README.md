@@ -30,7 +30,7 @@ python3 --version
 Existing consumers can keep using GitHub refs while migrating. Do not publish this bridge to npmjs.
 
 ```bash
-npm install github:yoroi-classic/csl-mobile-bridge#<tag-or-commit> --save
+npm install 'github:yoroi-classic/csl-mobile-bridge#<tag-or-commit>' --save
 ```
 
 ## Usage
