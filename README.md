@@ -2,6 +2,8 @@
 
 React Native library providing JavaScript bindings for Cardano Serialization Library with native Rust components.
 
+> Deprecated: this bridge is in maintenance mode for existing Yoroi Classic consumers. New mobile Cardano work should plan around dcSpark Cardano Multiplatform Lib (CML), using its WASM mobile strategy through Ionic + Capacitor or an equivalent mobile web runtime. There is no verified drop-in React Native CML package, so keep existing bridge integrations pinned until your app has a tested CML path.
+
 ## 📦 Installation
 
 ### Requirements
@@ -25,8 +27,10 @@ python3 --version
 
 ### Install Package
 
+Existing consumers can keep using GitHub refs while migrating. Do not publish this bridge to npmjs.
+
 ```bash
-npm install github:yoroi-classic/csl-mobile-bridge --save
+npm install 'github:yoroi-classic/csl-mobile-bridge#<tag-or-commit>' --save
 ```
 
 ## Usage
@@ -129,9 +133,22 @@ node .yarn/releases/yarn-3.6.1.cjs example start
 
 ### CML Transition
 
-This package keeps the current CSL bridge API stable while Yoroi consumers migrate toward dcSpark Cardano Multiplatform Lib. Toolchain changes should continue running the bridge API fixture tests and package checks against the current exports until the replacement CML surface is defined.
+`@yoroi-classic/csl-mobile-bridge` is deprecated. It keeps the current CSL bridge API stable for existing Yoroi consumers while new mobile work moves toward dcSpark Cardano Multiplatform Lib.
 
-The package metadata is owned by `yoroi-classic`; do not publish this bridge to npmjs. Consumers should use GitHub refs until the CML replacement package is ready.
+The verified dcSpark CML npm packages are:
+
+- `@dcspark/cardano-multiplatform-lib-browser`
+- `@dcspark/cardano-multiplatform-lib-nodejs`
+
+Both packages expose `cardano_multiplatform_lib.js` with TypeScript declarations in `cardano_multiplatform_lib.d.ts`. The upstream CML mobile guidance is to run the WASM bindings through Ionic + Capacitor or an equivalent setup. Treat that as a mobile strategy, not a drop-in replacement for this React Native TurboModule bridge.
+
+Migration guidance:
+
+1. Keep existing `@yoroi-classic/csl-mobile-bridge` imports unchanged in maintenance branches.
+2. Build new mobile CML proofs of concept against the verified CML packages or an equivalent CML WASM runtime.
+3. Compare serialization, metadata, address, and signing fixtures before replacing bridge exports in production.
+
+Toolchain changes should continue running the bridge API fixture tests and package checks against the current exports until the replacement CML surface is defined. The package metadata is owned by `yoroi-classic`; do not publish this bridge to npmjs. Consumers should use GitHub refs until the CML replacement package is ready.
 
 ---
 
