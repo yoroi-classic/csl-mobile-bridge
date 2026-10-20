@@ -51394,6 +51394,34 @@ static jsi::Object makeWithdrawalsBuilderExport(jsi::Runtime& rt) {
 
 static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   jsi::Object exports(rt);
+  exports.setProperty(rt, "reward_address_details_from_address",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_details_from_address"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "reward_address_details_from_address(address): expected address string");
+        }
+        const std::string address = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_reward_address_details_from_address(address.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML reward address extraction failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML reward address extraction returned no result");
+        }
+        const std::string packed(result.ptr);
+        const size_t separator = packed.find('\n');
+        if (separator == std::string::npos) {
+          throw jsi::JSError(rt, "CML reward address extraction returned malformed result");
+        }
+        jsi::Object details(rt);
+        details.setProperty(rt, "bech32", jsi::String::createFromUtf8(rt, packed.substr(0, separator)));
+        details.setProperty(rt, "keyHashHex", jsi::String::createFromUtf8(rt, packed.substr(separator + 1)));
+        return details;
+      }
+    )
+  );
+
   exports.setProperty(rt, "stake_credential_hex_from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "stake_credential_hex_from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {

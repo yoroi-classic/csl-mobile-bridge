@@ -43,6 +43,25 @@ pub fn stake_credential_hex_from_address(address: &str) -> Result<String, String
   Ok(hex::encode(base.stake.to_cbor_bytes()))
 }
 
+/// Return the normalized bech32 reward address and its key-hash credential.
+pub fn reward_address_details_from_address(address: &str) -> Result<(String, String), String> {
+  let parsed = if is_hex_address(address) {
+    Address::from_hex(address).map_err(|err| err.to_string())
+  } else {
+    Address::from_bech32(address).map_err(|err| err.to_string())
+  }?;
+  let reward = RewardAddress::from_address(&parsed)
+    .ok_or_else(|| "Address is not a reward address".to_owned())?;
+  let key_hash = match reward.payment {
+    Credential::PubKey { hash, .. } => hash.to_hex(),
+    Credential::Script { .. } => {
+      return Err("Reward address credential is not a key hash".to_owned())
+    }
+  };
+  let bech32 = parsed.to_bech32(None).map_err(|err| err.to_string())?;
+  Ok((bech32, key_hash))
+}
+
 /// Derive a reward address from an account extended public key and soft
 /// staking path, returning its serialized address bytes as lower-case hex.
 pub fn reward_address_hex_from_account_public_key(
@@ -68,16 +87,16 @@ fn is_hex_address(value: &str) -> bool {
 mod tests {
   use super::{
     address_to_hex, reward_address_from_address, reward_address_hex_from_account_public_key,
-    stake_credential_hex_from_address,
+    reward_address_details_from_address, stake_credential_hex_from_address,
   };
 
   const BASE_BECH32: &str = "addr_test1qqhchrw4umcrf90ew5ep85zefj9724c5jcfg6kp667qau789d6z307gnggrp3hgye75yzgh5q0w6unkqnvfxjfu7vxlswtaxme";
   const BASE_HEX: &str = "002f8b8dd5e6f03495f9753213d0594c8be5571496128d583ad781de78e56e8517f913420618dd04cfa84122f403ddae4ec09b1269279e61bf";
   const REWARD_TESTNET: &str = "stake_test1urjkapghlyf5ypscm5zvl2zpyt6q8hdwfmqfkynfy70xr0cjjefxa";
   const ACCOUNT_PUBLIC_KEY_HEX: &str = "7cc9d816f272eb78a2db936a839d3bf53fa960dd470ddbaadabb6a7bf2019b837d20b2cd13cbb22b6f6938abea40d425f5539b6bb1fe0813ccb4c21676a7fd6b";
-  const REWARD_ADDRESS_HEX: &str = "e042d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40";
   const STAKE_CREDENTIAL_HEX: &str =
     "8200581ce56e8517f913420618dd04cfa84122f403ddae4ec09b1269279e61bf";
+  const REWARD_ADDRESS_HEX: &str = "e042d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40";
 
   #[test]
   fn derives_expected_reward_address_from_bech32_or_hex() {
@@ -100,6 +119,17 @@ mod tests {
     assert_eq!(
       stake_credential_hex_from_address(BASE_HEX).unwrap(),
       STAKE_CREDENTIAL_HEX
+    );
+  }
+
+  #[test]
+  fn extracts_normalized_reward_address_and_key_hash() {
+    assert_eq!(
+      reward_address_details_from_address(REWARD_ADDRESS_HEX).unwrap(),
+      (
+        "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk".to_owned(),
+        "42d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40".to_owned()
+      )
     );
   }
 

@@ -4,6 +4,10 @@ declare const cslBridge: typeof bridgeTypes;
 export default cslBridge;
 /** Extract the canonical serialized stake credential from a base address using CML. */
 export declare const stakeCredentialHexFromAddress: (address: string) => string;
+export declare const rewardAddressDetailsFromAddress: (address: string) => {
+    bech32: string;
+    keyHashHex: string;
+};
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export declare const addressToHex: (address: string) => string;
 /** CML-native helper exposed alongside the legacy CSL object bridge. */

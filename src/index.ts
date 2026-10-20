@@ -27,6 +27,17 @@ export const stakeCredentialHexFromAddress = (address: string): string => {
   return cmlBridge.stake_credential_hex_from_address(address);
 };
 
+export const rewardAddressDetailsFromAddress = (
+  address: string,
+): {bech32: string; keyHashHex: string} => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    reward_address_details_from_address: (
+      address: string,
+    ) => {bech32: string; keyHashHex: string};
+  };
+  return cmlBridge.reward_address_details_from_address(address);
+};
+
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export const addressToHex = (address: string): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {
