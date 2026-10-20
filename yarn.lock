@@ -4791,7 +4791,7 @@ __metadata:
     "@react-navigation/elements": ^2.3.8
     "@react-navigation/native": ^7.1.6
     "@types/react": ~19.0.10
-    "@yoroi-classic/csl-mobile-bridge": "workspace:*"
+    "@yoroi-classic/csl-mobile-bridge": 9.0.1
     eslint: ^9.25.0
     eslint-config-expo: ~9.2.0
     expo: ~53.0.24
@@ -4820,7 +4820,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@yoroi-classic/csl-mobile-bridge@workspace:*, @yoroi-classic/csl-mobile-bridge@workspace:.":
+"@yoroi-classic/csl-mobile-bridge@9.0.1, @yoroi-classic/csl-mobile-bridge@workspace:.":
   version: 0.0.0-use.local
   resolution: "@yoroi-classic/csl-mobile-bridge@workspace:."
   dependencies:
