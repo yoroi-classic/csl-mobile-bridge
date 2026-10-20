@@ -5,7 +5,7 @@ use cml_chain::{assets::{AssetName, MultiAsset}, crypto::ScriptHash};
 use cml_crypto::{PrivateKey, RawBytesEncoding};
 use std::convert::TryFrom;
 
-/// Build an ADA-only payment using CML, with one or more inputs and outputs.
+/// Build a payment with ADA and multiasset values using CML.
 ///
 /// The delimited argument format is intentionally narrow while the mobile
 /// builder API is being replaced. All integer quantities are decimal strings
@@ -215,9 +215,10 @@ mod tests {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let policy_hex = "ab".repeat(28);
     let quantity = "9007199254740993";
+    let input_quantity = "18014398509481986";
     let args = format!(
       "{},0,{},10000000,{}~00ff~{}|{},2000000,{}~00ff~{}|{}|123456|44|155381|4310|2000000|500000000|5000",
-      "01".repeat(32), address, policy_hex, quantity,
+      "01".repeat(32), address, policy_hex, input_quantity,
       address, policy_hex, quantity, address,
     );
     let result = build_simple_payment_transaction_hex(&args).unwrap();
@@ -226,6 +227,12 @@ mod tests {
     let policy = ScriptHash::from_raw_bytes(&hex::decode(policy_hex).unwrap()).unwrap();
     let name = AssetName::new(vec![0x00, 0xff]).unwrap();
     assert_eq!(transaction.body.outputs[0].amount().multiasset.get(&policy, &name), Some(9007199254740993));
+    assert_eq!(transaction.body.outputs[1].amount().multiasset.get(&policy, &name), Some(9007199254740993));
+    assert!(transaction.body.outputs[1].amount().coin >= 1000000);
+    assert_eq!(
+      transaction.body.outputs.iter().map(|output| output.amount().coin).sum::<u64>() + transaction.body.fee,
+      10000000,
+    );
   }
 
   #[test]

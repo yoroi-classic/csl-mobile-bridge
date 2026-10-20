@@ -74,7 +74,7 @@ export type SimplePaymentBuilderArguments = {
   maxValueSize: string;
 };
 
-/** Build the currently supported ADA-only transaction with CML. */
+/** Build a transaction with CML using ADA and multiasset value bundles. */
 export const buildSimplePaymentTransaction = (
   args: SimplePaymentBuilderArguments,
 ): {cborHex: string; fee: string} => {
