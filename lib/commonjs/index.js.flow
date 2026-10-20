@@ -392,6 +392,14 @@ export const hashPlutusDataCborHex = (cborHex: string): string => {
   return cmlBridge.hash_plutus_data_cbor_hex(cborHex);
 };
 
+/** Decode serialized Plutus data into the Yoroi display structure with CML. */
+export const decodePlutusDataCborHex = (cborHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    decode_plutus_data_cbor_hex: (cborHex: string) => string;
+  };
+  return cmlBridge.decode_plutus_data_cbor_hex(cborHex);
+};
+
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export const rewardAddressFromAddress = (address: string, network: number): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {
