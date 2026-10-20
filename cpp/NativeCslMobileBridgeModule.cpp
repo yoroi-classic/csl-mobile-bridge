@@ -51415,6 +51415,146 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
+  exports.setProperty(rt, "sign_wallet_transaction_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign_wallet_transaction_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "sign_wallet_transaction_hex(args): expected a JSON string");
+        }
+        const std::string signingArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_sign_wallet_transaction_hex(signingArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML wallet transaction signing failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML wallet transaction signing returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "wallet_root_key_hex_from_entropy",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "wallet_root_key_hex_from_entropy"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "wallet_root_key_hex_from_entropy(entropyHex): expected a hex string");
+        }
+        const std::string entropyHex = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_wallet_root_key_hex_from_entropy(entropyHex.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML wallet root-key generation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML wallet root-key generation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "derive_account_public_key_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "derive_account_public_key_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "derive_account_public_key_hex(args): expected a JSON string");
+        }
+        const std::string accountArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_derive_account_public_key_hex(accountArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML account public-key derivation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML account public-key derivation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "sign_wallet_transaction_paths_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign_wallet_transaction_paths_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "sign_wallet_transaction_paths_hex(args): expected a JSON string");
+        }
+        const std::string signingArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_sign_wallet_transaction_paths_hex(signingArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML wallet path signing failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML wallet path signing returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "sign_wallet_data",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "sign_wallet_data"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "sign_wallet_data(args): expected a JSON string");
+        }
+        const std::string signingArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_sign_wallet_data(signingArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML wallet data signing failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML wallet data signing returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "derive_wallet_public_key_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "derive_wallet_public_key_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "derive_wallet_public_key_hex(args): expected a JSON string");
+        }
+        const std::string derivationArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_derive_wallet_public_key_hex(derivationArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML wallet public-key derivation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML wallet public-key derivation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "transaction_id_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "transaction_id_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "transaction_id_hex(transactionHex): expected a hex string");
+        }
+        const std::string transactionHex = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_transaction_id_hex(transactionHex.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML transaction ID calculation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML transaction ID calculation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   exports.setProperty(rt, "build_simple_payment_transaction_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "build_simple_payment_transaction_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
@@ -51429,6 +51569,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         }
         if (!result.ptr) {
           throw jsi::JSError(rt, "CML payment transaction builder returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "build_escrow_redeem_transaction_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "build_escrow_redeem_transaction_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "build_escrow_redeem_transaction_hex(args): expected JSON argument string");
+        }
+        const std::string transactionArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_build_escrow_redeem_transaction_hex(transactionArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML escrow transaction build failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML escrow transaction builder returned no result");
         }
         return jsi::String::createFromUtf8(rt, result.ptr);
       }
@@ -51517,6 +51677,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
         }
         if (!result.ptr) {
           throw jsi::JSError(rt, "CML address conversion returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  exports.setProperty(rt, "address_info_from_address",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "address_info_from_address"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "address_info_from_address(address): expected an address string");
+        }
+        const std::string address = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_address_info_from_address(address.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML address parsing failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML address parsing returned no result");
         }
         return jsi::String::createFromUtf8(rt, result.ptr);
       }

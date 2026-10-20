@@ -149,6 +149,12 @@ const createBridgeFixture = () => {
     }),
     reward_address_from_address: jest.fn((address, network) => `${network}:${address}`),
     address_to_hex: jest.fn((address) => `hex:${address}`),
+    address_info_from_address: jest.fn((address) => JSON.stringify({
+      hex: `hex:${address}`,
+      networkId: 0,
+      bech32: address,
+      isValid: true,
+    })),
     stake_credential_hex_from_address: jest.fn((address) => `stake:${address}`),
     reward_address_details_from_address: jest.fn((address) => ({
       bech32: `bech32:${address}`,
@@ -157,7 +163,15 @@ const createBridgeFixture = () => {
     sign_transaction_hex: jest.fn((transactionHex, privateKeyHex) =>
       `${transactionHex}:${privateKeyHex}`
     ),
+    sign_wallet_transaction_hex: jest.fn((args) => `wallet-signed:${args}`),
+    wallet_root_key_hex_from_entropy: jest.fn((entropyHex) => `root:${entropyHex}`),
+    derive_account_public_key_hex: jest.fn((args) => `account:${args}`),
+    sign_wallet_transaction_paths_hex: jest.fn((args) => `paths-signed:${args}`),
+    sign_wallet_data: jest.fn((args) => JSON.stringify({signatureHex: args, publicKeyHex: 'aa'})),
+    derive_wallet_public_key_hex: jest.fn((args) => `public:${args}`),
+    transaction_id_hex: jest.fn((transactionHex) => `id:${transactionHex}`),
     build_simple_payment_transaction_hex: jest.fn((args) => `payment:${args}`),
+    build_escrow_redeem_transaction_hex: jest.fn((args) => `escrow:${args}|168581`),
     minimum_coin_for_assets: jest.fn(() => '1500000'),
     reward_address_hex_from_account_public_key: jest.fn(
       (accountPublicKeyHex, network, role, index) =>
@@ -205,6 +219,103 @@ describe('CSL mobile bridge source entrypoint', () => {
     expect(moduleExports.PrivateKey).toBe(bridge.PrivateKey);
     expect(moduleExports.TransactionHash).toBe(bridge.TransactionHash);
     expect(moduleExports.make_vkey_witness).toBe(bridge.make_vkey_witness);
+  });
+
+  it('forwards wallet signing derivation only through the CML native bridge', () => {
+    const { bridge, moduleExports } = loadBridge();
+    const args = {
+      transactionHex: 'unsigned',
+      masterKeyHex: 'fixture-master-key',
+      purpose: '2147485500',
+      coinType: '2147485463',
+      accountIndex: '0',
+      stakingRole: '2',
+      stakingIndex: '0',
+    };
+
+    expect(moduleExports.signWalletTransactionHex(args)).toBe(
+      `wallet-signed:${JSON.stringify(args)}`
+    );
+    expect(bridge.sign_wallet_transaction_hex).toHaveBeenCalledWith(
+      JSON.stringify(args)
+    );
+  });
+
+  it('generates wallet root keys through the CML native bridge', () => {
+    const {bridge, moduleExports} = loadBridge();
+    expect(moduleExports.walletRootKeyHexFromEntropy('11'.repeat(16))).toBe(
+      `root:${'11'.repeat(16)}`,
+    );
+    expect(bridge.wallet_root_key_hex_from_entropy).toHaveBeenCalledWith(
+      '11'.repeat(16),
+    );
+  });
+
+  it('derives account public keys through the CML native bridge', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {
+      masterKeyHex: 'fixture-master-key',
+      purpose: '2147485500',
+      coinType: '2147485463',
+      accountIndex: '0',
+    };
+    expect(moduleExports.deriveAccountPublicKeyHex(args)).toBe(
+      `account:${JSON.stringify(args)}`,
+    );
+    expect(bridge.derive_account_public_key_hex).toHaveBeenCalledWith(
+      JSON.stringify(args),
+    );
+  });
+
+  it('signs wallet transactions for multiple derivation paths through CML', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {
+      transactionHex: 'unsigned-cbor',
+      masterKeyHex: 'fixture-master-key',
+      signerPaths: [[1, 2, 3, 4, 5], [1, 2, 3, 6, 7]],
+    };
+    expect(moduleExports.signWalletTransactionPathsHex(args)).toBe(
+      `paths-signed:${JSON.stringify(args)}`,
+    );
+    expect(bridge.sign_wallet_transaction_paths_hex).toHaveBeenCalledWith(
+      JSON.stringify(args),
+    );
+  });
+
+  it('returns CIP-8 message signature and public key from CML', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {messageHex: 'abcd', masterKeyHex: 'fixture', signerPath: [1, 2, 3, 4, 5]};
+    const result = moduleExports.signWalletData(args);
+    expect(bridge.sign_wallet_data).toHaveBeenCalledWith(JSON.stringify(args));
+    expect(result).toEqual({signatureHex: JSON.stringify(args), publicKeyHex: 'aa'});
+  });
+
+  it('derives CIP-8 public keys through CML', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {masterKeyHex: 'fixture', signerPath: [1, 2, 3, 4, 5]};
+    expect(moduleExports.deriveWalletPublicKeyHex(args)).toBe(
+      `public:${JSON.stringify(args)}`,
+    );
+    expect(bridge.derive_wallet_public_key_hex).toHaveBeenCalledWith(
+      JSON.stringify(args),
+    );
+  });
+
+  it('calculates transaction IDs through CML body hashing', () => {
+    const {bridge, moduleExports} = loadBridge();
+    expect(moduleExports.transactionIdHex('84cbor')).toBe('id:84cbor');
+    expect(bridge.transaction_id_hex).toHaveBeenCalledWith('84cbor');
+  });
+
+  it('returns parsed address details from the CML native bridge', () => {
+    const {bridge, moduleExports} = loadBridge();
+    expect(moduleExports.addressInfoFromAddress(fixtures.address)).toEqual({
+      hex: `hex:${fixtures.address}`,
+      networkId: 0,
+      bech32: fixtures.address,
+      isValid: true,
+    });
+    expect(bridge.address_info_from_address).toHaveBeenCalledWith(fixtures.address);
   });
 
   it('keeps deterministic serialization outputs for bridge fixtures', () => {
@@ -319,12 +430,14 @@ describe('CSL mobile bridge source entrypoint', () => {
       keyDeposit: '2000000',
       poolDeposit: '500000000',
       maxValueSize: '5000',
+      withdrawals: [{rewardAddress: 'stake_test1fixture', amount: '3500000'}],
     };
     const packed = [
       '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993,-,-',
       'addr_test_output,2000000,-,-',
       'addr_test_change',
-      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-', '-',
+      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-', '-', '-',
+      '%5B%7B%22rewardAddress%22%3A%22stake_test1fixture%22%2C%22amount%22%3A%223500000%22%7D%5D',
     ].join('|');
 
     bridge.build_simple_payment_transaction_hex.mockReturnValue(`payment:${packed}|168581`);
@@ -333,6 +446,32 @@ describe('CSL mobile bridge source entrypoint', () => {
       fee: '168581',
     });
     expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(packed);
+  });
+
+  it('routes the escrow Plutus recipe through the native CML helper', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {
+      scriptInput: {txHashHex: '01'.repeat(32), index: '0', address: 'script', lovelace: '9000000', assets: [], inlineDatumCborHex: 'd87980'},
+      referenceScriptInput: {txHashHex: '02'.repeat(32), index: '0', address: 'ref', lovelace: '2000000', assets: []},
+      referenceScriptCborHex: '4e010000',
+      referenceScriptSize: '3',
+      fundingInputs: [],
+      collateralInput: {txHashHex: '03'.repeat(32), index: '0', address: 'collateral', lovelace: '5000000', assets: []},
+      outputs: [{address: 'destination', lovelace: '2000000', assets: []}],
+      changeAddress: 'change', scriptHashHex: 'ab'.repeat(28), redeemerCborHex: 'd87980',
+      redeemerMem: '100', redeemerSteps: '200', validityStart: '1', ttl: '100',
+      feeCoefficient: '44', feeConstant: '155381', coinsPerUtxoByte: '4310',
+      keyDeposit: '2000000', poolDeposit: '500000000', maxValueSize: '5000',
+      refScriptCoinsPerByte: {numerator: '15', denominator: '1'},
+      refScriptTierStepBytes: '25600', refScriptMultiplier: '1.2',
+      plutusV3CostModel: [0],
+    };
+
+    expect(moduleExports.buildEscrowRedeemTransactionCml(args)).toEqual({
+      cborHex: `escrow:${JSON.stringify(args)}`,
+      fee: '168581',
+    });
+    expect(bridge.build_escrow_redeem_transaction_hex).toHaveBeenCalledWith(JSON.stringify(args));
   });
 
   it('packs a native script input and exact witness-count fee hint', () => {

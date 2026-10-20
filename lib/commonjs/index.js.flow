@@ -51,6 +51,99 @@ export const signTransactionHex = (
   return cmlBridge.sign_transaction_hex(transactionHex, privateKeyHex);
 };
 
+export type WalletTransactionSigningArguments = {
+  transactionHex: string;
+  masterKeyHex: string;
+  purpose: string;
+  coinType: string;
+  accountIndex: string;
+  stakingRole?: string;
+  stakingIndex?: string;
+};
+
+/** Derive wallet signing keys and sign entirely inside the CML native bridge. */
+export const signWalletTransactionHex = (
+  args: WalletTransactionSigningArguments,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    sign_wallet_transaction_hex: (args: string) => string;
+  };
+  return cmlBridge.sign_wallet_transaction_hex(JSON.stringify(args));
+};
+
+/** Derive a Cardano BIP32 root key from BIP39 entropy inside the native CML bridge. */
+export const walletRootKeyHexFromEntropy = (entropyHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    wallet_root_key_hex_from_entropy: (entropyHex: string) => string;
+  };
+  return cmlBridge.wallet_root_key_hex_from_entropy(entropyHex);
+};
+
+export type AccountPublicKeyDerivationArguments = {
+  masterKeyHex: string;
+  purpose: string;
+  coinType: string;
+  accountIndex: string;
+};
+
+/** Derive an account public key in CML without exporting derived private keys. */
+export const deriveAccountPublicKeyHex = (
+  args: AccountPublicKeyDerivationArguments,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    derive_account_public_key_hex: (args: string) => string;
+  };
+  return cmlBridge.derive_account_public_key_hex(JSON.stringify(args));
+};
+
+export type WalletPathSigningArguments = {
+  transactionHex: string;
+  masterKeyHex: string;
+  signerPaths: number[][];
+};
+
+/** Derive each wallet signing key and sign a transaction entirely in CML. */
+export const signWalletTransactionPathsHex = (
+  args: WalletPathSigningArguments,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    sign_wallet_transaction_paths_hex: (args: string) => string;
+  };
+  return cmlBridge.sign_wallet_transaction_paths_hex(JSON.stringify(args));
+};
+
+export type WalletDataSigningArguments = {
+  messageHex: string;
+  masterKeyHex: string;
+  signerPath: number[];
+};
+
+export const signWalletData = (
+  args: WalletDataSigningArguments,
+): {signatureHex: string; publicKeyHex: string} => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    sign_wallet_data: (args: string) => string;
+  };
+  return JSON.parse(cmlBridge.sign_wallet_data(JSON.stringify(args)));
+};
+
+export const deriveWalletPublicKeyHex = (
+  args: Pick<WalletDataSigningArguments, 'masterKeyHex' | 'signerPath'>,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    derive_wallet_public_key_hex: (args: string) => string;
+  };
+  return cmlBridge.derive_wallet_public_key_hex(JSON.stringify(args));
+};
+
+/** Compute the Cardano transaction ID from the transaction body's CML hash. */
+export const transactionIdHex = (transactionHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    transaction_id_hex: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_id_hex(transactionHex);
+};
+
 export type SimplePaymentBuilderArguments = {
   inputs: Array<{
     transactionHashHex: string;
@@ -81,12 +174,78 @@ export type SimplePaymentBuilderArguments = {
     scriptCborHex: string;
     assets: Array<{assetNameHex: string; quantity: string}>;
   }>;
+  certificates?: Array<{
+    kind: 'StakeRegistration' | 'StakeDeregistration' | 'StakeDelegation';
+    stakeCredentialKeyHashHex: string;
+    poolKeyHash?: string;
+  }>;
+  withdrawals?: Array<{rewardAddress: string; amount: string}>;
 };
 
 export type CmlAssetQuantity = {
   policyIdHex: string;
   assetNameHex: string;
   quantity: string;
+};
+
+export type EscrowCmlUtxo = {
+  txHashHex: string;
+  index: string;
+  address: string;
+  lovelace: string;
+  assets: CmlAssetQuantity[];
+  inlineDatumCborHex?: string;
+};
+
+export type EscrowCmlTransactionArguments = {
+  scriptInput: EscrowCmlUtxo;
+  referenceScriptInput: EscrowCmlUtxo;
+  referenceScriptCborHex: string;
+  referenceScriptSize: string;
+  fundingInputs: EscrowCmlUtxo[];
+  collateralInput: EscrowCmlUtxo;
+  outputs: Array<{
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+    datumCborHex?: string;
+  }>;
+  changeAddress: string;
+  scriptHashHex: string;
+  redeemerCborHex: string;
+  redeemerMem: string;
+  redeemerSteps: string;
+  validityStart: string;
+  ttl: string;
+  feeCoefficient: string;
+  feeConstant: string;
+  coinsPerUtxoByte: string;
+  keyDeposit: string;
+  poolDeposit: string;
+  maxValueSize: string;
+  maxTxSize?: string;
+  collateralPercentage?: string;
+  refScriptCoinsPerByte: {numerator: string; denominator: string};
+  refScriptTierStepBytes: string;
+  refScriptMultiplier: string;
+  exUnitPricesMemory: {numerator: string; denominator: string};
+  exUnitPricesSteps: {numerator: string; denominator: string};
+  plutusV3CostModel: number[];
+};
+
+export const buildEscrowRedeemTransactionCml = (
+  args: EscrowCmlTransactionArguments,
+): {cborHex: string; fee: string} => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    build_escrow_redeem_transaction_hex: (args: string) => string;
+  };
+  const [cborHex, fee] = cmlBridge
+    .build_escrow_redeem_transaction_hex(JSON.stringify(args))
+    .split('|');
+  if (!cborHex || !fee || !/^\d+$/.test(fee)) {
+    throw new Error('CML escrow transaction builder returned an invalid result');
+  }
+  return {cborHex, fee};
 };
 
 const assertSafeMetadataNumbers = (value: unknown): void => {
@@ -157,6 +316,8 @@ export const buildSimplePaymentTransaction = (
         scriptCborHex,
         assets.map(({assetNameHex, quantity}) => [assetNameHex, quantity].join('~')).join('^'),
       ].join(',')).join(';') || '-',
+      args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
+      args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
     ].join('|'),
   );
   const separator = result.lastIndexOf('|');
@@ -170,6 +331,16 @@ export const addressToHex = (address: string): string => {
     address_to_hex: (address: string) => string;
   };
   return cmlBridge.address_to_hex(address);
+};
+
+/** Parse an address with CML and return normalized bytes, network ID and bech32 when available. */
+export const addressInfoFromAddress = (
+  address: string,
+): {hex: string; networkId: number; bech32: string | null; isValid: true} => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    address_info_from_address: (address: string) => string;
+  };
+  return JSON.parse(cmlBridge.address_info_from_address(address));
 };
 
 /** CML-native helper exposed alongside the legacy CSL object bridge. */

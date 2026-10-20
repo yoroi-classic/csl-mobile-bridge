@@ -9,6 +9,46 @@ export declare const rewardAddressDetailsFromAddress: (address: string) => {
     keyHashHex: string;
 };
 export declare const signTransactionHex: (transactionHex: string, privateKeyHex: string) => string;
+export type WalletTransactionSigningArguments = {
+    transactionHex: string;
+    masterKeyHex: string;
+    purpose: string;
+    coinType: string;
+    accountIndex: string;
+    stakingRole?: string;
+    stakingIndex?: string;
+};
+/** Derive wallet signing keys and sign entirely inside the CML native bridge. */
+export declare const signWalletTransactionHex: (args: WalletTransactionSigningArguments) => string;
+/** Derive a Cardano BIP32 root key from BIP39 entropy inside the native CML bridge. */
+export declare const walletRootKeyHexFromEntropy: (entropyHex: string) => string;
+export type AccountPublicKeyDerivationArguments = {
+    masterKeyHex: string;
+    purpose: string;
+    coinType: string;
+    accountIndex: string;
+};
+/** Derive an account public key in CML without exporting derived private keys. */
+export declare const deriveAccountPublicKeyHex: (args: AccountPublicKeyDerivationArguments) => string;
+export type WalletPathSigningArguments = {
+    transactionHex: string;
+    masterKeyHex: string;
+    signerPaths: number[][];
+};
+/** Derive each wallet signing key and sign a transaction entirely in CML. */
+export declare const signWalletTransactionPathsHex: (args: WalletPathSigningArguments) => string;
+export type WalletDataSigningArguments = {
+    messageHex: string;
+    masterKeyHex: string;
+    signerPath: number[];
+};
+export declare const signWalletData: (args: WalletDataSigningArguments) => {
+    signatureHex: string;
+    publicKeyHex: string;
+};
+export declare const deriveWalletPublicKeyHex: (args: Pick<WalletDataSigningArguments, "masterKeyHex" | "signerPath">) => string;
+/** Compute the Cardano transaction ID from the transaction body's CML hash. */
+export declare const transactionIdHex: (transactionHex: string) => string;
 export type SimplePaymentBuilderArguments = {
     inputs: Array<{
         transactionHashHex: string;
@@ -56,11 +96,76 @@ export type SimplePaymentBuilderArguments = {
             quantity: string;
         }>;
     }>;
+    certificates?: Array<{
+        kind: 'StakeRegistration' | 'StakeDeregistration' | 'StakeDelegation';
+        stakeCredentialKeyHashHex: string;
+        poolKeyHash?: string;
+    }>;
+    withdrawals?: Array<{
+        rewardAddress: string;
+        amount: string;
+    }>;
 };
 export type CmlAssetQuantity = {
     policyIdHex: string;
     assetNameHex: string;
     quantity: string;
+};
+export type EscrowCmlUtxo = {
+    txHashHex: string;
+    index: string;
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+    inlineDatumCborHex?: string;
+};
+export type EscrowCmlTransactionArguments = {
+    scriptInput: EscrowCmlUtxo;
+    referenceScriptInput: EscrowCmlUtxo;
+    referenceScriptCborHex: string;
+    referenceScriptSize: string;
+    fundingInputs: EscrowCmlUtxo[];
+    collateralInput: EscrowCmlUtxo;
+    outputs: Array<{
+        address: string;
+        lovelace: string;
+        assets: CmlAssetQuantity[];
+        datumCborHex?: string;
+    }>;
+    changeAddress: string;
+    scriptHashHex: string;
+    redeemerCborHex: string;
+    redeemerMem: string;
+    redeemerSteps: string;
+    validityStart: string;
+    ttl: string;
+    feeCoefficient: string;
+    feeConstant: string;
+    coinsPerUtxoByte: string;
+    keyDeposit: string;
+    poolDeposit: string;
+    maxValueSize: string;
+    maxTxSize?: string;
+    collateralPercentage?: string;
+    refScriptCoinsPerByte: {
+        numerator: string;
+        denominator: string;
+    };
+    refScriptTierStepBytes: string;
+    refScriptMultiplier: string;
+    exUnitPricesMemory: {
+        numerator: string;
+        denominator: string;
+    };
+    exUnitPricesSteps: {
+        numerator: string;
+        denominator: string;
+    };
+    plutusV3CostModel: number[];
+};
+export declare const buildEscrowRedeemTransactionCml: (args: EscrowCmlTransactionArguments) => {
+    cborHex: string;
+    fee: string;
 };
 export declare const minimumCoinForAssets: (address: string, assets: CmlAssetQuantity[], coinsPerUtxoByte: string) => string;
 /** Build a transaction with CML using ADA and multiasset value bundles. */
@@ -70,6 +175,13 @@ export declare const buildSimplePaymentTransaction: (args: SimplePaymentBuilderA
 };
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export declare const addressToHex: (address: string) => string;
+/** Parse an address with CML and return normalized bytes, network ID and bech32 when available. */
+export declare const addressInfoFromAddress: (address: string) => {
+    hex: string;
+    networkId: number;
+    bech32: string | null;
+    isValid: true;
+};
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export declare const rewardAddressFromAddress: (address: string, network: number) => string;
 export declare const rewardAddressHexFromAccountPublicKey: (accountPublicKeyHex: string, network: number, role: number, index: number) => string;
