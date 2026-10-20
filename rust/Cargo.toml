@@ -12,6 +12,8 @@ cardano-serialization-lib = "15.0.3"
 cml-chain = "=6.2.0"
 cml-crypto = "=6.2.0"
 hex = "=0.4.2"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 byteorder = "1.4.3"
 base64 = "0.20.0"
 # tag = "2.3.1"

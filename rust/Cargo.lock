@@ -358,6 +358,8 @@ dependencies = [
  "cml-crypto",
  "hex",
  "jni",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

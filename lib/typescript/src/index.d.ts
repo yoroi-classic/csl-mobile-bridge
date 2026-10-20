@@ -29,6 +29,10 @@ export type SimplePaymentBuilderArguments = {
             assetNameHex: string;
             quantity: string;
         }>;
+        datum?: {
+            kind: 'hash' | 'inline';
+            hex: string;
+        };
     }>;
     changeAddress: string;
     ttl: string;
@@ -38,6 +42,10 @@ export type SimplePaymentBuilderArguments = {
     keyDeposit: string;
     poolDeposit: string;
     maxValueSize: string;
+    metadata?: Array<{
+        label: string;
+        data: unknown;
+    }>;
 };
 export type CmlAssetQuantity = {
     policyIdHex: string;

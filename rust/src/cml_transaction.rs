@@ -2,7 +2,9 @@ use cml_chain::crypto::Vkeywitness;
 use cml_chain::serialization::{Deserialize, Serialize};
 use cml_chain::transaction::Transaction;
 use cml_chain::{assets::{AssetName, MultiAsset}, crypto::ScriptHash};
-use cml_crypto::{PrivateKey, RawBytesEncoding};
+use cml_chain::transaction::DatumOption;
+use cml_chain::plutus::PlutusData;
+use cml_crypto::{DatumHash, PrivateKey, RawBytesEncoding};
 use std::convert::TryFrom;
 
 /// Build a payment with ADA and multiasset values using CML.
@@ -28,8 +30,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   };
 
   let fields = args.split('|').collect::<Vec<_>>();
-  if fields.len() != 10 {
-    return Err(format!("expected 10 payment fields, received {}", fields.len()));
+  if !(10..=11).contains(&fields.len()) {
+    return Err(format!("expected 10 or 11 payment fields, received {}", fields.len()));
   }
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
     fields[index]
@@ -89,22 +91,42 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   }
   for packed_output in outputs {
     let output_fields = packed_output.split(',').collect::<Vec<_>>();
-    if output_fields.len() != 3 {
-      return Err("each output must contain address,lovelace,assets".to_owned());
+    if output_fields.len() != 4 {
+      return Err("each output must contain address,lovelace,assets,datum".to_owned());
     }
     let address = Address::from_bech32(output_fields[0]).map_err(|err| err.to_string())?;
     let coin = output_fields[1].parse::<u64>().map_err(|err| format!("invalid output coin: {err}"))?;
+    let mut output_builder = TransactionOutputBuilder::new().with_address(address);
+    if output_fields[3] != "-" {
+      let datum = output_fields[3].splitn(2, '~').collect::<Vec<_>>();
+      if datum.len() != 2 {
+        return Err("output datum must contain kind~hex".to_owned());
+      }
+      let datum_option = match datum[0] {
+        "hash" => {
+          let bytes = hex::decode(datum[1]).map_err(|err| format!("invalid datum hash: {err}"))?;
+          DatumOption::new_hash(DatumHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?)
+        }
+        "inline" => {
+          let bytes = hex::decode(datum[1]).map_err(|err| format!("invalid inline datum: {err}"))?;
+          DatumOption::new_datum(PlutusData::from_cbor_bytes(&bytes).map_err(|err| err.to_string())?)
+        }
+        _ => return Err("output datum kind must be hash or inline".to_owned()),
+      };
+      output_builder = output_builder.with_data(datum_option);
+    }
+    let output_builder = output_builder
+      .next()
+      .map_err(|err| err.to_string())?
+      .with_value(Value::new(coin, parse_multiasset(output_fields[2])?));
     builder
-      .add_output(
-        TransactionOutputBuilder::new()
-          .with_address(address)
-          .next()
-          .map_err(|err| err.to_string())?
-          .with_value(Value::new(coin, parse_multiasset(output_fields[2])?))
-          .build()
-          .map_err(|err| err.to_string())?,
-      )
+      .add_output(output_builder.build().map_err(|err| err.to_string())?)
       .map_err(|err| err.to_string())?;
+  }
+  if fields.len() == 11 {
+    if let Some(auxiliary_data) = parse_auxiliary_metadata(fields[10])? {
+      builder.set_auxiliary_data(auxiliary_data);
+    }
   }
   builder.set_ttl(ttl);
   let tx = builder
@@ -134,6 +156,46 @@ fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
     assets.set(policy, name, quantity);
   }
   Ok(assets)
+}
+
+fn parse_auxiliary_metadata(encoded_json: &str) -> Result<Option<cml_chain::auxdata::AuxiliaryData>, String> {
+  use cml_chain::{auxdata::{AuxiliaryData, Metadata}, json::metadatums::{encode_json_str_to_metadatum, MetadataJsonSchema}};
+
+  if encoded_json.is_empty() || encoded_json == "-" {
+    return Ok(None);
+  }
+  let mut json_bytes = Vec::with_capacity(encoded_json.len());
+  let encoded = encoded_json.as_bytes();
+  let mut i = 0;
+  while i < encoded.len() {
+    if encoded[i] == b'%' {
+      if i + 2 >= encoded.len() {
+        return Err("invalid percent-encoded metadata JSON".to_owned());
+      }
+      let hex = std::str::from_utf8(&encoded[i + 1..i + 3]).map_err(|err| err.to_string())?;
+      let byte = u8::from_str_radix(hex, 16).map_err(|err| format!("invalid metadata escape: {err}"))?;
+      json_bytes.push(byte);
+      i += 3;
+    } else {
+      json_bytes.push(encoded[i]);
+      i += 1;
+    }
+  }
+  let json = std::str::from_utf8(&json_bytes).map_err(|err| format!("metadata JSON is not UTF-8: {err}"))?;
+  #[derive(serde::Deserialize)]
+  struct MetadataEntry {
+    label: String,
+    data: serde_json::Value,
+  }
+  let entries: Vec<MetadataEntry> = serde_json::from_str(json).map_err(|err| format!("invalid metadata entries: {err}"))?;
+  let mut metadata = Metadata::new();
+  for entry in entries {
+    let label = entry.label.parse::<u64>().map_err(|err| format!("invalid metadata label: {err}"))?;
+    let metadatum = encode_json_str_to_metadatum(&entry.data.to_string(), MetadataJsonSchema::BasicConversions)
+      .map_err(|err| err.to_string())?;
+    metadata.set(label, metadatum);
+  }
+  Ok(Some(AuxiliaryData::new_shelley(metadata)))
 }
 
 /// Calculate the minimum coin for an output with assets using CML's current
@@ -198,7 +260,7 @@ mod tests {
   fn builds_simple_payment_with_csl_fee_change_and_serialization_parity() {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = format!(
-      "{},0,{},10000000,-|{},2000000,-|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32),
       address,
       address,
@@ -211,12 +273,84 @@ mod tests {
   }
 
   #[test]
+  fn metadata_encoding_matches_csl_for_escaped_strings_and_large_integers() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let metadata_json = r#"[{"label":"674","data":{"msg":["café | pipe",9007199254740993]}}]"#;
+    let metadata_arg = metadata_json
+      .as_bytes()
+      .iter()
+      .map(|byte| format!("%{:02X}", byte))
+      .collect::<String>();
+    let args = format!(
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000|{}",
+      "01".repeat(32), address, address, address, metadata_arg,
+    );
+    let cml_cbor = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml_cbor = hex::decode(cml_cbor.rsplit_once('|').unwrap().0).unwrap();
+
+    let addr = csl::Address::from_bech32(address).unwrap();
+    let linear_fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&linear_fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_output(&csl::TransactionOutput::new(
+      &addr,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    )).unwrap();
+    builder.set_ttl(123456);
+    let input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+      0,
+    );
+    let utxo = csl::TransactionUnspentOutput::new(
+      &input,
+      &csl::TransactionOutput::new(&addr, &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap())),
+    );
+    let mut utxos = csl::TransactionUnspentOutputs::new();
+    utxos.add(&utxo);
+    builder.add_inputs_from(&utxos, csl::CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
+    let metadatum = csl::encode_json_str_to_metadatum(
+      r#"{"msg":["café | pipe",9007199254740993]}"#.to_owned(),
+      csl::MetadataJsonSchema::BasicConversions,
+    ).unwrap();
+    let mut metadata = csl::GeneralTransactionMetadata::new();
+    metadata.insert(&csl::BigNum::from_str("674").unwrap(), &metadatum);
+    builder.set_metadata(&metadata);
+    assert!(builder.add_change_if_needed(&addr).unwrap());
+    let body = builder.build().unwrap();
+    let csl_transaction = csl::Transaction::new(
+      &body,
+      &csl::TransactionWitnessSet::new(),
+      builder.get_auxiliary_data(),
+    );
+    assert_eq!(cml_cbor, csl_transaction.to_bytes());
+  }
+
+  #[test]
   fn supports_multiple_payment_inputs_and_outputs() {
     use cml_chain::{serialization::Deserialize, transaction::Transaction};
 
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = format!(
-      "{},0,{},5000000,-;{},1,{},5000000,-|{},2000000,-;{},2000000,-|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},5000000,-;{},1,{},5000000,-|{},2000000,-,-;{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32), address, "02".repeat(32), address,
       address, address, address,
     );
@@ -242,7 +376,7 @@ mod tests {
     let quantity = "9007199254740993";
     let input_quantity = "18014398509481986";
     let args = format!(
-      "{},0,{},10000000,{}~00ff~{}|{},2000000,{}~00ff~{}|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000,{}~00ff~{}|{},2000000,{}~00ff~{},-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32), address, policy_hex, input_quantity,
       address, policy_hex, quantity, address,
     );
@@ -269,9 +403,10 @@ mod tests {
     let asset_quantity = "9007199254740993";
     let asset_id = format!("{}~00ff~{}", policy_hex, asset_quantity);
     let input_hash = "01".repeat(32);
+    let datum_hash_hex = "cd".repeat(32);
     let args = format!(
-      "{},0,{},10000000,{}~00ff~18014398509481986|{},2000000,{}|{}|123456|44|155381|4310|2000000|500000000|5000",
-      input_hash, address, policy_hex, address, asset_id, address,
+      "{},0,{},10000000,{}~00ff~18014398509481986|{},2000000,{},inline~d87980;{},2000000,-,hash~{}|{}|123456|44|155381|4310|2000000|500000000|5000",
+      input_hash, address, policy_hex, address, asset_id, address, datum_hash_hex, address,
     );
     let cml_result = build_simple_payment_transaction_hex(&args).unwrap();
     let cml_cbor = hex::decode(cml_result.rsplit_once('|').unwrap().0).unwrap();
@@ -320,7 +455,15 @@ mod tests {
     output_assets.insert(&policy, &assets);
     let mut output_value = csl::Value::new(&csl::BigNum::from_str("2000000").unwrap());
     output_value.set_multiasset(&output_assets);
-    csl_builder.add_output(&csl::TransactionOutput::new(&addr, &output_value)).unwrap();
+    let mut output = csl::TransactionOutput::new(&addr, &output_value);
+    output.set_plutus_data(&csl::PlutusData::new_empty_constr_plutus_data(&csl::BigNum::zero()));
+    csl_builder.add_output(&output).unwrap();
+    let mut hash_output = csl::TransactionOutput::new(
+      &addr,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    );
+    hash_output.set_data_hash(&csl::DataHash::from_bytes(hex::decode(datum_hash_hex).unwrap()).unwrap());
+    csl_builder.add_output(&hash_output).unwrap();
     csl_builder.set_ttl(123456);
     csl_builder.add_inputs_from(&utxos, csl::CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
     assert!(csl_builder.add_change_if_needed(&addr).unwrap());
@@ -471,7 +614,7 @@ mod tests {
 
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = CString::new(format!(
-      "{},0,{},10000000,-|{},2000000,-|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32), address, address, address,
     )).unwrap();
     let mut result = std::ptr::null();

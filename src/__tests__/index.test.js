@@ -322,9 +322,9 @@ describe('CSL mobile bridge source entrypoint', () => {
     };
     const packed = [
       '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993',
-      'addr_test_output,2000000,-',
+      'addr_test_output,2000000,-,-',
       'addr_test_change',
-      '123456', '44', '155381', '4310', '2000000', '500000000', '5000',
+      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-',
     ].join('|');
 
     bridge.build_simple_payment_transaction_hex.mockReturnValue(`payment:${packed}|168581`);
@@ -345,6 +345,38 @@ describe('CSL mobile bridge source entrypoint', () => {
       '4310',
     )).toBe('1500000');
     expect(bridge.minimum_coin_for_assets).toHaveBeenCalledWith(packed);
+  });
+
+  it('percent-encodes metadata before crossing the delimited CML bridge', () => {
+    const { bridge, moduleExports } = loadBridge();
+    const args = {
+      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000'}],
+      changeAddress: 'addr_test_change',
+      ttl: '123456', feeCoefficient: '44', feeConstant: '155381',
+      coinsPerUtxoByte: '4310', keyDeposit: '2000000', poolDeposit: '500000000',
+      maxValueSize: '5000', metadata: [{label: '674', data: {msg: ['value|separator']}}],
+    };
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+    moduleExports.buildSimplePaymentTransaction(args);
+    expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(JSON.stringify(args.metadata))),
+    );
+  });
+
+  it('rejects metadata integers already outside JavaScript safe precision', () => {
+    const {moduleExports} = loadBridge();
+    const args = {
+      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000'}],
+      changeAddress: 'addr_test_change',
+      ttl: '123456', feeCoefficient: '44', feeConstant: '155381',
+      coinsPerUtxoByte: '4310', keyDeposit: '2000000', poolDeposit: '500000000',
+      maxValueSize: '5000', metadata: [{label: '674', data: {value: Number.MAX_SAFE_INTEGER + 1}}],
+    };
+    expect(() => moduleExports.buildSimplePaymentTransaction(args)).toThrow(
+      'Metadata integers must be safe JavaScript integers',
+    );
   });
 
   it('routes xpub reward-address derivation to the native CML helper', () => {

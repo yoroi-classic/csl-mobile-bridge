@@ -63,6 +63,7 @@ export type SimplePaymentBuilderArguments = {
     address: string;
     lovelace: string;
     assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+    datum?: {kind: 'hash' | 'inline'; hex: string};
   }>;
   changeAddress: string;
   ttl: string;
@@ -72,12 +73,24 @@ export type SimplePaymentBuilderArguments = {
   keyDeposit: string;
   poolDeposit: string;
   maxValueSize: string;
+  metadata?: Array<{label: string; data: unknown}>;
 };
 
 export type CmlAssetQuantity = {
   policyIdHex: string;
   assetNameHex: string;
   quantity: string;
+};
+
+const assertSafeMetadataNumbers = (value: unknown): void => {
+  if (typeof value === 'number' && Number.isInteger(value) && !Number.isSafeInteger(value)) {
+    throw new RangeError('Metadata integers must be safe JavaScript integers');
+  }
+  if (Array.isArray(value)) {
+    value.forEach(assertSafeMetadataNumbers);
+  } else if (value !== null && typeof value === 'object') {
+    Object.values(value).forEach(assertSafeMetadataNumbers);
+  }
 };
 
 export const minimumCoinForAssets = (
@@ -98,6 +111,7 @@ export const minimumCoinForAssets = (
 export const buildSimplePaymentTransaction = (
   args: SimplePaymentBuilderArguments,
 ): {cborHex: string; fee: string} => {
+  args.metadata?.forEach(({data}) => assertSafeMetadataNumbers(data));
   const cmlBridge = cslBridge as typeof bridgeTypes & {
     build_simple_payment_transaction_hex: (args: string) => string;
   };
@@ -112,10 +126,11 @@ export const buildSimplePaymentTransaction = (
         )
         .join(';'),
       args.outputs
-        .map(({address, lovelace, assets}) => [
+        .map(({address, lovelace, assets, datum}) => [
           address,
           lovelace,
           (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
+          datum ? `${datum.kind}~${datum.hex}` : '-',
         ].join(','))
         .join(';'),
       args.changeAddress,
@@ -126,6 +141,7 @@ export const buildSimplePaymentTransaction = (
       args.keyDeposit,
       args.poolDeposit,
       args.maxValueSize,
+      args.metadata ? encodeURIComponent(JSON.stringify(args.metadata)) : '-',
     ].join('|'),
   );
   const separator = result.lastIndexOf('|');
