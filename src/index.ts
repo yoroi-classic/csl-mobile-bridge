@@ -384,6 +384,14 @@ export const addressInfoFromAddress = (
   return JSON.parse(cmlBridge.address_info_from_address(address));
 };
 
+/** Hash serialized Plutus datum CBOR with the CML native bridge. */
+export const hashPlutusDataCborHex = (cborHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    hash_plutus_data_cbor_hex: (cborHex: string) => string;
+  };
+  return cmlBridge.hash_plutus_data_cbor_hex(cborHex);
+};
+
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export const rewardAddressFromAddress = (address: string, network: number): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {

@@ -51703,6 +51703,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
+  exports.setProperty(rt, "hash_plutus_data_cbor_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "hash_plutus_data_cbor_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "hash_plutus_data_cbor_hex(cborHex): expected a CBOR hex string");
+        }
+        const std::string cborHex = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_hash_plutus_data_cbor_hex(cborHex.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML Plutus datum hashing failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML Plutus datum hashing returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   // reward_address_from_address(address, network): string (implemented by CML)
   exports.setProperty(rt, "reward_address_from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_from_address"), 2,

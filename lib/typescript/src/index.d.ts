@@ -221,6 +221,8 @@ export declare const addressInfoFromAddress: (address: string) => {
     bech32: string | null;
     isValid: true;
 };
+/** Hash serialized Plutus datum CBOR with the CML native bridge. */
+export declare const hashPlutusDataCborHex: (cborHex: string) => string;
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export declare const rewardAddressFromAddress: (address: string, network: number) => string;
 export declare const rewardAddressHexFromAccountPublicKey: (accountPublicKeyHex: string, network: number, role: number, index: number) => string;
