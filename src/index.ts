@@ -19,6 +19,36 @@ const cslBridge: typeof bridgeTypes = getCslBridge();
 
 export default cslBridge;
 
+/** CML-native helper exposed alongside the legacy CSL object bridge. */
+export const rewardAddressFromAddress = (address: string, network: number): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    reward_address_from_address: (address: string, network: number) => string;
+  };
+  return cmlBridge.reward_address_from_address(address, network);
+};
+
+export const rewardAddressHexFromAccountPublicKey = (
+  accountPublicKeyHex: string,
+  network: number,
+  role: number,
+  index: number,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    reward_address_hex_from_account_public_key: (
+      accountPublicKeyHex: string,
+      network: number,
+      role: number,
+      index: number,
+    ) => string;
+  };
+  return cmlBridge.reward_address_hex_from_account_public_key(
+    accountPublicKeyHex,
+    network,
+    role,
+    index,
+  );
+};
+
 // Type aliases for class types
 export type Address = bridgeTypes.Address;
 export type Anchor = bridgeTypes.Anchor;

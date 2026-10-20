@@ -13,3 +13,5 @@ mod c_bridge;
 pub mod arrays;
 
 pub use self::c_bridge::*;
+
+pub mod cml_reward;

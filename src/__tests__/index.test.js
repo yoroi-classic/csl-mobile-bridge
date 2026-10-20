@@ -147,6 +147,11 @@ const createBridgeFixture = () => {
         `sig-${txBodyHash.to_hex().slice(0, 8)}-${privateKey.hex.slice(0, 8)}`
       );
     }),
+    reward_address_from_address: jest.fn((address, network) => `${network}:${address}`),
+    reward_address_hex_from_account_public_key: jest.fn(
+      (accountPublicKeyHex, network, role, index) =>
+        `${network}:${role}:${index}:${accountPublicKeyHex}`
+    ),
   };
 
   return bridge;
@@ -230,6 +235,38 @@ describe('CSL mobile bridge source entrypoint', () => {
     expect(csl.make_vkey_witness).toHaveBeenCalledWith(txHash, privateKey);
     expect(witness.to_json()).toBe(
       '{"signature":"sig-22222222-11111111","vkey":"vkey-11111111"}'
+    );
+  });
+
+  it('routes reward-address derivation to the native CML helper', () => {
+    const { bridge, moduleExports } = loadBridge();
+
+    expect(moduleExports.rewardAddressFromAddress(fixtures.address, 0)).toBe(
+      `0:${fixtures.address}`
+    );
+    expect(bridge.reward_address_from_address).toHaveBeenCalledWith(
+      fixtures.address,
+      0
+    );
+  });
+
+  it('routes xpub reward-address derivation to the native CML helper', () => {
+    const { bridge, moduleExports } = loadBridge();
+    const accountPublicKeyHex = 'ab'.repeat(64);
+
+    expect(
+      moduleExports.rewardAddressHexFromAccountPublicKey(
+        accountPublicKeyHex,
+        0,
+        2,
+        0
+      )
+    ).toBe(`0:2:0:${accountPublicKeyHex}`);
+    expect(bridge.reward_address_hex_from_account_public_key).toHaveBeenCalledWith(
+      accountPublicKeyHex,
+      0,
+      2,
+      0
     );
   });
 

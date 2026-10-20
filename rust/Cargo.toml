@@ -9,6 +9,8 @@ cbindgen = "=0.26.0"
 
 [dependencies]
 cardano-serialization-lib = "15.0.3"
+cml-chain = "=6.2.0"
+cml-crypto = "=6.2.0"
 byteorder = "1.4.3"
 base64 = "0.20.0"
 # tag = "2.3.1"

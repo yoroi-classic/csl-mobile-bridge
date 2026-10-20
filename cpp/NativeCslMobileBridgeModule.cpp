@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <cmath>
 #include <optional>
 
 using namespace facebook;
@@ -51393,6 +51394,71 @@ static jsi::Object makeWithdrawalsBuilderExport(jsi::Runtime& rt) {
 
 static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   jsi::Object exports(rt);
+  // reward_address_from_address(address, network): string (implemented by CML)
+  exports.setProperty(rt, "reward_address_from_address",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_from_address"), 2,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "reward_address_from_address(address, network): expected address string");
+        }
+        if (count < 2 || !args[1].isNumber()) {
+          throw jsi::JSError(rt, "reward_address_from_address(address, network): expected network number");
+        }
+        const double networkValue = args[1].asNumber();
+        if (networkValue < 0 || networkValue > 255 || std::floor(networkValue) != networkValue) {
+          throw jsi::JSError(rt, "reward_address_from_address(address, network): network must be an integer from 0 to 255");
+        }
+        const std::string address = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_reward_address_from_address(address.c_str(), static_cast<uint8_t>(networkValue), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML reward address derivation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML reward address derivation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
+  // reward_address_hex_from_account_public_key(account_xpub, network, role, index): hex string (CML)
+  exports.setProperty(rt, "reward_address_hex_from_account_public_key",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_hex_from_account_public_key"), 4,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 4 || !args[0].isString()) {
+          throw jsi::JSError(rt, "reward_address_hex_from_account_public_key(account_xpub, network, role, index): expected 4 arguments and account xpub string");
+        }
+        auto uint32Arg = [&](size_t index, const char* name) -> uint32_t {
+          if (!args[index].isNumber()) {
+            throw jsi::JSError(rt, std::string("reward_address_hex_from_account_public_key: expected ") + name + " number");
+          }
+          const double value = args[index].asNumber();
+          if (value < 0 || value > 4294967295.0 || std::floor(value) != value) {
+            throw jsi::JSError(rt, std::string("reward_address_hex_from_account_public_key: ") + name + " must be an unsigned 32-bit integer");
+          }
+          return static_cast<uint32_t>(value);
+        };
+        const uint32_t networkValue = uint32Arg(1, "network");
+        const uint32_t role = uint32Arg(2, "role");
+        const uint32_t index = uint32Arg(3, "index");
+        if (networkValue > 255) {
+          throw jsi::JSError(rt, "reward_address_hex_from_account_public_key: network must be from 0 to 255");
+        }
+        const std::string accountPublicKeyHex = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_reward_address_hex_from_account_public_key(accountPublicKeyHex.c_str(), static_cast<uint8_t>(networkValue), role, index, &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML reward address derivation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML reward address derivation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   // calculate_ex_units_ceil_cost(): BigNum
   exports.setProperty(rt, "calculate_ex_units_ceil_cost",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "calculate_ex_units_ceil_cost"), 2,
