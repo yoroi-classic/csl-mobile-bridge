@@ -19,6 +19,7 @@ export {
   signWalletTransactionPathsHex,
   stakeCredentialHexFromAddress,
   transactionIdHex,
+  transactionReviewInfoJson,
   transactionValidationInfoJson,
   transactionWitnessSetHex,
   walletRootKeyHexFromEntropy,

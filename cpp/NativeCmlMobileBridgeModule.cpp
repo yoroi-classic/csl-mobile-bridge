@@ -73,6 +73,8 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
   INSTALL_STRING(transaction_id_hex, cml_bridge_transaction_id_hex);
   INSTALL_STRING(transaction_validation_info_json,
                  cml_bridge_transaction_validation_info_json);
+  INSTALL_STRING(transaction_review_info_json,
+                 cml_bridge_transaction_review_info_json);
   INSTALL_STRING(transaction_witness_set_hex,
                  cml_bridge_transaction_witness_set_hex);
   INSTALL_STRING(build_simple_payment_transaction_hex,

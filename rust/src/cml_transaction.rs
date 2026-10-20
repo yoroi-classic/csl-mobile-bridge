@@ -1439,6 +1439,114 @@ pub fn transaction_validation_info_json(transaction_hex: &str) -> Result<String,
   })).map_err(|err| err.to_string())
 }
 
+/// Return the complete CML-parsed review payload without converting ledger
+/// quantities to JavaScript numbers. Raw CBOR for the complete body,
+/// witnesses, and auxiliary data is included so callers can retain fields
+/// which are not yet represented in the normalized summary.
+pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, String> {
+  let transaction_bytes = hex::decode(transaction_hex)
+    .map_err(|err| format!("invalid transaction hex: {err}"))?;
+  let transaction = Transaction::from_cbor_bytes(&transaction_bytes)
+    .map_err(|err| format!("invalid transaction CBOR: {err}"))?;
+  let outputs = transaction.body.outputs.iter().map(review_output_json).collect::<Vec<_>>();
+  let inputs = transaction.body.inputs.iter().map(review_input_json).collect::<Vec<_>>();
+  let collateral_inputs = transaction.body.collateral_inputs.as_ref().map(|set| set.iter().map(review_input_json).collect::<Vec<_>>());
+  let reference_inputs = transaction.body.reference_inputs.as_ref().map(|set| set.iter().map(review_input_json).collect::<Vec<_>>());
+  let withdrawals = transaction.body.withdrawals.as_ref().map(|entries| {
+    entries.iter().map(|(address, amount)| serde_json::json!({
+      "rewardAddress": serde_json::to_value(address).unwrap_or(serde_json::Value::Null),
+      "amount": amount.to_string(),
+    })).collect::<Vec<_>>()
+  });
+  let required_signers = transaction.body.required_signers.as_ref().map(|signers| {
+    signers.iter().map(|signer| hex::encode(signer.to_raw_bytes())).collect::<Vec<_>>()
+  });
+  let witness_set_cbor = transaction.witness_set.to_cbor_bytes();
+  let auxiliary_data_cbor = transaction.auxiliary_data.as_ref().map(|data| data.to_cbor_bytes());
+  serde_json::to_string(&serde_json::json!({
+    "transactionIdHex": hex::encode(transaction.body.hash().to_raw_bytes()),
+    "isValid": transaction.is_valid,
+    "body": {
+      "cborHex": hex::encode(transaction.body.to_cbor_bytes()),
+      "inputs": inputs,
+      "outputs": outputs,
+      "fee": transaction.body.fee.to_string(),
+      "ttl": transaction.body.ttl.map(|value| value.to_string()),
+      "validityIntervalStart": transaction.body.validity_interval_start.map(|value| value.to_string()),
+      "certificates": transaction.body.certs.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
+      "withdrawals": withdrawals,
+      "mint": transaction.body.mint.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
+      "scriptDataHashHex": transaction.body.script_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
+      "collateralInputs": collateral_inputs,
+      "requiredSigners": required_signers,
+      "networkId": transaction.body.network_id.map(|value| value.network.to_string()),
+      "collateralReturn": transaction.body.collateral_return.as_ref().map(review_output_json),
+      "totalCollateral": transaction.body.total_collateral.map(|value| value.to_string()),
+      "referenceInputs": reference_inputs,
+      "votingProcedures": transaction.body.voting_procedures.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
+      "proposalProcedures": transaction.body.proposal_procedures.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
+      "currentTreasuryValue": transaction.body.current_treasury_value.map(|value| value.to_string()),
+      "donation": transaction.body.donation.map(|value| value.to_string()),
+    },
+    "witnessSet": {
+      "cborHex": hex::encode(witness_set_cbor),
+      "json": serde_json::to_value(&transaction.witness_set).unwrap_or(serde_json::Value::Null),
+    },
+    "auxiliaryData": transaction.auxiliary_data.as_ref().map(|data| serde_json::json!({
+      "cborHex": hex::encode(auxiliary_data_cbor.unwrap_or_default()),
+      "json": serde_json::to_value(data).unwrap_or(serde_json::Value::Null),
+    })),
+  })).map_err(|err| err.to_string())
+}
+
+fn review_input_json(input: &cml_chain::transaction::TransactionInput) -> serde_json::Value {
+  serde_json::json!({
+    "transactionIdHex": hex::encode(input.transaction_id.to_raw_bytes()),
+    "index": input.index.to_string(),
+  })
+}
+
+fn review_output_json(output: &cml_chain::transaction::TransactionOutput) -> serde_json::Value {
+  let assets = output.amount().multiasset.iter().flat_map(|(policy, tokens)| {
+    tokens.iter().map(move |(name, quantity)| serde_json::json!({
+      "policyIdHex": hex::encode(policy.to_raw_bytes()),
+      "assetNameHex": hex::encode(name.to_raw_bytes()),
+      "quantity": quantity.to_string(),
+    }))
+  }).collect::<Vec<_>>();
+  let datum = output.datum().map(|datum| match datum {
+    DatumOption::Hash { datum_hash, .. } => serde_json::json!({
+      "kind": "hash", "hashHex": hex::encode(datum_hash.to_raw_bytes()),
+    }),
+    DatumOption::Datum { datum, .. } => serde_json::json!({
+      "kind": "inline", "cborHex": hex::encode(datum.to_cbor_bytes()),
+    }),
+  });
+  let script_ref = output.script_ref().map(|script| serde_json::json!({
+    "type": match script {
+      cml_chain::Script::Native { .. } => "native",
+      cml_chain::Script::PlutusV1 { .. } => "plutusV1",
+      cml_chain::Script::PlutusV2 { .. } => "plutusV2",
+      cml_chain::Script::PlutusV3 { .. } => "plutusV3",
+    },
+    "hashHex": hex::encode(script.hash().to_raw_bytes()),
+    "size": script.to_cbor_bytes().len().to_string(),
+    "bytesHex": script.raw_plutus_bytes().ok().map(hex::encode),
+    "cborHex": hex::encode(script.to_cbor_bytes()),
+  }));
+  serde_json::json!({
+    "address": output.address().to_bech32(None).ok(),
+    "addressHex": hex::encode(output.address().to_raw_bytes()),
+    "networkId": output.address().network_id().ok().map(|network| network.to_string()),
+    "addressKind": format!("{:?}", output.address().kind()),
+    "lovelace": output.amount().coin.to_string(),
+    "assets": assets,
+    "datum": datum,
+    "scriptRef": script_ref,
+    "cborHex": hex::encode(output.to_cbor_bytes()),
+  })
+}
+
 /// Extract the serialized witness set from a signed transaction with CML.
 pub fn transaction_witness_set_hex(transaction_hex: &str) -> Result<String, String> {
   let transaction_bytes = hex::decode(transaction_hex)
@@ -1455,7 +1563,7 @@ mod tests {
     build_simple_payment_transaction_hex, calculate_reference_script_fee,
     derive_account_public_key_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data,
     sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
-    transaction_validation_info_json, transaction_witness_set_hex,
+    transaction_review_info_json, transaction_validation_info_json, transaction_witness_set_hex,
     wallet_root_key_hex_from_entropy,
   };
 
@@ -1629,6 +1737,21 @@ mod tests {
     assert!(actual["ttl"].is_null());
     assert!(transaction_validation_info_json("zz").unwrap_err().contains("invalid transaction hex"));
     assert!(transaction_validation_info_json("ff").unwrap_err().contains("invalid transaction CBOR"));
+  }
+
+  #[test]
+  fn transaction_review_info_preserves_sections_and_string_quantities() {
+    let actual: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(UNSIGNED_TRANSACTION_HEX).unwrap(),
+    ).unwrap();
+    assert_eq!(actual["transactionIdHex"].as_str().unwrap().len(), 64);
+    assert_eq!(actual["isValid"], true);
+    assert_eq!(actual["body"]["fee"], "1000000");
+    assert_eq!(actual["body"]["inputs"].as_array().unwrap().len(), 0);
+    assert!(actual["body"]["cborHex"].is_string());
+    assert!(actual["witnessSet"]["cborHex"].is_string());
+    assert!(actual["auxiliaryData"].is_null());
+    assert!(transaction_review_info_json("zz").unwrap_err().contains("invalid transaction hex"));
   }
 
   #[test]

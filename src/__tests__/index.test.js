@@ -170,6 +170,7 @@ const createBridgeFixture = () => {
     sign_wallet_data: jest.fn((args) => JSON.stringify({signatureHex: args, publicKeyHex: 'aa'})),
     derive_wallet_public_key_hex: jest.fn((args) => `public:${args}`),
     transaction_id_hex: jest.fn((transactionHex) => `id:${transactionHex}`),
+    transaction_review_info_json: jest.fn((transactionHex) => `review:${transactionHex}`),
     build_simple_payment_transaction_hex: jest.fn((args) => `payment:${args}`),
     build_escrow_redeem_transaction_hex: jest.fn((args) => `escrow:${args}|168581`),
     minimum_coin_for_assets: jest.fn(() => '1500000'),
@@ -305,6 +306,12 @@ describe('CSL mobile bridge source entrypoint', () => {
     const {bridge, moduleExports} = loadBridge();
     expect(moduleExports.transactionIdHex('84cbor')).toBe('id:84cbor');
     expect(bridge.transaction_id_hex).toHaveBeenCalledWith('84cbor');
+  });
+
+  it('parses transaction review details through the CML native bridge', () => {
+    const {bridge, moduleExports} = loadBridge();
+    expect(moduleExports.transactionReviewInfoJson('84cbor')).toBe('review:84cbor');
+    expect(bridge.transaction_review_info_json).toHaveBeenCalledWith('84cbor');
   });
 
   it('returns parsed address details from the CML native bridge', () => {

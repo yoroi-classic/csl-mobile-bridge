@@ -152,6 +152,14 @@ export const transactionValidationInfoJson = (transactionHex: string): string =>
   return cmlBridge.transaction_validation_info_json(transactionHex);
 };
 
+/** Parse a transaction into the CML-backed ReviewTx DTO (all quantities are strings). */
+export const transactionReviewInfoJson = (transactionHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    transaction_review_info_json: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_review_info_json(transactionHex);
+};
+
 /** Extract the serialized witness set from a signed transaction using CML. */
 export const transactionWitnessSetHex = (transactionHex: string): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {
