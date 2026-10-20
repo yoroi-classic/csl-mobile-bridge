@@ -47,6 +47,7 @@ struct EscrowCmlArgs {
   reference_script_size: String,
   funding_inputs: Vec<ScriptUtxoArgs>,
   collateral_input: ScriptUtxoArgs,
+  collateral_return: Option<ScriptOutputArgs>,
   outputs: Vec<ScriptOutputArgs>,
   change_address: String,
   script_hash_hex: String,
@@ -625,6 +626,19 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     .payment_key()
     .map_err(|err| err.to_string())?;
   builder.add_collateral(collateral).map_err(|err| err.to_string())?;
+  if let Some(output) = &args.collateral_return {
+    let address = parse_payment_address(&output.address)?;
+    let collateral_return = TransactionOutput::new(
+      address,
+      Value::new(
+        parse_u64(&output.lovelace, "collateral return lovelace")?,
+        parse_assets(&output.assets)?,
+      ),
+      None,
+      None,
+    );
+    builder.set_collateral_return(collateral_return);
+  }
 
   let (script_input, mut script_output) = parse_input(&args.script_input)?;
   let datum_bytes = hex::decode(
@@ -686,7 +700,9 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
       .map_err(|err| err.to_string())?;
     builder.add_output(output).map_err(|err| err.to_string())?;
   }
-  builder.set_validity_start_interval(parse_u64(&args.validity_start, "validity start")?);
+  if args.validity_start != "-" {
+    builder.set_validity_start_interval(parse_u64(&args.validity_start, "validity start")?);
+  }
   builder.set_ttl(parse_u64(&args.ttl, "TTL")?);
   let mut tx = builder
     .build(ChangeSelectionAlgo::Default, &change_address)
@@ -1430,6 +1446,7 @@ mod tests {
       "referenceScriptCborHex": hex::encode(&script_bytes), "referenceScriptSize": "3",
       "fundingInputs": [{"txHashHex": "03".repeat(32), "index": "0", "address": key_address, "lovelace": "10000000", "assets": []}],
       "collateralInput": {"txHashHex": "04".repeat(32), "index": "0", "address": key_address, "lovelace": "5000000", "assets": []},
+      "collateralReturn": {"address": key_address, "lovelace": "4000000", "assets": []},
       "outputs": [{"address": key_address, "lovelace": "2000000", "assets": []}],
       "changeAddress": key_address, "scriptHashHex": script_hash_hex, "redeemerCborHex": "d87980",
       "redeemerMem": "900000", "redeemerSteps": "250000000", "validityStart": "100", "ttl": "1000",
@@ -1542,6 +1559,9 @@ mod tests {
       )
       .unwrap();
     csl_builder.set_collateral(&collateral);
+    csl_builder
+      .set_total_collateral_and_return(&csl::BigNum::from_str("1000000").unwrap(), &address)
+      .unwrap();
     let mut cost_models = csl::Costmdls::new();
     let mut cost_model = csl::CostModel::new();
     cost_model.set(0, &csl::Int::new_i32(0)).unwrap();

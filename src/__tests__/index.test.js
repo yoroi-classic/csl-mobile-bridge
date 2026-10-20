@@ -468,6 +468,7 @@ describe('CSL mobile bridge source entrypoint', () => {
       referenceScriptSize: '3',
       fundingInputs: [],
       collateralInput: {txHashHex: '03'.repeat(32), index: '0', address: 'collateral', lovelace: '5000000', assets: []},
+      collateralReturn: {address: 'collateral', lovelace: '4000000', assets: []},
       outputs: [{address: 'destination', lovelace: '2000000', assets: []}],
       changeAddress: 'change', scriptHashHex: 'ab'.repeat(28), redeemerCborHex: 'd87980',
       redeemerMem: '100', redeemerSteps: '200', validityStart: '1', ttl: '100',

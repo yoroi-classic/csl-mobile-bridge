@@ -213,6 +213,11 @@ export type EscrowCmlTransactionArguments = {
   referenceScriptSize: string;
   fundingInputs: EscrowCmlUtxo[];
   collateralInput: EscrowCmlUtxo;
+  collateralReturn?: {
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+  };
   outputs: Array<{
     address: string;
     lovelace: string;
