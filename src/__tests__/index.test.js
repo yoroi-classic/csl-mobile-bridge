@@ -463,6 +463,7 @@ describe('CSL mobile bridge source entrypoint', () => {
     const {bridge, moduleExports} = loadBridge();
     const args = {
       scriptInput: {txHashHex: '01'.repeat(32), index: '0', address: 'script', lovelace: '9000000', assets: [], inlineDatumCborHex: 'd87980'},
+      additionalScriptInputs: [],
       referenceScriptInput: {txHashHex: '02'.repeat(32), index: '0', address: 'ref', lovelace: '2000000', assets: []},
       referenceInputs: [],
       referenceScriptCborHex: '4e010000',

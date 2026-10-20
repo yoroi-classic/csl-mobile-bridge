@@ -139,6 +139,13 @@ export type EscrowCmlUtxo = {
 };
 export type EscrowCmlTransactionArguments = {
     scriptInput: EscrowCmlUtxo;
+    additionalScriptInputs: Array<{
+        scriptInput: EscrowCmlUtxo;
+        scriptHashHex: string;
+        redeemerCborHex: string;
+        redeemerMem: string;
+        redeemerSteps: string;
+    }>;
     referenceScriptInput: EscrowCmlUtxo;
     referenceInputs: EscrowCmlUtxo[];
     referenceScriptCborHex: string;
