@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 
 use super::bridge_tools::string::CharPtr;
-use crate::cml_transaction::sign_transaction_hex;
+use crate::cml_transaction::{build_simple_payment_transaction_hex, sign_transaction_hex};
 
 fn set_message(target: &mut CharPtr, message: String) -> bool {
   match CString::new(message) {
@@ -38,6 +38,32 @@ pub unsafe extern "C" fn cml_bridge_sign_transaction_hex(
     }
   };
   match sign_transaction_hex(transaction_hex, private_key_hex) {
+    Ok(value) => set_message(result, value),
+    Err(err) => {
+      set_message(error, err);
+      false
+    }
+  }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_build_simple_payment_transaction_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  *result = std::ptr::null();
+  *error = std::ptr::null();
+  if args.is_null() {
+    set_message(error, "payment arguments are null".to_owned());
+    return false;
+  }
+  let args = match CStr::from_ptr(args).to_str() {
+    Ok(value) => value,
+    Err(err) => {
+      set_message(error, format!("payment arguments are not UTF-8: {err}"));
+      return false;
+    }
+  };
+  match build_simple_payment_transaction_hex(args) {
     Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);

@@ -9,6 +9,27 @@ export declare const rewardAddressDetailsFromAddress: (address: string) => {
     keyHashHex: string;
 };
 export declare const signTransactionHex: (transactionHex: string, privateKeyHex: string) => string;
+export type SimplePaymentBuilderArguments = {
+    inputTransactionHashHex: string;
+    inputIndex: string;
+    inputAddress: string;
+    inputLovelace: string;
+    outputAddress: string;
+    outputLovelace: string;
+    changeAddress: string;
+    ttl: string;
+    feeCoefficient: string;
+    feeConstant: string;
+    coinsPerUtxoByte: string;
+    keyDeposit: string;
+    poolDeposit: string;
+    maxValueSize: string;
+};
+/** Build the currently supported ADA-only one-input/one-output transaction with CML. */
+export declare const buildSimplePaymentTransaction: (args: SimplePaymentBuilderArguments) => {
+    cborHex: string;
+    fee: string;
+};
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export declare const addressToHex: (address: string) => string;
 /** CML-native helper exposed alongside the legacy CSL object bridge. */

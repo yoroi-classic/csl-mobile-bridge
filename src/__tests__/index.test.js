@@ -157,6 +157,7 @@ const createBridgeFixture = () => {
     sign_transaction_hex: jest.fn((transactionHex, privateKeyHex) =>
       `${transactionHex}:${privateKeyHex}`
     ),
+    build_simple_payment_transaction_hex: jest.fn((args) => `payment:${args}`),
     reward_address_hex_from_account_public_key: jest.fn(
       (accountPublicKeyHex, network, role, index) =>
         `${network}:${role}:${index}:${accountPublicKeyHex}`
@@ -296,6 +297,34 @@ describe('CSL mobile bridge source entrypoint', () => {
       'cbor:private-key'
     );
     expect(bridge.sign_transaction_hex).toHaveBeenCalledWith('cbor', 'private-key');
+  });
+
+  it('routes simple-payment building to the native CML helper with exact decimal fields', () => {
+    const { bridge, moduleExports } = loadBridge();
+    const args = {
+      inputTransactionHashHex: '01'.repeat(32),
+      inputIndex: '0',
+      inputAddress: 'addr_test_input',
+      inputLovelace: '10000000',
+      outputAddress: 'addr_test_output',
+      outputLovelace: '2000000',
+      changeAddress: 'addr_test_change',
+      ttl: '123456',
+      feeCoefficient: '44',
+      feeConstant: '155381',
+      coinsPerUtxoByte: '4310',
+      keyDeposit: '2000000',
+      poolDeposit: '500000000',
+      maxValueSize: '5000',
+    };
+    const packed = Object.values(args).join('|');
+
+    bridge.build_simple_payment_transaction_hex.mockReturnValue(`payment:${packed}|168581`);
+    expect(moduleExports.buildSimplePaymentTransaction(args)).toEqual({
+      cborHex: `payment:${packed}`,
+      fee: '168581',
+    });
+    expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(packed);
   });
 
   it('routes xpub reward-address derivation to the native CML helper', () => {

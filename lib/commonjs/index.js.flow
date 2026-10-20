@@ -51,6 +51,53 @@ export const signTransactionHex = (
   return cmlBridge.sign_transaction_hex(transactionHex, privateKeyHex);
 };
 
+export type SimplePaymentBuilderArguments = {
+  inputTransactionHashHex: string;
+  inputIndex: string;
+  inputAddress: string;
+  inputLovelace: string;
+  outputAddress: string;
+  outputLovelace: string;
+  changeAddress: string;
+  ttl: string;
+  feeCoefficient: string;
+  feeConstant: string;
+  coinsPerUtxoByte: string;
+  keyDeposit: string;
+  poolDeposit: string;
+  maxValueSize: string;
+};
+
+/** Build the currently supported ADA-only one-input/one-output transaction with CML. */
+export const buildSimplePaymentTransaction = (
+  args: SimplePaymentBuilderArguments,
+): {cborHex: string; fee: string} => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    build_simple_payment_transaction_hex: (args: string) => string;
+  };
+  const result = cmlBridge.build_simple_payment_transaction_hex(
+    [
+      args.inputTransactionHashHex,
+      args.inputIndex,
+      args.inputAddress,
+      args.inputLovelace,
+      args.outputAddress,
+      args.outputLovelace,
+      args.changeAddress,
+      args.ttl,
+      args.feeCoefficient,
+      args.feeConstant,
+      args.coinsPerUtxoByte,
+      args.keyDeposit,
+      args.poolDeposit,
+      args.maxValueSize,
+    ].join('|'),
+  );
+  const separator = result.lastIndexOf('|');
+  if (separator < 0) throw new Error('Malformed CML payment transaction result');
+  return {cborHex: result.slice(0, separator), fee: result.slice(separator + 1)};
+};
+
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export const addressToHex = (address: string): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {

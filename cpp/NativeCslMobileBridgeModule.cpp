@@ -51415,6 +51415,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
+  exports.setProperty(rt, "build_simple_payment_transaction_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "build_simple_payment_transaction_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "build_simple_payment_transaction_hex(args): expected delimited argument string");
+        }
+        const std::string paymentArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_build_simple_payment_transaction_hex(paymentArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML payment transaction build failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML payment transaction builder returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   exports.setProperty(rt, "reward_address_details_from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_details_from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
