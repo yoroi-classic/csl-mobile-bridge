@@ -135,10 +135,12 @@ export type EscrowCmlUtxo = {
     lovelace: string;
     assets: CmlAssetQuantity[];
     inlineDatumCborHex?: string;
+    datumCborHex?: string;
 };
 export type EscrowCmlTransactionArguments = {
     scriptInput: EscrowCmlUtxo;
     referenceScriptInput: EscrowCmlUtxo;
+    referenceInputs: EscrowCmlUtxo[];
     referenceScriptCborHex: string;
     referenceScriptSize: string;
     fundingInputs: EscrowCmlUtxo[];

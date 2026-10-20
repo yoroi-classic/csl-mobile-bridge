@@ -210,6 +210,7 @@ export type EscrowCmlUtxo = {
 export type EscrowCmlTransactionArguments = {
   scriptInput: EscrowCmlUtxo;
   referenceScriptInput: EscrowCmlUtxo;
+  referenceInputs: EscrowCmlUtxo[];
   referenceScriptCborHex: string;
   referenceScriptSize: string;
   fundingInputs: EscrowCmlUtxo[];

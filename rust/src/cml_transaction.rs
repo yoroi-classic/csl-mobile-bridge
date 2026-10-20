@@ -44,6 +44,8 @@ struct ScriptOutputArgs {
 struct EscrowCmlArgs {
   script_input: ScriptUtxoArgs,
   reference_script_input: ScriptUtxoArgs,
+  #[serde(default)]
+  reference_inputs: Vec<ScriptUtxoArgs>,
   reference_script_cbor_hex: String,
   reference_script_size: String,
   funding_inputs: Vec<ScriptUtxoArgs>,
@@ -614,6 +616,13 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     reference_input,
     reference_output,
   ));
+
+  for reference_input in &args.reference_inputs {
+    let (input, output) = parse_input(reference_input)?;
+    builder.add_reference_input(
+      cml_chain::builders::tx_builder::TransactionUnspentOutput::new(input, output),
+    );
+  }
 
   for funding in &args.funding_inputs {
     let (input, output) = parse_input(funding)?;
@@ -1625,6 +1634,7 @@ mod tests {
     let args = serde_json::json!({
       "scriptInput": {"txHashHex": "01".repeat(32), "index": "0", "address": script_address, "lovelace": "5000000", "assets": [], "datumCborHex": "d87980"},
       "referenceScriptInput": {"txHashHex": "02".repeat(32), "index": "0", "address": key_address, "lovelace": "2000000", "assets": []},
+      "referenceInputs": [{"txHashHex": "05".repeat(32), "index": "1", "address": key_address, "lovelace": "3000000", "assets": []}],
       "referenceScriptCborHex": hex::encode(&script_bytes), "referenceScriptSize": "3",
       "fundingInputs": [{"txHashHex": "03".repeat(32), "index": "0", "address": key_address, "lovelace": "10000000", "assets": []}],
       "collateralInput": {"txHashHex": "04".repeat(32), "index": "0", "address": key_address, "lovelace": "5000000", "assets": []},
@@ -1648,6 +1658,10 @@ mod tests {
     let ref_input = csl::TransactionInput::new(
       &csl::TransactionHash::from_bytes(hex::decode("02".repeat(32)).unwrap()).unwrap(),
       0,
+    );
+    let second_ref_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("05".repeat(32)).unwrap()).unwrap(),
+      1,
     );
     let script_input = csl::TransactionInput::new(
       &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
@@ -1689,6 +1703,7 @@ mod tests {
     builder.set_validity_start_interval_bignum(&csl::BigNum::from_str("100").unwrap());
     builder.set_ttl_bignum(&csl::BigNum::from_str("1000").unwrap());
     builder.add_script_reference_input(&ref_input, 3);
+    builder.add_reference_input(&second_ref_input);
     let script_source = csl::PlutusScriptSource::new_ref_input(
       &script.hash(), &ref_input, &csl::Language::new_plutus_v3(), 3,
     );
