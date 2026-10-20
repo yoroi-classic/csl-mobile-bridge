@@ -144,6 +144,14 @@ export const transactionIdHex = (transactionHex: string): string => {
   return cmlBridge.transaction_id_hex(transactionHex);
 };
 
+/** Parse transaction fields required by CIP-30 preflight validation. */
+export const transactionValidationInfoJson = (transactionHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    transaction_validation_info_json: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_validation_info_json(transactionHex);
+};
+
 export type SimplePaymentBuilderArguments = {
   inputs: Array<{
     transactionHashHex: string;

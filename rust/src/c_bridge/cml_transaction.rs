@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 
 use super::bridge_tools::string::CharPtr;
-use crate::cml_transaction::{build_escrow_redeem_transaction_hex, build_simple_payment_transaction_hex, derive_account_public_key_hex, derive_wallet_public_key_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data, sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex, wallet_root_key_hex_from_entropy};
+use crate::cml_transaction::{build_escrow_redeem_transaction_hex, build_simple_payment_transaction_hex, derive_account_public_key_hex, derive_wallet_public_key_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data, sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex, transaction_validation_info_json, wallet_root_key_hex_from_entropy};
 
 fn set_message(target: &mut CharPtr, message: String) -> bool {
   match CString::new(message) {
@@ -161,6 +161,32 @@ pub unsafe extern "C" fn cml_bridge_transaction_id_hex(
     }
   };
   match transaction_id_hex(transaction_hex) {
+    Ok(value) => set_message(result, value),
+    Err(err) => {
+      set_message(error, err);
+      false
+    }
+  }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_validation_info_json(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  *result = std::ptr::null();
+  *error = std::ptr::null();
+  if transaction_hex.is_null() {
+    set_message(error, "transaction hex is null".to_owned());
+    return false;
+  }
+  let transaction_hex = match CStr::from_ptr(transaction_hex).to_str() {
+    Ok(value) => value,
+    Err(err) => {
+      set_message(error, format!("transaction hex is not UTF-8: {err}"));
+      return false;
+    }
+  };
+  match transaction_validation_info_json(transaction_hex) {
     Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);

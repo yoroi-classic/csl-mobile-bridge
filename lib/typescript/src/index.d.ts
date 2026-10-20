@@ -49,6 +49,8 @@ export declare const signWalletData: (args: WalletDataSigningArguments) => {
 export declare const deriveWalletPublicKeyHex: (args: Pick<WalletDataSigningArguments, "masterKeyHex" | "signerPath">) => string;
 /** Compute the Cardano transaction ID from the transaction body's CML hash. */
 export declare const transactionIdHex: (transactionHex: string) => string;
+/** Parse transaction fields required by CIP-30 preflight validation. */
+export declare const transactionValidationInfoJson: (transactionHex: string) => string;
 export type SimplePaymentBuilderArguments = {
     inputs: Array<{
         transactionHashHex: string;
