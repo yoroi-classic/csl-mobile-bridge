@@ -19,6 +19,17 @@ pub fn reward_address_from_address(address: &str, network: u8) -> Result<String,
     .map_err(|err| err.to_string())
 }
 
+/// Parse an address represented as bech32 or hex and return its serialized
+/// bytes as lower-case hex.
+pub fn address_to_hex(address: &str) -> Result<String, String> {
+  let parsed = if is_hex_address(address) {
+    Address::from_hex(address).map_err(|err| err.to_string())
+  } else {
+    Address::from_bech32(address).map_err(|err| err.to_string())
+  }?;
+  Ok(parsed.to_hex())
+}
+
 /// Derive a reward address from an account extended public key and soft
 /// staking path, returning its serialized address bytes as lower-case hex.
 pub fn reward_address_hex_from_account_public_key(
@@ -42,7 +53,9 @@ fn is_hex_address(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use super::{reward_address_from_address, reward_address_hex_from_account_public_key};
+  use super::{
+    address_to_hex, reward_address_from_address, reward_address_hex_from_account_public_key,
+  };
 
   const BASE_BECH32: &str = "addr_test1qqhchrw4umcrf90ew5ep85zefj9724c5jcfg6kp667qau789d6z307gnggrp3hgye75yzgh5q0w6unkqnvfxjfu7vxlswtaxme";
   const BASE_HEX: &str = "002f8b8dd5e6f03495f9753213d0594c8be5571496128d583ad781de78e56e8517f913420618dd04cfa84122f403ddae4ec09b1269279e61bf";
@@ -54,6 +67,12 @@ mod tests {
   fn derives_expected_reward_address_from_bech32_or_hex() {
     assert_eq!(reward_address_from_address(BASE_BECH32, 0).unwrap(), REWARD_TESTNET);
     assert_eq!(reward_address_from_address(BASE_HEX, 0).unwrap(), REWARD_TESTNET);
+  }
+
+  #[test]
+  fn address_hex_matches_bech32_and_hex_inputs() {
+    assert_eq!(address_to_hex(BASE_BECH32).unwrap(), BASE_HEX);
+    assert_eq!(address_to_hex(BASE_HEX).unwrap(), BASE_HEX);
   }
 
   #[test]

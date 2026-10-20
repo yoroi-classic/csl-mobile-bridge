@@ -19,6 +19,14 @@ const cslBridge: typeof bridgeTypes = getCslBridge();
 
 export default cslBridge;
 
+/** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
+export const addressToHex = (address: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    address_to_hex: (address: string) => string;
+  };
+  return cmlBridge.address_to_hex(address);
+};
+
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export const rewardAddressFromAddress = (address: string, network: number): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {
