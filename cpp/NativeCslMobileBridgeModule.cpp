@@ -51575,6 +51575,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
+  exports.setProperty(rt, "transaction_witness_set_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "transaction_witness_set_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "transaction_witness_set_hex(transactionHex): expected a hex string");
+        }
+        const std::string transactionHex = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_transaction_witness_set_hex(transactionHex.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML witness-set extraction failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML witness-set extraction returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   exports.setProperty(rt, "build_simple_payment_transaction_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "build_simple_payment_transaction_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {

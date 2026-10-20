@@ -152,6 +152,14 @@ export const transactionValidationInfoJson = (transactionHex: string): string =>
   return cmlBridge.transaction_validation_info_json(transactionHex);
 };
 
+/** Extract the serialized witness set from a signed transaction using CML. */
+export const transactionWitnessSetHex = (transactionHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    transaction_witness_set_hex: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_witness_set_hex(transactionHex);
+};
+
 export type SimplePaymentBuilderArguments = {
   inputs: Array<{
     transactionHashHex: string;

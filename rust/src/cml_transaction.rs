@@ -1439,6 +1439,15 @@ pub fn transaction_validation_info_json(transaction_hex: &str) -> Result<String,
   })).map_err(|err| err.to_string())
 }
 
+/// Extract the serialized witness set from a signed transaction with CML.
+pub fn transaction_witness_set_hex(transaction_hex: &str) -> Result<String, String> {
+  let transaction_bytes = hex::decode(transaction_hex)
+    .map_err(|err| format!("invalid transaction hex: {err}"))?;
+  let transaction = Transaction::from_cbor_bytes(&transaction_bytes)
+    .map_err(|err| format!("invalid transaction CBOR: {err}"))?;
+  Ok(hex::encode(transaction.witness_set.to_cbor_bytes()))
+}
+
 #[cfg(test)]
 mod tests {
   use super::{
@@ -1446,7 +1455,8 @@ mod tests {
     build_simple_payment_transaction_hex, calculate_reference_script_fee,
     derive_account_public_key_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data,
     sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
-    transaction_validation_info_json, wallet_root_key_hex_from_entropy,
+    transaction_validation_info_json, transaction_witness_set_hex,
+    wallet_root_key_hex_from_entropy,
   };
 
   const UNSIGNED_TRANSACTION_HEX: &str = "84a300d90102800180021a000f4240a0f5f6";
@@ -1619,6 +1629,17 @@ mod tests {
     assert!(actual["ttl"].is_null());
     assert!(transaction_validation_info_json("zz").unwrap_err().contains("invalid transaction hex"));
     assert!(transaction_validation_info_json("ff").unwrap_err().contains("invalid transaction CBOR"));
+  }
+
+  #[test]
+  fn cml_witness_set_extraction_matches_csl_serialized_bytes() {
+    use cardano_serialization_lib as csl;
+    let transaction = csl::Transaction::from_bytes(hex::decode(CSL_SIGNED_TRANSACTION_HEX).unwrap()).unwrap();
+    assert_eq!(
+      transaction_witness_set_hex(CSL_SIGNED_TRANSACTION_HEX).unwrap(),
+      hex::encode(transaction.witness_set().to_bytes()),
+    );
+    assert!(transaction_witness_set_hex("ff").unwrap_err().contains("invalid transaction CBOR"));
   }
 
   #[test]

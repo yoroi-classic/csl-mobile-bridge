@@ -51,6 +51,8 @@ export declare const deriveWalletPublicKeyHex: (args: Pick<WalletDataSigningArgu
 export declare const transactionIdHex: (transactionHex: string) => string;
 /** Parse transaction fields required by CIP-30 preflight validation. */
 export declare const transactionValidationInfoJson: (transactionHex: string) => string;
+/** Extract the serialized witness set from a signed transaction using CML. */
+export declare const transactionWitnessSetHex: (transactionHex: string) => string;
 export type SimplePaymentBuilderArguments = {
     inputs: Array<{
         transactionHashHex: string;
