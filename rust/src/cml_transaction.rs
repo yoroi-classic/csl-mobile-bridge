@@ -52,6 +52,8 @@ struct EscrowCmlArgs {
   reference_script_size: String,
   funding_inputs: Vec<ScriptUtxoArgs>,
   collateral_input: ScriptUtxoArgs,
+  #[serde(default)]
+  additional_collateral_inputs: Vec<ScriptUtxoArgs>,
   collateral_return: Option<ScriptOutputArgs>,
   outputs: Vec<ScriptOutputArgs>,
   change_address: String,
@@ -692,6 +694,13 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     .payment_key()
     .map_err(|err| err.to_string())?;
   builder.add_collateral(collateral).map_err(|err| err.to_string())?;
+  for collateral_input in &args.additional_collateral_inputs {
+    let (input, output) = parse_input(collateral_input)?;
+    let collateral = SingleInputBuilder::new(input, output)
+      .payment_key()
+      .map_err(|err| err.to_string())?;
+    builder.add_collateral(collateral).map_err(|err| err.to_string())?;
+  }
   if let Some(output) = &args.collateral_return {
     let address = parse_payment_address(&output.address)?;
     let collateral_return = TransactionOutput::new(
@@ -1769,8 +1778,9 @@ mod tests {
       "referenceInputs": [{"txHashHex": "05".repeat(32), "index": "1", "address": key_address, "lovelace": "3000000", "assets": []}],
       "referenceScriptCborHex": hex::encode(&script_bytes), "referenceScriptSize": "3",
       "fundingInputs": [{"txHashHex": "03".repeat(32), "index": "0", "address": key_address, "lovelace": "10000000", "assets": []}],
-      "collateralInput": {"txHashHex": "04".repeat(32), "index": "0", "address": key_address, "lovelace": "5000000", "assets": []},
-      "collateralReturn": {"address": key_address, "lovelace": "4000000", "assets": []},
+      "collateralInput": {"txHashHex": "04".repeat(32), "index": "0", "address": key_address, "lovelace": "5000000", "assets": [{"policyIdHex": "aa".repeat(28), "assetNameHex": "01", "quantity": "2"}]},
+      "additionalCollateralInputs": [{"txHashHex": "07".repeat(32), "index": "0", "address": key_address, "lovelace": "4000000", "assets": [{"policyIdHex": "aa".repeat(28), "assetNameHex": "01", "quantity": "3"}]}],
+      "collateralReturn": {"address": key_address, "lovelace": "8000000", "assets": [{"policyIdHex": "aa".repeat(28), "assetNameHex": "01", "quantity": "5"}]},
       "outputs": [{"address": key_address, "lovelace": "2000000", "assets": []}],
       "changeAddress": key_address, "scriptHashHex": script_hash_hex, "redeemerCborHex": "d87980",
       "redeemerMem": "900000", "redeemerSteps": "250000000", "validityStart": "100", "ttl": "1000",
@@ -1815,6 +1825,10 @@ mod tests {
     );
     let collateral_input = csl::TransactionInput::new(
       &csl::TransactionHash::from_bytes(hex::decode("04".repeat(32)).unwrap()).unwrap(),
+      0,
+    );
+    let second_collateral_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("07".repeat(32)).unwrap()).unwrap(),
       0,
     );
     let fee_algo = csl::LinearFee::new(
@@ -1878,9 +1892,22 @@ mod tests {
       &address, &funding_input, &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
     ).unwrap();
     let mut collateral = csl::TxInputsBuilder::new();
-    collateral.add_regular_input(
-      &address, &collateral_input, &csl::Value::new(&csl::BigNum::from_str("5000000").unwrap()),
-    ).unwrap();
+    let policy = csl::PolicyID::from_bytes(hex::decode("aa".repeat(28)).unwrap()).unwrap();
+    let asset_name = csl::AssetName::new(hex::decode("01").unwrap()).unwrap();
+    let mut first_assets = csl::Assets::new();
+    first_assets.insert(&asset_name, &csl::BigNum::from_str("2").unwrap());
+    let mut first_multi_asset = csl::MultiAsset::new();
+    first_multi_asset.insert(&policy, &first_assets);
+    let mut first_collateral_value = csl::Value::new(&csl::BigNum::from_str("5000000").unwrap());
+    first_collateral_value.set_multiasset(&first_multi_asset);
+    collateral.add_regular_input(&address, &collateral_input, &first_collateral_value).unwrap();
+    let mut second_assets = csl::Assets::new();
+    second_assets.insert(&asset_name, &csl::BigNum::from_str("3").unwrap());
+    let mut second_multi_asset = csl::MultiAsset::new();
+    second_multi_asset.insert(&policy, &second_assets);
+    let mut second_collateral_value = csl::Value::new(&csl::BigNum::from_str("4000000").unwrap());
+    second_collateral_value.set_multiasset(&second_multi_asset);
+    collateral.add_regular_input(&address, &second_collateral_input, &second_collateral_value).unwrap();
     builder.set_collateral(&collateral);
     builder.set_total_collateral_and_return(&csl::BigNum::from_str("1000000").unwrap(), &address).unwrap();
     let mut cost_models = csl::Costmdls::new();
@@ -1927,7 +1954,7 @@ mod tests {
     if version == "V3" {
       assert_eq!(
         hex::encode(&cml_cbor),
-        "84aa00d90102838258200101010101010101010101010101010101010101010101010101010101010101008258200303030303030303030303030303030303030303030303030303030303030303008258200606060606060606060606060606060606060606060606060606060606060606000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a010eca99021a0003dde7031903e80818640b582052e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e16080dd901028182582004040404040404040404040404040404040404040404040404040404040404040010825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a003d0900111a000f424012d9010282825820020202020202020202020202020202020202020202020202020202020202020200825820050505050505050505050505050505050505050505050505050505050505050501a204d901029fd87980ff05a282000082d87980821a000dbba01a0ee6b280820002828082186418c8f5f6"
+        "84aa00d90102838258200101010101010101010101010101010101010101010101010101010101010101008258200303030303030303030303030303030303030303030303030303030303030303008258200606060606060606060606060606060606060606060606060606060606060606000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a010ebe39021a0003ea47031903e80818640b582052e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e16080dd901028282582004040404040404040404040404040404040404040404040404040404040404040082582007070707070707070707070707070707070707070707070707070707070707070010825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf821a007a1200a1581caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1410105111a000f424012d9010282825820020202020202020202020202020202020202020202020202020202020202020200825820050505050505050505050505050505050505050505050505050505050505050501a204d901029fd87980ff05a282000082d87980821a000dbba01a0ee6b280820002828082186418c8f5f6"
       );
     }
     }
