@@ -110,6 +110,7 @@ export type SimplePaymentBuilderArguments = {
         rewardAddress: string;
         amount: string;
     }>;
+    validityStart?: string;
 };
 export type CmlAssetQuantity = {
     policyIdHex: string;

@@ -181,6 +181,7 @@ export type SimplePaymentBuilderArguments = {
     drep?: 'AlwaysAbstain' | 'AlwaysNoConfidence' | {KeyHash: string} | {ScriptHash: string};
   }>;
   withdrawals?: Array<{rewardAddress: string; amount: string}>;
+  validityStart?: string;
 };
 
 export type CmlAssetQuantity = {
@@ -319,6 +320,7 @@ export const buildSimplePaymentTransaction = (
       ].join(',')).join(';') || '-',
       args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
       args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
+      args.validityStart ?? '-',
     ].join('|'),
   );
   const separator = result.lastIndexOf('|');

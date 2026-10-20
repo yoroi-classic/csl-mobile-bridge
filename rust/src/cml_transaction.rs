@@ -192,8 +192,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   };
 
   let fields = args.split('|').collect::<Vec<_>>();
-  if !(10..=14).contains(&fields.len()) {
-    return Err(format!("expected 10 to 14 payment fields, received {}", fields.len()));
+  if !(10..=15).contains(&fields.len()) {
+    return Err(format!("expected 10 to 15 payment fields, received {}", fields.len()));
   }
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
     fields[index].parse::<u64>().map_err(|err| format!("invalid {name}: {err}"))
@@ -424,7 +424,7 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
       builder.add_cert(cert_result);
     }
   }
-  if fields.len() == 14 && fields[13] != "-" {
+  if fields.len() >= 14 && fields[13] != "-" {
     use cml_chain::builders::withdrawal_builder::SingleWithdrawalBuilder;
     use cml_chain::address::RewardAddress;
     let withdrawal_json = String::from_utf8(decode_percent_encoded(fields[13])?)
@@ -443,6 +443,9 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
           .map_err(|err| err.to_string())?,
       );
     }
+  }
+  if fields.len() == 15 && fields[14] != "-" {
+    builder.set_validity_start_interval(parse_u64(14, "validity start")?);
   }
   builder.set_ttl(ttl);
   let mut tx = builder
@@ -1960,6 +1963,64 @@ mod tests {
       let expected = csl::Transaction::new(&body, &csl::TransactionWitnessSet::new(), None).to_bytes();
       assert_eq!(cml_cbor, expected, "{kind} CBOR/fee/deposit mismatch");
     }
+  }
+
+  #[test]
+  fn validity_interval_start_matches_csl_transaction_cbor_and_fee() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let args = format!(
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000|-|-|-|-|120000",
+      "01".repeat(32), address, address, address,
+    );
+    let cml = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
+
+    let addr = csl::Address::from_bech32(address).unwrap();
+    let fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_regular_input(
+      &addr,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+        0,
+      ),
+      &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+    ).unwrap();
+    builder.add_output(&csl::TransactionOutput::new(
+      &addr,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    )).unwrap();
+    builder.set_validity_start_interval_bignum(&csl::BigNum::from_str("120000").unwrap());
+    builder.set_ttl_bignum(&csl::BigNum::from_str("123456").unwrap());
+    assert!(builder.add_change_if_needed(&addr).unwrap());
+    let body = builder.build().unwrap();
+    let expected = csl::Transaction::new(&body, &csl::TransactionWitnessSet::new(), None).to_bytes();
+    assert_eq!(cml_cbor, expected);
+
+    let invalid = args.replace("120000", "-");
+    let mut fields = invalid.split('|').collect::<Vec<_>>();
+    fields[3] = "not-a-slot";
+    assert!(build_simple_payment_transaction_hex(&fields.join("|")).is_err());
   }
 
   #[test]
