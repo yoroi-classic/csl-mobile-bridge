@@ -75,6 +75,12 @@ struct EscrowCmlArgs {
   ex_unit_prices_memory: RationalArgs,
   ex_unit_prices_steps: RationalArgs,
   #[serde(default)]
+  plutus_version: Option<String>,
+  #[serde(default)]
+  plutus_v1_cost_model: Option<Vec<i64>>,
+  #[serde(default)]
+  plutus_v2_cost_model: Option<Vec<i64>>,
+  #[serde(default)]
   plutus_v3_cost_model: Vec<i64>,
 }
 
@@ -83,9 +89,20 @@ struct EscrowCmlArgs {
 struct AdditionalScriptInputArgs {
   script_input: ScriptUtxoArgs,
   script_hash_hex: String,
+  #[serde(default)]
+  plutus_version: Option<String>,
   redeemer_cbor_hex: String,
   redeemer_mem: String,
   redeemer_steps: String,
+}
+
+fn parse_plutus_language(version: Option<&str>) -> Result<(u64, cml_chain::plutus::Language), String> {
+  match version.unwrap_or("V3") {
+    "V1" => Ok((0, cml_chain::plutus::Language::PlutusV1)),
+    "V2" => Ok((1, cml_chain::plutus::Language::PlutusV2)),
+    "V3" => Ok((2, cml_chain::plutus::Language::PlutusV3)),
+    other => Err(format!("unsupported Plutus version: {other}")),
+  }
 }
 
 fn spend_redeemer_index(args: &EscrowCmlArgs, tx_hash_hex: &str, index: &str) -> Result<u64, String> {
@@ -525,8 +542,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
 }
 
 /// Build the current escrow redemption shape with CML. This narrow recipe is
-/// deliberately separate from the generic payment DTO: it accepts exactly one
-/// Plutus V3 spend with inline or explicit datum, one reference script output,
+/// deliberately separate from the generic payment DTO: it accepts Plutus V1/V2/V3
+/// spends with inline or explicit datum, one reference script output,
 /// key funding inputs, and one collateral input.
 pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String> {
   use cml_chain::{
@@ -576,7 +593,13 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
 
   let mut cost_models = cml_chain::plutus::CostModels::default();
   let mut cost_model_map = cml_chain::OrderedHashMap::new();
-  cost_model_map.insert(2, args.plutus_v3_cost_model.clone());
+  if let Some(model) = &args.plutus_v1_cost_model { cost_model_map.insert(0, model.clone()); }
+  if let Some(model) = &args.plutus_v2_cost_model { cost_model_map.insert(1, model.clone()); }
+  if !args.plutus_v3_cost_model.is_empty() { cost_model_map.insert(2, args.plutus_v3_cost_model.clone()); }
+  let (language_index, language) = parse_plutus_language(args.plutus_version.as_deref())?;
+  if !cost_model_map.contains_key(&language_index) {
+    return Err(format!("missing cost model for Plutus {}", args.plutus_version.as_deref().unwrap_or("V3")));
+  }
   cost_models.inner = cost_model_map;
   let config_models = cost_models.clone();
   let config_builder = TransactionBuilderConfigBuilder::new()
@@ -629,8 +652,11 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
   if script_bytes.len() as u64 != reference_script_size {
     return Err("reference script size does not match supplied script bytes".to_owned());
   }
-  let script = cml_chain::plutus::PlutusV3Script::new(script_bytes);
-  let script_ref = Script::new_plutus_v3(script);
+  let script_ref = match language {
+    Language::PlutusV1 => Script::new_plutus_v1(cml_chain::plutus::PlutusV1Script::new(script_bytes)),
+    Language::PlutusV2 => Script::new_plutus_v2(cml_chain::plutus::PlutusV2Script::new(script_bytes)),
+    Language::PlutusV3 => Script::new_plutus_v3(cml_chain::plutus::PlutusV3Script::new(script_bytes)),
+  };
   let expected_hash_bytes =
     hex::decode(&args.script_hash_hex).map_err(|err| format!("invalid script hash: {err}"))?;
   let expected_hash = cml_crypto::ScriptHash::from_raw_bytes(&expected_hash_bytes)
@@ -733,6 +759,10 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
   );
 
   for spend in &args.additional_script_inputs {
+    let (_, spend_language) = parse_plutus_language(spend.plutus_version.as_deref().or(args.plutus_version.as_deref()))?;
+    if spend_language != language {
+      return Err("all script spends must use the same Plutus language version".to_owned());
+    }
     let spend_hash_bytes = hex::decode(&spend.script_hash_hex)
       .map_err(|err| format!("invalid additional script hash: {err}"))?;
     let spend_hash = ScriptHash::from_raw_bytes(&spend_hash_bytes).map_err(|err| err.to_string())?;
@@ -854,7 +884,7 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
       redeemers,
       &datums,
       &config_models,
-      &[Language::PlutusV3],
+      &[language],
       None,
     )
     .map_err(|err| err.to_string())?;
@@ -1709,12 +1739,16 @@ mod tests {
   fn escrow_plutus_explicit_datum_matches_csl_transaction_cbor() {
     use cardano_serialization_lib as csl;
     use cml_chain::serialization::{Deserialize, Serialize};
-    use cml_chain::plutus::PlutusV3Script;
     use cml_chain::Script;
     use cml_crypto::RawBytesEncoding;
 
+    for version in ["V1", "V2", "V3"] {
     let script_bytes = vec![1, 0, 0];
-    let cml_script = Script::new_plutus_v3(PlutusV3Script::new(script_bytes.clone()));
+    let cml_script = match version {
+      "V1" => Script::new_plutus_v1(cml_chain::plutus::PlutusV1Script::new(script_bytes.clone())),
+      "V2" => Script::new_plutus_v2(cml_chain::plutus::PlutusV2Script::new(script_bytes.clone())),
+      _ => Script::new_plutus_v3(cml_chain::plutus::PlutusV3Script::new(script_bytes.clone())),
+    };
     let script_hash_hex = hex::encode(cml_script.hash().to_raw_bytes());
     let key_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let script_hash = csl::ScriptHash::from_bytes(hex::decode(&script_hash_hex).unwrap()).unwrap();
@@ -1746,13 +1780,19 @@ mod tests {
       "refScriptTierStepBytes": "25600", "refScriptMultiplier": "1.2",
       "exUnitPricesMemory": {"numerator": "577", "denominator": "10000"},
       "exUnitPricesSteps": {"numerator": "721", "denominator": "10000000"},
+      "plutusVersion": version,
+      "plutusV1CostModel": [0], "plutusV2CostModel": [0],
       "plutusV3CostModel": [0]
     }).to_string();
     let cml_hex = build_escrow_redeem_transaction_hex(&args).unwrap();
     let cml_cbor = hex::decode(cml_hex.split('|').next().unwrap()).unwrap();
 
     let address = csl::Address::from_bech32(key_address).unwrap();
-    let script = csl::PlutusScript::new_v3(script_bytes);
+    let (script, language) = match version {
+      "V1" => (csl::PlutusScript::new(script_bytes), csl::Language::new_plutus_v1()),
+      "V2" => (csl::PlutusScript::new_v2(script_bytes), csl::Language::new_plutus_v2()),
+      _ => (csl::PlutusScript::new_v3(script_bytes), csl::Language::new_plutus_v3()),
+    };
     let ref_input = csl::TransactionInput::new(
       &csl::TransactionHash::from_bytes(hex::decode("02".repeat(32)).unwrap()).unwrap(),
       0,
@@ -1807,7 +1847,7 @@ mod tests {
     builder.add_script_reference_input(&ref_input, 3);
     builder.add_reference_input(&second_ref_input);
     let script_source = csl::PlutusScriptSource::new_ref_input(
-      &script.hash(), &ref_input, &csl::Language::new_plutus_v3(), 3,
+      &script.hash(), &ref_input, &language, 3,
     );
     let datum = csl::PlutusData::from_bytes(hex::decode("d87980").unwrap()).unwrap();
     let datum_source = csl::DatumSource::new_ref_input(&script_input);
@@ -1846,7 +1886,7 @@ mod tests {
     let mut cost_models = csl::Costmdls::new();
     let mut cost_model = csl::CostModel::new();
     cost_model.set(0, &csl::Int::new_i32(0)).unwrap();
-    cost_models.insert(&csl::Language::new_plutus_v3(), &cost_model);
+    cost_models.insert(&language, &cost_model);
     builder.calc_script_data_hash(&cost_models).unwrap();
     builder.add_change_if_needed(&address).unwrap();
     let csl_tx = builder.build_tx_unsafe().unwrap();
@@ -1876,10 +1916,21 @@ mod tests {
     assert_eq!(decoded_cml.witness_set.to_cbor_bytes(), decoded_csl.witness_set.to_cbor_bytes());
     assert_eq!(decoded_cml.body.fee, decoded_csl.body.fee);
     assert_eq!(cml_cbor.len(), csl_cbor.len());
-    assert_eq!(
-      hex::encode(&cml_cbor),
-      "84aa00d90102838258200101010101010101010101010101010101010101010101010101010101010101008258200303030303030303030303030303030303030303030303030303030303030303008258200606060606060606060606060606060606060606060606060606060606060606000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a010eca99021a0003dde7031903e80818640b582052e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e16080dd901028182582004040404040404040404040404040404040404040404040404040404040404040010825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a003d0900111a000f424012d9010282825820020202020202020202020202020202020202020202020202020202020202020200825820050505050505050505050505050505050505050505050505050505050505050501a204d901029fd87980ff05a282000082d87980821a000dbba01a0ee6b280820002828082186418c8f5f6"
+    let script_data_hash = hex::encode(
+      decoded_cml.body.script_data_hash.as_ref().unwrap().to_raw_bytes(),
     );
+    assert_eq!(script_data_hash, match version {
+      "V1" => "f352f260e5b324cf8cc02edba67636c873a5a20bb9246e3b85e8fe5ba69f42bc",
+      "V2" => "2ffc7ce2cc19316543adf108df36e12e973d21f2cc6375a71e3c9ff2798ab6c6",
+      _ => "52e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e1608",
+    });
+    if version == "V3" {
+      assert_eq!(
+        hex::encode(&cml_cbor),
+        "84aa00d90102838258200101010101010101010101010101010101010101010101010101010101010101008258200303030303030303030303030303030303030303030303030303030303030303008258200606060606060606060606060606060606060606060606060606060606060606000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a010eca99021a0003dde7031903e80818640b582052e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e16080dd901028182582004040404040404040404040404040404040404040404040404040404040404040010825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a003d0900111a000f424012d9010282825820020202020202020202020202020202020202020202020202020202020202020200825820050505050505050505050505050505050505050505050505050505050505050501a204d901029fd87980ff05a282000082d87980821a000dbba01a0ee6b280820002828082186418c8f5f6"
+      );
+    }
+    }
   }
 
   #[test]

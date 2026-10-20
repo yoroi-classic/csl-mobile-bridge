@@ -142,6 +142,7 @@ export type EscrowCmlTransactionArguments = {
     additionalScriptInputs: Array<{
         scriptInput: EscrowCmlUtxo;
         scriptHashHex: string;
+        plutusVersion?: 'V1' | 'V2' | 'V3';
         redeemerCborHex: string;
         redeemerMem: string;
         redeemerSteps: string;
@@ -192,6 +193,9 @@ export type EscrowCmlTransactionArguments = {
         numerator: string;
         denominator: string;
     };
+    plutusVersion?: 'V1' | 'V2' | 'V3';
+    plutusV1CostModel?: number[];
+    plutusV2CostModel?: number[];
     plutusV3CostModel: number[];
 };
 export declare const buildEscrowRedeemTransactionCml: (args: EscrowCmlTransactionArguments) => {
