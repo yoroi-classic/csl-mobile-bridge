@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "11.0" }
   s.source       = { :git => "#{package["repository"]["baseUrl"]}.git", :tag => "v#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{hpp,cpp,c,h}"
+  s.source_files = "ios/**/*.{h,m,mm}", "cpp/NativeCslMobileBridgeModule.h", "cpp/NativeCmlMobileBridgeModule.cpp"
   s.requires_arc = true
 
   s.module_name = 'YoroiClassicCslMobileBridge'

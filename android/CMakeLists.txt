@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 
 # Collect your C++ sources
-file(GLOB native_module_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/../cpp/*.cpp)
+set(native_module_SRC ${CMAKE_CURRENT_LIST_DIR}/../cpp/NativeCmlMobileBridgeModule.cpp)
 
 # Define your library
 add_library(
