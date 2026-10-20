@@ -2,6 +2,8 @@ import * as bridgeTypes from './BridgeTypes';
 export { AddressKind, BlockEra, ByronAddressType, CborContainerType, CborSetType, CertificateKind, CoinSelectionStrategyCIP2, CredKind, DRepKind, GovernanceActionKind, LanguageKind, MIRKind, MIRPot, MetadataJsonSchema, NativeScriptKind, NetworkIdKind, PlutusDataKind, PlutusDatumSchema, RedeemerTagKind, RelayKind, ScriptHashNamespace, ScriptSchema, TransactionMetadatumKind, TransactionSetsState, VoteKind, VoterKind } from './BridgeTypes';
 declare const cslBridge: typeof bridgeTypes;
 export default cslBridge;
+/** Extract the canonical serialized stake credential from a base address using CML. */
+export declare const stakeCredentialHexFromAddress: (address: string) => string;
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export declare const addressToHex: (address: string) => string;
 /** CML-native helper exposed alongside the legacy CSL object bridge. */

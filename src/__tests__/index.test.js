@@ -149,6 +149,7 @@ const createBridgeFixture = () => {
     }),
     reward_address_from_address: jest.fn((address, network) => `${network}:${address}`),
     address_to_hex: jest.fn((address) => `hex:${address}`),
+    stake_credential_hex_from_address: jest.fn((address) => `stake:${address}`),
     reward_address_hex_from_account_public_key: jest.fn(
       (accountPublicKeyHex, network, role, index) =>
         `${network}:${role}:${index}:${accountPublicKeyHex}`
@@ -256,6 +257,17 @@ describe('CSL mobile bridge source entrypoint', () => {
 
     expect(moduleExports.addressToHex(fixtures.address)).toBe(`hex:${fixtures.address}`);
     expect(bridge.address_to_hex).toHaveBeenCalledWith(fixtures.address);
+  });
+
+  it('routes stake credential extraction to the native CML helper', () => {
+    const { bridge, moduleExports } = loadBridge();
+
+    expect(moduleExports.stakeCredentialHexFromAddress(fixtures.address)).toBe(
+      `stake:${fixtures.address}`
+    );
+    expect(bridge.stake_credential_hex_from_address).toHaveBeenCalledWith(
+      fixtures.address
+    );
   });
 
   it('routes xpub reward-address derivation to the native CML helper', () => {

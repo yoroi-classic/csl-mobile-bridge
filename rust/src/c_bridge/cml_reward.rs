@@ -3,6 +3,7 @@ use std::ffi::{CStr, CString};
 use super::bridge_tools::string::CharPtr;
 use crate::cml_reward::{
   address_to_hex, reward_address_from_address, reward_address_hex_from_account_public_key,
+  stake_credential_hex_from_address,
 };
 
 fn set_message(target: &mut CharPtr, message: String) -> bool {
@@ -33,6 +34,32 @@ pub unsafe extern "C" fn cml_bridge_address_to_hex(
     }
   };
   match address_to_hex(address) {
+    Ok(value) => set_message(result, value),
+    Err(err) => {
+      set_message(error, err);
+      false
+    }
+  }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_stake_credential_hex_from_address(
+  address: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  *result = std::ptr::null();
+  *error = std::ptr::null();
+  if address.is_null() {
+    set_message(error, "address is null".to_owned());
+    return false;
+  }
+  let address = match CStr::from_ptr(address).to_str() {
+    Ok(value) => value,
+    Err(err) => {
+      set_message(error, format!("address is not UTF-8: {err}"));
+      return false;
+    }
+  };
+  match stake_credential_hex_from_address(address) {
     Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);

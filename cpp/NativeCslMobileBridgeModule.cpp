@@ -51394,6 +51394,26 @@ static jsi::Object makeWithdrawalsBuilderExport(jsi::Runtime& rt) {
 
 static jsi::Object installBridgeExports(jsi::Runtime& rt) {
   jsi::Object exports(rt);
+  exports.setProperty(rt, "stake_credential_hex_from_address",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "stake_credential_hex_from_address"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "stake_credential_hex_from_address(address): expected address string");
+        }
+        const std::string address = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_stake_credential_hex_from_address(address.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML stake credential extraction failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML stake credential extraction returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   exports.setProperty(rt, "address_to_hex",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "address_to_hex"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {

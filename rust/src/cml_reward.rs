@@ -1,5 +1,6 @@
 use cml_chain::address::{Address, BaseAddress, RewardAddress};
 use cml_chain::certs::Credential;
+use cml_chain::serialization::Serialize;
 use cml_crypto::{Bip32PublicKey, RawBytesEncoding};
 
 /// Derive a reward address from a base address, preserving the stake credential
@@ -30,6 +31,18 @@ pub fn address_to_hex(address: &str) -> Result<String, String> {
   Ok(parsed.to_hex())
 }
 
+/// Return the serialized stake credential from a base address as hex.
+pub fn stake_credential_hex_from_address(address: &str) -> Result<String, String> {
+  let parsed = if is_hex_address(address) {
+    Address::from_hex(address).map_err(|err| err.to_string())
+  } else {
+    Address::from_bech32(address).map_err(|err| err.to_string())
+  }?;
+  let base =
+    BaseAddress::from_address(&parsed).ok_or_else(|| "Address is not a base address".to_owned())?;
+  Ok(hex::encode(base.stake.to_cbor_bytes()))
+}
+
 /// Derive a reward address from an account extended public key and soft
 /// staking path, returning its serialized address bytes as lower-case hex.
 pub fn reward_address_hex_from_account_public_key(
@@ -55,6 +68,7 @@ fn is_hex_address(value: &str) -> bool {
 mod tests {
   use super::{
     address_to_hex, reward_address_from_address, reward_address_hex_from_account_public_key,
+    stake_credential_hex_from_address,
   };
 
   const BASE_BECH32: &str = "addr_test1qqhchrw4umcrf90ew5ep85zefj9724c5jcfg6kp667qau789d6z307gnggrp3hgye75yzgh5q0w6unkqnvfxjfu7vxlswtaxme";
@@ -62,6 +76,8 @@ mod tests {
   const REWARD_TESTNET: &str = "stake_test1urjkapghlyf5ypscm5zvl2zpyt6q8hdwfmqfkynfy70xr0cjjefxa";
   const ACCOUNT_PUBLIC_KEY_HEX: &str = "7cc9d816f272eb78a2db936a839d3bf53fa960dd470ddbaadabb6a7bf2019b837d20b2cd13cbb22b6f6938abea40d425f5539b6bb1fe0813ccb4c21676a7fd6b";
   const REWARD_ADDRESS_HEX: &str = "e042d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40";
+  const STAKE_CREDENTIAL_HEX: &str =
+    "8200581ce56e8517f913420618dd04cfa84122f403ddae4ec09b1269279e61bf";
 
   #[test]
   fn derives_expected_reward_address_from_bech32_or_hex() {
@@ -73,6 +89,18 @@ mod tests {
   fn address_hex_matches_bech32_and_hex_inputs() {
     assert_eq!(address_to_hex(BASE_BECH32).unwrap(), BASE_HEX);
     assert_eq!(address_to_hex(BASE_HEX).unwrap(), BASE_HEX);
+  }
+
+  #[test]
+  fn stake_credential_serialization_matches_csl_fixture() {
+    assert_eq!(
+      stake_credential_hex_from_address(BASE_BECH32).unwrap(),
+      STAKE_CREDENTIAL_HEX
+    );
+    assert_eq!(
+      stake_credential_hex_from_address(BASE_HEX).unwrap(),
+      STAKE_CREDENTIAL_HEX
+    );
   }
 
   #[test]
