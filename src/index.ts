@@ -74,6 +74,26 @@ export type SimplePaymentBuilderArguments = {
   maxValueSize: string;
 };
 
+export type CmlAssetQuantity = {
+  policyIdHex: string;
+  assetNameHex: string;
+  quantity: string;
+};
+
+export const minimumCoinForAssets = (
+  address: string,
+  assets: CmlAssetQuantity[],
+  coinsPerUtxoByte: string,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    minimum_coin_for_assets: (args: string) => string;
+  };
+  const packedAssets = assets
+    .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~'))
+    .join('^') || '-';
+  return cmlBridge.minimum_coin_for_assets([address, packedAssets, coinsPerUtxoByte].join('|'));
+};
+
 /** Build a transaction with CML using ADA and multiasset value bundles. */
 export const buildSimplePaymentTransaction = (
   args: SimplePaymentBuilderArguments,

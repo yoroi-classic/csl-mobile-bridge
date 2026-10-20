@@ -51435,6 +51435,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
+  exports.setProperty(rt, "minimum_coin_for_assets",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "minimum_coin_for_assets"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "minimum_coin_for_assets(args): expected delimited argument string");
+        }
+        const std::string minCoinArgs = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_minimum_coin_for_assets(minCoinArgs.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML minimum coin calculation failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML minimum coin calculation returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   exports.setProperty(rt, "reward_address_details_from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_details_from_address"), 1,
       [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {

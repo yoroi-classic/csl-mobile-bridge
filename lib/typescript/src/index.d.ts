@@ -39,6 +39,12 @@ export type SimplePaymentBuilderArguments = {
     poolDeposit: string;
     maxValueSize: string;
 };
+export type CmlAssetQuantity = {
+    policyIdHex: string;
+    assetNameHex: string;
+    quantity: string;
+};
+export declare const minimumCoinForAssets: (address: string, assets: CmlAssetQuantity[], coinsPerUtxoByte: string) => string;
 /** Build a transaction with CML using ADA and multiasset value bundles. */
 export declare const buildSimplePaymentTransaction: (args: SimplePaymentBuilderArguments) => {
     cborHex: string;

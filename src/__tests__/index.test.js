@@ -158,6 +158,7 @@ const createBridgeFixture = () => {
       `${transactionHex}:${privateKeyHex}`
     ),
     build_simple_payment_transaction_hex: jest.fn((args) => `payment:${args}`),
+    minimum_coin_for_assets: jest.fn(() => '1500000'),
     reward_address_hex_from_account_public_key: jest.fn(
       (accountPublicKeyHex, network, role, index) =>
         `${network}:${role}:${index}:${accountPublicKeyHex}`
@@ -332,6 +333,18 @@ describe('CSL mobile bridge source entrypoint', () => {
       fee: '168581',
     });
     expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(packed);
+  });
+
+  it('routes minimum-coin-for-assets calculation through CML with exact quantities', () => {
+    const { bridge, moduleExports } = loadBridge();
+    const packed = `addr_test_change|${'ab'.repeat(28)}~00ff~9007199254740993|4310`;
+    bridge.minimum_coin_for_assets.mockReturnValue('1500000');
+    expect(moduleExports.minimumCoinForAssets(
+      'addr_test_change',
+      [{policyIdHex: 'ab'.repeat(28), assetNameHex: '00ff', quantity: '9007199254740993'}],
+      '4310',
+    )).toBe('1500000');
+    expect(bridge.minimum_coin_for_assets).toHaveBeenCalledWith(packed);
   });
 
   it('routes xpub reward-address derivation to the native CML helper', () => {

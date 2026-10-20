@@ -136,6 +136,31 @@ fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
   Ok(assets)
 }
 
+/// Calculate the minimum coin for an output with assets using CML's current
+/// coins-per-UTxO-byte rule. Args are addressBech32|packedAssets|coinsPerByte.
+pub fn minimum_coin_for_assets(args: &str) -> Result<String, String> {
+  use cml_chain::{
+    address::Address,
+    builders::output_builder::TransactionOutputBuilder,
+  };
+  let fields = args.split('|').collect::<Vec<_>>();
+  if fields.len() != 3 {
+    return Err(format!("expected 3 minimum-coin fields, received {}", fields.len()));
+  }
+  let address = Address::from_bech32(fields[0]).map_err(|err| err.to_string())?;
+  let assets = parse_multiasset(fields[1])?;
+  let coins_per_byte = fields[2].parse::<u64>().map_err(|err| format!("invalid coins per UTXO byte: {err}"))?;
+  let output = TransactionOutputBuilder::new()
+    .with_address(address)
+    .next()
+    .map_err(|err| err.to_string())?
+    .with_asset_and_min_required_coin(assets, coins_per_byte)
+    .map_err(|err| err.to_string())?
+    .build()
+    .map_err(|err| err.to_string())?;
+  Ok(output.output.amount().coin.to_string())
+}
+
 /// Add one Ed25519 vkey witness to a transaction using CML.
 pub fn sign_transaction_hex(
   transaction_hex: &str, private_key_hex: &str,
@@ -155,7 +180,7 @@ pub fn sign_transaction_hex(
 
 #[cfg(test)]
 mod tests {
-  use super::{build_simple_payment_transaction_hex, sign_transaction_hex};
+  use super::{build_simple_payment_transaction_hex, minimum_coin_for_assets, sign_transaction_hex};
 
   const UNSIGNED_TRANSACTION_HEX: &str = "84a300d90102800180021a000f4240a0f5f6";
   const PRIVATE_KEY_HEX: &str = "1111111111111111111111111111111111111111111111111111111111111111";
@@ -233,6 +258,108 @@ mod tests {
       transaction.body.outputs.iter().map(|output| output.amount().coin).sum::<u64>() + transaction.body.fee,
       10000000,
     );
+  }
+
+  #[test]
+  fn multiasset_fee_and_change_match_csl_builder_oracle() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let policy_hex = "ab".repeat(28);
+    let asset_quantity = "9007199254740993";
+    let asset_id = format!("{}~00ff~{}", policy_hex, asset_quantity);
+    let input_hash = "01".repeat(32);
+    let args = format!(
+      "{},0,{},10000000,{}~00ff~18014398509481986|{},2000000,{}|{}|123456|44|155381|4310|2000000|500000000|5000",
+      input_hash, address, policy_hex, address, asset_id, address,
+    );
+    let cml_result = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml_cbor = hex::decode(cml_result.rsplit_once('|').unwrap().0).unwrap();
+
+    let addr = csl::Address::from_bech32(address).unwrap();
+    let policy = csl::ScriptHash::from_bytes(hex::decode(&policy_hex).unwrap()).unwrap();
+    let name = csl::AssetName::new(vec![0x00, 0xff]).unwrap();
+    let mut assets = csl::Assets::new();
+    assets.insert(&name, &csl::BigNum::from_str(asset_quantity).unwrap());
+    let mut input_asset_bundle = csl::Assets::new();
+    input_asset_bundle.insert(&name, &csl::BigNum::from_str("18014398509481986").unwrap());
+    let mut input_assets = csl::MultiAsset::new();
+    input_assets.insert(&policy, &input_asset_bundle);
+    let mut input_value = csl::Value::new(&csl::BigNum::from_str("10000000").unwrap());
+    input_value.set_multiasset(&input_assets);
+    let input_output = csl::TransactionOutput::new(&addr, &input_value);
+    let input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode(input_hash).unwrap()).unwrap(),
+      0,
+    );
+    let utxo = csl::TransactionUnspentOutput::new(&input, &input_output);
+    let mut utxos = csl::TransactionUnspentOutputs::new();
+    utxos.add(&utxo);
+
+    let linear_fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&linear_fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut csl_builder = csl::TransactionBuilder::new(&config);
+    let mut output_assets = csl::MultiAsset::new();
+    output_assets.insert(&policy, &assets);
+    let mut output_value = csl::Value::new(&csl::BigNum::from_str("2000000").unwrap());
+    output_value.set_multiasset(&output_assets);
+    csl_builder.add_output(&csl::TransactionOutput::new(&addr, &output_value)).unwrap();
+    csl_builder.set_ttl(123456);
+    csl_builder.add_inputs_from(&utxos, csl::CoinSelectionStrategyCIP2::LargestFirstMultiAsset).unwrap();
+    assert!(csl_builder.add_change_if_needed(&addr).unwrap());
+    let csl_body = csl_builder.build().unwrap();
+    let csl_transaction = csl::Transaction::new(
+      &csl_body,
+      &csl::TransactionWitnessSet::new(),
+      None,
+    );
+    assert_eq!(hex::encode(&cml_cbor), hex::encode(csl_transaction.to_bytes()));
+  }
+
+  #[test]
+  fn rejects_token_output_below_minimum_ada() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let policy = "ab".repeat(28);
+    let policy_hash = csl::ScriptHash::from_bytes(hex::decode(&policy).unwrap()).unwrap();
+    let asset_name = csl::AssetName::new(vec![0x00, 0xff]).unwrap();
+    let mut token_bundle = csl::Assets::new();
+    token_bundle.insert(&asset_name, &csl::BigNum::from_str("1").unwrap());
+    let mut multiasset = csl::MultiAsset::new();
+    multiasset.insert(&policy_hash, &token_bundle);
+    let mut low_value = csl::Value::new(&csl::BigNum::from_str("1000000").unwrap());
+    low_value.set_multiasset(&multiasset);
+    let output = csl::TransactionOutput::new(&csl::Address::from_bech32(address).unwrap(), &low_value);
+    let data_cost = csl::DataCost::new_coins_per_byte(&csl::BigNum::from_str("4310").unwrap());
+    let csl_minimum = csl::min_ada_for_output(&output, &data_cost).unwrap();
+    assert!(csl_minimum > csl::BigNum::from_str("1000000").unwrap());
+    assert_eq!(
+      minimum_coin_for_assets(&format!("{}|{}~00ff~1|4310", address, policy)).unwrap(),
+      csl_minimum.to_str(),
+    );
+    let args = format!(
+      "{},0,{},10000000,{}~00ff~2|{},1000000,{}~00ff~1|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "01".repeat(32), address, policy, address, policy, address,
+    );
+    assert!(build_simple_payment_transaction_hex(&args).is_err());
   }
 
   #[test]
