@@ -204,6 +204,7 @@ export type EscrowCmlUtxo = {
   lovelace: string;
   assets: CmlAssetQuantity[];
   inlineDatumCborHex?: string;
+  datumCborHex?: string;
 };
 
 export type EscrowCmlTransactionArguments = {

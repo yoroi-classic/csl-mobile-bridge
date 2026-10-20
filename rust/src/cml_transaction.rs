@@ -19,6 +19,7 @@ struct ScriptUtxoArgs {
   lovelace: String,
   assets: Vec<ScriptAssetArgs>,
   inline_datum_cbor_hex: Option<String>,
+  datum_cbor_hex: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -493,8 +494,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
 
 /// Build the current escrow redemption shape with CML. This narrow recipe is
 /// deliberately separate from the generic payment DTO: it accepts exactly one
-/// inline-datum Plutus V3 spend, one reference script output, key funding inputs,
-/// and one collateral input.
+/// Plutus V3 spend with inline or explicit datum, one reference script output,
+/// key funding inputs, and one collateral input.
 pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String> {
   use cml_chain::{
     assets::Value,
@@ -641,30 +642,43 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
   }
 
   let (script_input, mut script_output) = parse_input(&args.script_input)?;
-  let datum_bytes = hex::decode(
-    args
-      .script_input
-      .inline_datum_cbor_hex
-      .as_deref()
-      .ok_or("script input must carry inline datum CBOR")?,
-  )
-  .map_err(|err| format!("invalid inline datum CBOR: {err}"))?;
-  match &mut script_output {
-    TransactionOutput::ConwayFormatTxOut(output) => {
-      output.datum_option = Some(DatumOption::new_datum(
-        PlutusData::from_cbor_bytes(&datum_bytes).map_err(|err| err.to_string())?,
-      ))
+  let inline_datum_bytes = args.script_input.inline_datum_cbor_hex.as_deref()
+    .map(|hex| hex::decode(hex).map_err(|err| format!("invalid inline datum CBOR: {err}")))
+    .transpose()?;
+  if let Some(datum_bytes) = &inline_datum_bytes {
+    match &mut script_output {
+      TransactionOutput::ConwayFormatTxOut(output) => {
+        output.datum_option = Some(DatumOption::new_datum(
+          PlutusData::from_cbor_bytes(datum_bytes).map_err(|err| err.to_string())?,
+        ))
+      }
+      _ => return Err("script input is not Conway format".to_owned()),
     }
-    _ => return Err("script input is not Conway format".to_owned()),
   }
   let redeemer_bytes =
     hex::decode(&args.redeemer_cbor_hex).map_err(|err| format!("invalid redeemer CBOR: {err}"))?;
   let redeemer = PlutusData::from_cbor_bytes(&redeemer_bytes).map_err(|err| err.to_string())?;
   let partial_witness =
     PartialPlutusWitness::new(PlutusScriptWitness::Ref(expected_hash), redeemer);
-  let script_result = SingleInputBuilder::new(script_input.clone(), script_output)
-    .plutus_script_inline_datum(partial_witness, RequiredSigners::from(Vec::new()))
-    .map_err(|err| err.to_string())?;
+  let script_input_builder = SingleInputBuilder::new(script_input.clone(), script_output);
+  let script_result = if inline_datum_bytes.is_some() {
+    script_input_builder.plutus_script_inline_datum(
+      partial_witness,
+      RequiredSigners::from(Vec::new()),
+    )
+  } else if let Some(datum_hex) = args.script_input.datum_cbor_hex.as_deref() {
+    let datum_bytes = hex::decode(datum_hex)
+      .map_err(|err| format!("invalid spending datum CBOR: {err}"))?;
+    let datum = PlutusData::from_cbor_bytes(&datum_bytes).map_err(|err| err.to_string())?;
+    script_input_builder.plutus_script(
+      partial_witness,
+      RequiredSigners::from(Vec::new()),
+      datum,
+    )
+  } else {
+    return Err("script input must carry inline or explicit datum CBOR".to_owned());
+  }
+  .map_err(|err| err.to_string())?;
   builder.add_input(script_result).map_err(|err| err.to_string())?;
   builder.set_exunits(
     RedeemerWitnessKey::new(RedeemerTag::Spend, 0),
@@ -722,6 +736,20 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     }
     tx.witness_set.redeemers = Some(Redeemers::new_map_redeemer_key_to_redeemer_val(map));
   }
+  // CSL's script-data hash and witness serializer use an indefinite-length
+  // CBOR set for datum witnesses. CML's builder creates a definite-length set;
+  // preserve the CSL wire encoding by round-tripping the datum set through its
+  // ledger-compatible indefinite encoding before hashing and serialization.
+  if let Some(datums) = tx.witness_set.plutus_datums.take() {
+    let mut datum_set_bytes = vec![0xd9, 0x01, 0x02, 0x9f];
+    for datum in &datums {
+      datum_set_bytes.extend(datum.to_cbor_bytes());
+    }
+    datum_set_bytes.push(0xff);
+    let datums = cml_chain::NonemptySetPlutusData::from_cbor_bytes(&datum_set_bytes)
+      .map_err(|err| err.to_string())?;
+    tx.witness_set.plutus_datums = Some(datums);
+  }
   if tx.body.required_signers.as_ref().is_some_and(|signers| signers.is_empty()) {
     tx.body.required_signers = None;
   }
@@ -736,6 +764,7 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     )
     .map_err(|err| err.to_string())?;
   }
+  let mut reference_script_fee = 0;
   if let Some(cost) = &args.ref_script_coins_per_byte {
     let size = reference_script_size;
     let tier_step = parse_u64(
@@ -751,15 +780,17 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
       tier_step,
       multiplier,
     )?;
-    if ref_fee > 0 {
-      add_reference_fee_and_rebalance(
-        &mut tx,
-        ref_fee,
-        parse_u64(&args.fee_coefficient, "fee coefficient")?,
-        parse_u64(&args.fee_constant, "fee constant")?,
-        1, // CML builds legacy redeemer arrays; CSL fee estimation uses the map form.
-      )?;
-    }
+    reference_script_fee = ref_fee;
+  }
+  let has_explicit_datum = args.script_input.datum_cbor_hex.is_some();
+  if reference_script_fee > 0 || has_explicit_datum {
+    add_reference_fee_and_rebalance(
+      &mut tx,
+      reference_script_fee,
+      parse_u64(&args.fee_coefficient, "fee coefficient")?,
+      parse_u64(&args.fee_constant, "fee constant")?,
+      1 + u64::from(has_explicit_datum), // map redeemers and indefinite datum set add one byte each vs CML's builder estimate.
+    )?;
   }
   Ok(format!("{}|{}", hex::encode(tx.to_cbor_bytes()), tx.body.fee))
 }
@@ -1424,7 +1455,7 @@ mod tests {
   #[test]
   fn escrow_plutus_reference_recipe_matches_csl_body_witnesses_fee_and_change() {
     use cardano_serialization_lib as csl;
-    use cml_chain::serialization::Deserialize;
+    use cml_chain::serialization::{Deserialize, Serialize};
     use cml_chain::{plutus::PlutusV3Script, Script};
     use cml_crypto::RawBytesEncoding;
 
@@ -1569,7 +1600,129 @@ mod tests {
     csl_builder.calc_script_data_hash(&cost_models).unwrap();
     csl_builder.add_change_if_needed(&address).unwrap();
     let csl_tx = csl_builder.build_tx_unsafe().unwrap();
-    assert_eq!(cml_cbor, csl_tx.to_bytes());
+    assert_eq!(hex::encode(cml_cbor), hex::encode(csl_tx.to_bytes()));
+  }
+
+  #[test]
+  fn escrow_plutus_explicit_datum_matches_csl_transaction_cbor() {
+    use cardano_serialization_lib as csl;
+    use cml_chain::plutus::PlutusV3Script;
+    use cml_chain::Script;
+    use cml_crypto::RawBytesEncoding;
+
+    let script_bytes = vec![1, 0, 0];
+    let cml_script = Script::new_plutus_v3(PlutusV3Script::new(script_bytes.clone()));
+    let script_hash_hex = hex::encode(cml_script.hash().to_raw_bytes());
+    let key_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let script_hash = csl::ScriptHash::from_bytes(hex::decode(&script_hash_hex).unwrap()).unwrap();
+    let script_address = csl::EnterpriseAddress::new(
+      csl::NetworkInfo::new(0, 1).network_id(),
+      &csl::Credential::from_scripthash(&script_hash),
+    )
+    .to_address()
+    .to_bech32(None)
+    .unwrap();
+    let args = serde_json::json!({
+      "scriptInput": {"txHashHex": "01".repeat(32), "index": "0", "address": script_address, "lovelace": "5000000", "assets": [], "datumCborHex": "d87980"},
+      "referenceScriptInput": {"txHashHex": "02".repeat(32), "index": "0", "address": key_address, "lovelace": "2000000", "assets": []},
+      "referenceScriptCborHex": hex::encode(&script_bytes), "referenceScriptSize": "3",
+      "fundingInputs": [{"txHashHex": "03".repeat(32), "index": "0", "address": key_address, "lovelace": "10000000", "assets": []}],
+      "collateralInput": {"txHashHex": "04".repeat(32), "index": "0", "address": key_address, "lovelace": "5000000", "assets": []},
+      "collateralReturn": {"address": key_address, "lovelace": "4000000", "assets": []},
+      "outputs": [{"address": key_address, "lovelace": "2000000", "assets": []}],
+      "changeAddress": key_address, "scriptHashHex": script_hash_hex, "redeemerCborHex": "d87980",
+      "redeemerMem": "900000", "redeemerSteps": "250000000", "validityStart": "100", "ttl": "1000",
+      "feeCoefficient": "44", "feeConstant": "155381", "coinsPerUtxoByte": "4310",
+      "keyDeposit": "2000000", "poolDeposit": "500000000", "maxValueSize": "5000", "maxTxSize": "16384",
+      "collateralPercentage": "150", "refScriptCoinsPerByte": {"numerator": "15", "denominator": "1"},
+      "refScriptTierStepBytes": "25600", "refScriptMultiplier": "1.2",
+      "exUnitPricesMemory": {"numerator": "577", "denominator": "10000"},
+      "exUnitPricesSteps": {"numerator": "721", "denominator": "10000000"},
+      "plutusV3CostModel": [0]
+    }).to_string();
+    let cml_hex = build_escrow_redeem_transaction_hex(&args).unwrap();
+    let cml_cbor = hex::decode(cml_hex.split('|').next().unwrap()).unwrap();
+
+    let address = csl::Address::from_bech32(key_address).unwrap();
+    let script = csl::PlutusScript::new_v3(script_bytes);
+    let ref_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("02".repeat(32)).unwrap()).unwrap(),
+      0,
+    );
+    let script_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+      0,
+    );
+    let funding_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("03".repeat(32)).unwrap()).unwrap(),
+      0,
+    );
+    let collateral_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("04".repeat(32)).unwrap()).unwrap(),
+      0,
+    );
+    let fee_algo = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&fee_algo)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .ref_script_coins_per_byte(&csl::UnitInterval::new(&csl::BigNum::from_str("15").unwrap(), &csl::BigNum::one()))
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_output(&csl::TransactionOutput::new(
+      &address,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    )).unwrap();
+    builder.set_validity_start_interval_bignum(&csl::BigNum::from_str("100").unwrap());
+    builder.set_ttl_bignum(&csl::BigNum::from_str("1000").unwrap());
+    builder.add_script_reference_input(&ref_input, 3);
+    let script_source = csl::PlutusScriptSource::new_ref_input(
+      &script.hash(), &ref_input, &csl::Language::new_plutus_v3(), 3,
+    );
+    let datum = csl::PlutusData::from_bytes(hex::decode("d87980").unwrap()).unwrap();
+    let datum_source = csl::DatumSource::new(&datum);
+    let redeemer = csl::Redeemer::new(
+      &csl::RedeemerTag::new_spend(),
+      &csl::BigNum::zero(),
+      &csl::PlutusData::from_bytes(hex::decode("d87980").unwrap()).unwrap(),
+      &csl::ExUnits::new(&csl::BigNum::from_str("900000").unwrap(), &csl::BigNum::from_str("250000000").unwrap()),
+    );
+    let witness = csl::PlutusWitness::new_with_ref(&script_source, &datum_source, &redeemer);
+    builder.add_plutus_script_input(
+      &witness, &script_input, &csl::Value::new(&csl::BigNum::from_str("5000000").unwrap()),
+    );
+    builder.add_regular_input(
+      &address, &funding_input, &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+    ).unwrap();
+    let mut collateral = csl::TxInputsBuilder::new();
+    collateral.add_regular_input(
+      &address, &collateral_input, &csl::Value::new(&csl::BigNum::from_str("5000000").unwrap()),
+    ).unwrap();
+    builder.set_collateral(&collateral);
+    builder.set_total_collateral_and_return(&csl::BigNum::from_str("1000000").unwrap(), &address).unwrap();
+    let mut cost_models = csl::Costmdls::new();
+    let mut cost_model = csl::CostModel::new();
+    cost_model.set(0, &csl::Int::new_i32(0)).unwrap();
+    cost_models.insert(&csl::Language::new_plutus_v3(), &cost_model);
+    builder.calc_script_data_hash(&cost_models).unwrap();
+    builder.add_change_if_needed(&address).unwrap();
+    let csl_tx = builder.build_tx_unsafe().unwrap();
+    let csl_cbor = csl_tx.to_bytes();
+    let first_difference = cml_cbor.iter().zip(&csl_cbor).position(|(left, right)| left != right);
+    assert_eq!(cml_cbor, csl_cbor, "first differing byte: {first_difference:?}, lengths: {} vs {}", cml_cbor.len(), csl_cbor.len());
   }
 
   #[test]

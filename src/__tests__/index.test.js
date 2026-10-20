@@ -484,6 +484,13 @@ describe('CSL mobile bridge source entrypoint', () => {
       fee: '168581',
     });
     expect(bridge.build_escrow_redeem_transaction_hex).toHaveBeenCalledWith(JSON.stringify(args));
+
+    const explicitDatumArgs = {
+      ...args,
+      scriptInput: {txHashHex: '01'.repeat(32), index: '0', address: 'script', lovelace: '9000000', assets: [], datumCborHex: 'd87980'},
+    };
+    moduleExports.buildEscrowRedeemTransactionCml(explicitDatumArgs);
+    expect(bridge.build_escrow_redeem_transaction_hex).toHaveBeenLastCalledWith(JSON.stringify(explicitDatumArgs));
   });
 
   it('packs a native script input and exact witness-count fee hint', () => {
