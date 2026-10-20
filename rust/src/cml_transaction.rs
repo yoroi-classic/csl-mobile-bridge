@@ -2340,6 +2340,84 @@ mod tests {
   }
 
   #[test]
+  fn stake_delegation_and_key_withdrawal_together_match_csl_body_fee_and_witnesses() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let stake_hash_hex = "aa".repeat(28);
+    let pool_hash_hex = "bb".repeat(28);
+    let stake_hash = csl::Ed25519KeyHash::from_bytes(hex::decode(&stake_hash_hex).unwrap()).unwrap();
+    let pool_hash = csl::Ed25519KeyHash::from_bytes(hex::decode(&pool_hash_hex).unwrap()).unwrap();
+    let reward = csl::RewardAddress::new(0, &csl::Credential::from_keyhash(&stake_hash))
+      .to_address().to_bech32(None).unwrap();
+    let certificates = serde_json::json!([{
+      "kind": "StakeDelegation",
+      "stakeCredentialKeyHashHex": stake_hash_hex,
+      "poolKeyHash": pool_hash_hex,
+    }]).to_string();
+    let withdrawals = serde_json::json!([{"rewardAddress": reward, "amount": "3500000"}]).to_string();
+    let encode = |value: &str| value.as_bytes().iter().map(|byte| format!("%{:02X}", byte)).collect::<String>();
+    let args = format!(
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000|-|-|{}|{}",
+      "07".repeat(32), address, address, address, encode(&certificates), encode(&withdrawals),
+    );
+    let cml = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
+
+    let addr = csl::Address::from_bech32(address).unwrap();
+    let fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_regular_input(
+      &addr,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("07".repeat(32)).unwrap()).unwrap(),
+        0,
+      ),
+      &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+    ).unwrap();
+    builder.add_output(&csl::TransactionOutput::new(
+      &addr,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    )).unwrap();
+    builder.set_ttl(123456);
+    let credential = csl::Credential::from_keyhash(&stake_hash);
+    let certificate = csl::Certificate::new_stake_delegation(
+      &csl::StakeDelegation::new(&credential, &pool_hash),
+    );
+    let mut certs = csl::Certificates::new();
+    certs.add(&certificate);
+    builder.set_certs(&certs).unwrap();
+    let mut csl_withdrawals = csl::Withdrawals::new();
+    csl_withdrawals.insert(
+      &csl::RewardAddress::from_address(&csl::Address::from_bech32(&reward).unwrap()).unwrap(),
+      &csl::BigNum::from_str("3500000").unwrap(),
+    );
+    builder.set_withdrawals(&csl_withdrawals);
+    assert!(builder.add_change_if_needed(&addr).unwrap());
+    let body = builder.build().unwrap();
+    let expected = csl::Transaction::new(&body, &csl::TransactionWitnessSet::new(), None).to_bytes();
+    assert_eq!(cml_cbor, expected);
+  }
+
+  #[test]
   fn vote_delegation_drep_variants_match_csl_and_invalid_drep_is_rejected() {
     use cardano_serialization_lib as csl;
 
