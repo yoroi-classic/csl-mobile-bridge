@@ -93,6 +93,12 @@ struct AdditionalScriptInputArgs {
   script_hash_hex: String,
   #[serde(default)]
   plutus_version: Option<String>,
+  #[serde(default)]
+  reference_script_input: Option<ScriptUtxoArgs>,
+  #[serde(default)]
+  reference_script_cbor_hex: Option<String>,
+  #[serde(default)]
+  reference_script_size: Option<String>,
   redeemer_cbor_hex: String,
   redeemer_mem: String,
   redeemer_steps: String,
@@ -675,6 +681,43 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     reference_output,
   ));
 
+  let mut used_languages = vec![language];
+  let mut reference_script_sizes = vec![(args.reference_script_input.tx_hash_hex.to_ascii_lowercase(), args.reference_script_input.index.clone(), reference_script_size)];
+  for spend in &args.additional_script_inputs {
+    let (language_index, spend_language) = parse_plutus_language(spend.plutus_version.as_deref().or(args.plutus_version.as_deref()))?;
+    if !config_models.inner.contains_key(&language_index) {
+      return Err(format!("missing cost model for Plutus {}", spend.plutus_version.as_deref().or(args.plutus_version.as_deref()).unwrap_or("V3")));
+    }
+    if !used_languages.contains(&spend_language) { used_languages.push(spend_language); }
+    match (&spend.reference_script_input, &spend.reference_script_cbor_hex, &spend.reference_script_size) {
+      (Some(utxo), Some(cbor), Some(size)) => {
+        let bytes = hex::decode(cbor).map_err(|err| format!("invalid additional reference script CBOR: {err}"))?;
+        let size_num = parse_u64(size, "additional reference script size")?;
+        if bytes.len() as u64 != size_num { return Err("additional reference script size does not match supplied script bytes".to_owned()); }
+        let script = match spend_language {
+          Language::PlutusV1 => Script::new_plutus_v1(cml_chain::plutus::PlutusV1Script::new(bytes)),
+          Language::PlutusV2 => Script::new_plutus_v2(cml_chain::plutus::PlutusV2Script::new(bytes)),
+          Language::PlutusV3 => Script::new_plutus_v3(cml_chain::plutus::PlutusV3Script::new(bytes)),
+        };
+        let hash = ScriptHash::from_raw_bytes(&hex::decode(&spend.script_hash_hex).map_err(|err| format!("invalid additional script hash: {err}"))?).map_err(|err| err.to_string())?;
+        if script.hash() != hash { return Err("additional reference script bytes do not match requested script hash".to_owned()); }
+        let (input, mut output) = parse_input(utxo)?;
+        match &mut output { TransactionOutput::ConwayFormatTxOut(output) => output.script_reference = Some(script), _ => return Err("additional reference output is not Conway format".to_owned()) }
+        builder.add_reference_input(cml_chain::builders::tx_builder::TransactionUnspentOutput::new(input, output));
+        reference_script_sizes.push((utxo.tx_hash_hex.to_ascii_lowercase(), utxo.index.clone(), size_num));
+      }
+      (None, None, None) => {},
+      _ => return Err("additional reference script requires UTxO, CBOR, and size".to_owned()),
+    }
+  }
+  used_languages.sort_by_key(|language| match language {
+    // CBOR canonical key ordering puts integer language IDs before the
+    // Plutus V1 byte-string key, whose wire encoding is the historical bug.
+    Language::PlutusV2 => 0,
+    Language::PlutusV3 => 1,
+    Language::PlutusV1 => 2,
+  });
+
   for reference_input in &args.reference_inputs {
     let (input, output) = parse_input(reference_input)?;
     builder.add_reference_input(
@@ -768,16 +811,14 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
   );
 
   for spend in &args.additional_script_inputs {
-    let (_, spend_language) = parse_plutus_language(spend.plutus_version.as_deref().or(args.plutus_version.as_deref()))?;
-    if spend_language != language {
-      return Err("all script spends must use the same Plutus language version".to_owned());
-    }
+    let (_, _spend_language) = parse_plutus_language(spend.plutus_version.as_deref().or(args.plutus_version.as_deref()))?;
     let spend_hash_bytes = hex::decode(&spend.script_hash_hex)
       .map_err(|err| format!("invalid additional script hash: {err}"))?;
     let spend_hash = ScriptHash::from_raw_bytes(&spend_hash_bytes).map_err(|err| err.to_string())?;
-    if spend_hash != expected_hash {
-      return Err("all script spends must use the configured reference script hash".to_owned());
-    }
+    let spend_hash_for_witness = if spend.reference_script_input.is_some() { spend_hash.clone() } else {
+      if spend_hash != expected_hash { return Err("additional script hash requires its own reference script output".to_owned()); }
+      spend_hash.clone()
+    };
     let (input, mut output) = parse_input(&spend.script_input)?;
     let inline_datum = spend.script_input.inline_datum_cbor_hex.as_deref()
       .map(|hex| hex::decode(hex).map_err(|err| format!("invalid inline datum CBOR: {err}")))
@@ -796,7 +837,7 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
       .map_err(|err| format!("invalid redeemer CBOR: {err}"))?;
     let redeemer = PlutusData::from_cbor_bytes(&redeemer_bytes).map_err(|err| err.to_string())?;
     let witness = PartialPlutusWitness::new(
-      PlutusScriptWitness::Ref(expected_hash.clone()),
+      PlutusScriptWitness::Ref(spend_hash_for_witness),
       redeemer,
     );
     let input_builder = SingleInputBuilder::new(input, output);
@@ -893,7 +934,7 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
       redeemers,
       &datums,
       &config_models,
-      &[language],
+      &used_languages,
       None,
     )
     .map_err(|err| err.to_string())?;
@@ -906,7 +947,14 @@ pub fn build_escrow_redeem_transaction_hex(args: &str) -> Result<String, String>
     as u64;
   let mut reference_script_fee = 0;
   if let Some(cost) = &args.ref_script_coins_per_byte {
-    let size = reference_script_size;
+    reference_script_sizes.sort();
+    for pair in reference_script_sizes.windows(2) {
+      if pair[0].0 == pair[1].0 && pair[0].1 == pair[1].1 && pair[0].2 != pair[1].2 {
+        return Err("the same reference input has conflicting script sizes".to_owned());
+      }
+    }
+    reference_script_sizes.dedup_by(|a, b| a.0 == b.0 && a.1 == b.1);
+    let size = reference_script_sizes.iter().try_fold(0u64, |total, entry| total.checked_add(entry.2).ok_or("reference script size overflow"))?;
     let tier_step = parse_u64(
       args.ref_script_tier_step_bytes.as_deref().ok_or("reference script tier step missing")?,
       "reference script tier step",
@@ -1753,12 +1801,15 @@ mod tests {
 
     for version in ["V1", "V2", "V3"] {
     let script_bytes = vec![1, 0, 0];
+    let second_script_bytes = vec![2, 0, 0];
     let cml_script = match version {
       "V1" => Script::new_plutus_v1(cml_chain::plutus::PlutusV1Script::new(script_bytes.clone())),
       "V2" => Script::new_plutus_v2(cml_chain::plutus::PlutusV2Script::new(script_bytes.clone())),
       _ => Script::new_plutus_v3(cml_chain::plutus::PlutusV3Script::new(script_bytes.clone())),
     };
     let script_hash_hex = hex::encode(cml_script.hash().to_raw_bytes());
+    let second_script = Script::new_plutus_v2(cml_chain::plutus::PlutusV2Script::new(second_script_bytes.clone()));
+    let second_script_hash_hex = hex::encode(second_script.hash().to_raw_bytes());
     let key_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let script_hash = csl::ScriptHash::from_bytes(hex::decode(&script_hash_hex).unwrap()).unwrap();
     let script_address = csl::EnterpriseAddress::new(
@@ -1768,11 +1819,19 @@ mod tests {
     .to_address()
     .to_bech32(None)
     .unwrap();
+    let second_script_hash = csl::ScriptHash::from_bytes(hex::decode(&second_script_hash_hex).unwrap()).unwrap();
+    let second_script_address = csl::EnterpriseAddress::new(
+      csl::NetworkInfo::new(0, 1).network_id(),
+      &csl::Credential::from_scripthash(&second_script_hash),
+    ).to_address().to_bech32(None).unwrap();
     let args = serde_json::json!({
       "scriptInput": {"txHashHex": "01".repeat(32), "index": "0", "address": script_address, "lovelace": "5000000", "assets": [], "inlineDatumCborHex": "d87980"},
       "additionalScriptInputs": [{
-        "scriptInput": {"txHashHex": "06".repeat(32), "index": "0", "address": script_address, "lovelace": "5000000", "assets": [], "datumCborHex": "d87980"},
-        "scriptHashHex": script_hash_hex, "redeemerCborHex": "80", "redeemerMem": "100", "redeemerSteps": "200"
+        "scriptInput": {"txHashHex": "06".repeat(32), "index": "0", "address": second_script_address, "lovelace": "5000000", "assets": [], "datumCborHex": "d87980"},
+        "scriptHashHex": second_script_hash_hex, "plutusVersion": "V2",
+        "referenceScriptInput": {"txHashHex": "08".repeat(32), "index": "0", "address": key_address, "lovelace": "2000000", "assets": []},
+        "referenceScriptCborHex": hex::encode(&second_script_bytes), "referenceScriptSize": "3",
+        "redeemerCborHex": "80", "redeemerMem": "100", "redeemerSteps": "200"
       }],
       "referenceScriptInput": {"txHashHex": "02".repeat(32), "index": "0", "address": key_address, "lovelace": "2000000", "assets": []},
       "referenceInputs": [{"txHashHex": "05".repeat(32), "index": "1", "address": key_address, "lovelace": "3000000", "assets": []}],
@@ -1810,6 +1869,10 @@ mod tests {
     let second_ref_input = csl::TransactionInput::new(
       &csl::TransactionHash::from_bytes(hex::decode("05".repeat(32)).unwrap()).unwrap(),
       1,
+    );
+    let third_ref_input = csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("08".repeat(32)).unwrap()).unwrap(),
+      0,
     );
     let script_input = csl::TransactionInput::new(
       &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
@@ -1859,6 +1922,7 @@ mod tests {
     builder.set_validity_start_interval_bignum(&csl::BigNum::from_str("100").unwrap());
     builder.set_ttl_bignum(&csl::BigNum::from_str("1000").unwrap());
     builder.add_script_reference_input(&ref_input, 3);
+    builder.add_script_reference_input(&third_ref_input, 3);
     builder.add_reference_input(&second_ref_input);
     let script_source = csl::PlutusScriptSource::new_ref_input(
       &script.hash(), &ref_input, &language, 3,
@@ -1882,7 +1946,11 @@ mod tests {
       &csl::PlutusData::from_bytes(hex::decode("80").unwrap()).unwrap(),
       &csl::ExUnits::new(&csl::BigNum::from_str("100").unwrap(), &csl::BigNum::from_str("200").unwrap()),
     );
-    let second_witness = csl::PlutusWitness::new_with_ref(&script_source, &second_datum_source, &second_redeemer);
+    let second_script = csl::PlutusScript::new_v2(second_script_bytes);
+    let second_script_source = csl::PlutusScriptSource::new_ref_input(
+      &second_script.hash(), &third_ref_input, &csl::Language::new_plutus_v2(), 3,
+    );
+    let second_witness = csl::PlutusWitness::new_with_ref(&second_script_source, &second_datum_source, &second_redeemer);
     builder.add_plutus_script_input(
       &second_witness,
       &second_script_input,
@@ -1914,12 +1982,15 @@ mod tests {
     let mut cost_model = csl::CostModel::new();
     cost_model.set(0, &csl::Int::new_i32(0)).unwrap();
     cost_models.insert(&language, &cost_model);
+    cost_models.insert(&csl::Language::new_plutus_v2(), &cost_model);
     builder.calc_script_data_hash(&cost_models).unwrap();
     builder.add_change_if_needed(&address).unwrap();
     let csl_tx = builder.build_tx_unsafe().unwrap();
     let csl_cbor = csl_tx.to_bytes();
     let decoded_cml = cml_chain::transaction::Transaction::from_cbor_bytes(&cml_cbor).unwrap();
     let decoded_csl = cml_chain::transaction::Transaction::from_cbor_bytes(&csl_cbor).unwrap();
+    assert_eq!(decoded_cml.witness_set.redeemers.as_ref().unwrap().to_cbor_bytes(), decoded_csl.witness_set.redeemers.as_ref().unwrap().to_cbor_bytes(), "redeemer CBOR");
+    assert_eq!(decoded_cml.witness_set.plutus_datums.as_ref().unwrap().to_cbor_bytes(), decoded_csl.witness_set.plutus_datums.as_ref().unwrap().to_cbor_bytes(), "datum CBOR");
 
     // CSL 15 collects reference inputs through a HashSet before serialization, so
     // the array order in its CBOR is process-randomized. Compare that set
@@ -1939,6 +2010,8 @@ mod tests {
     cml_reference_input_cbor.sort();
     csl_reference_input_cbor.sort();
     assert_eq!(cml_reference_input_cbor, csl_reference_input_cbor);
+    assert_eq!(decoded_cml.body.fee, decoded_csl.body.fee, "fee parity");
+    assert_eq!(decoded_cml.body.script_data_hash, decoded_csl.body.script_data_hash, "script-data hash parity");
     assert_eq!(cml_body.to_cbor_bytes(), csl_body.to_cbor_bytes());
     assert_eq!(decoded_cml.witness_set.to_cbor_bytes(), decoded_csl.witness_set.to_cbor_bytes());
     assert_eq!(decoded_cml.body.fee, decoded_csl.body.fee);
@@ -1946,17 +2019,8 @@ mod tests {
     let script_data_hash = hex::encode(
       decoded_cml.body.script_data_hash.as_ref().unwrap().to_raw_bytes(),
     );
-    assert_eq!(script_data_hash, match version {
-      "V1" => "f352f260e5b324cf8cc02edba67636c873a5a20bb9246e3b85e8fe5ba69f42bc",
-      "V2" => "2ffc7ce2cc19316543adf108df36e12e973d21f2cc6375a71e3c9ff2798ab6c6",
-      _ => "52e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e1608",
-    });
-    if version == "V3" {
-      assert_eq!(
-        hex::encode(&cml_cbor),
-        "84aa00d90102838258200101010101010101010101010101010101010101010101010101010101010101008258200303030303030303030303030303030303030303030303030303030303030303008258200606060606060606060606060606060606060606060606060606060606060606000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a010ebe39021a0003ea47031903e80818640b582052e6b41e79711d014fec55f8c3550e1af15a7e5108236f7dde2196e6677e16080dd901028282582004040404040404040404040404040404040404040404040404040404040404040082582007070707070707070707070707070707070707070707070707070707070707070010825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf821a007a1200a1581caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1410105111a000f424012d9010282825820020202020202020202020202020202020202020202020202020202020202020200825820050505050505050505050505050505050505050505050505050505050505050501a204d901029fd87980ff05a282000082d87980821a000dbba01a0ee6b280820002828082186418c8f5f6"
-      );
-    }
+    assert_eq!(script_data_hash, hex::encode(decoded_csl.body.script_data_hash.as_ref().unwrap().to_raw_bytes()));
+    assert_eq!(build_escrow_redeem_transaction_hex(&args).unwrap(), cml_hex, "CML mixed-language serialization is deterministic");
     }
   }
 

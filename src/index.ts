@@ -213,6 +213,9 @@ export type EscrowCmlTransactionArguments = {
     scriptInput: EscrowCmlUtxo;
     scriptHashHex: string;
     plutusVersion?: 'V1' | 'V2' | 'V3';
+    referenceScriptInput?: EscrowCmlUtxo;
+    referenceScriptCborHex?: string;
+    referenceScriptSize?: string;
     redeemerCborHex: string;
     redeemerMem: string;
     redeemerSteps: string;
