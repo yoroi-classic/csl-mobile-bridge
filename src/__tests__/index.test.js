@@ -154,6 +154,9 @@ const createBridgeFixture = () => {
       bech32: `bech32:${address}`,
       keyHashHex: 'ab'.repeat(28),
     })),
+    sign_transaction_hex: jest.fn((transactionHex, privateKeyHex) =>
+      `${transactionHex}:${privateKeyHex}`
+    ),
     reward_address_hex_from_account_public_key: jest.fn(
       (accountPublicKeyHex, network, role, index) =>
         `${network}:${role}:${index}:${accountPublicKeyHex}`
@@ -284,6 +287,15 @@ describe('CSL mobile bridge source entrypoint', () => {
     expect(bridge.reward_address_details_from_address).toHaveBeenCalledWith(
       fixtures.address
     );
+  });
+
+  it('routes transaction signing to the native CML helper', () => {
+    const { bridge, moduleExports } = loadBridge();
+
+    expect(moduleExports.signTransactionHex('cbor', 'private-key')).toBe(
+      'cbor:private-key'
+    );
+    expect(bridge.sign_transaction_hex).toHaveBeenCalledWith('cbor', 'private-key');
   });
 
   it('routes xpub reward-address derivation to the native CML helper', () => {

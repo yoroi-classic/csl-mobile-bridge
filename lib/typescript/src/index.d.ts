@@ -8,6 +8,7 @@ export declare const rewardAddressDetailsFromAddress: (address: string) => {
     bech32: string;
     keyHashHex: string;
 };
+export declare const signTransactionHex: (transactionHex: string, privateKeyHex: string) => string;
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export declare const addressToHex: (address: string) => string;
 /** CML-native helper exposed alongside the legacy CSL object bridge. */

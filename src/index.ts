@@ -38,6 +38,19 @@ export const rewardAddressDetailsFromAddress = (
   return cmlBridge.reward_address_details_from_address(address);
 };
 
+export const signTransactionHex = (
+  transactionHex: string,
+  privateKeyHex: string,
+): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    sign_transaction_hex: (
+      transactionHex: string,
+      privateKeyHex: string,
+    ) => string;
+  };
+  return cmlBridge.sign_transaction_hex(transactionHex, privateKeyHex);
+};
+
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export const addressToHex = (address: string): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {
