@@ -430,13 +430,15 @@ describe('CSL mobile bridge source entrypoint', () => {
       keyDeposit: '2000000',
       poolDeposit: '500000000',
       maxValueSize: '5000',
+      certificates: [{kind: 'VoteDelegation', stakeCredentialKeyHashHex: 'aa'.repeat(28), drep: {KeyHash: 'bb'.repeat(28)}}],
       withdrawals: [{rewardAddress: 'stake_test1fixture', amount: '3500000'}],
     };
     const packed = [
       '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993,-,-',
       'addr_test_output,2000000,-,-',
       'addr_test_change',
-      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-', '-', '-',
+      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-', '-',
+      '%5B%7B%22kind%22%3A%22VoteDelegation%22%2C%22stakeCredentialKeyHashHex%22%3A%22aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%22%2C%22drep%22%3A%7B%22KeyHash%22%3A%22bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%22%7D%7D%5D',
       '%5B%7B%22rewardAddress%22%3A%22stake_test1fixture%22%2C%22amount%22%3A%223500000%22%7D%5D',
     ].join('|');
 
