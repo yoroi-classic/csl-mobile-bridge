@@ -1453,10 +1453,14 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
   let collateral_inputs = transaction.body.collateral_inputs.as_ref().map(|set| set.iter().map(review_input_json).collect::<Vec<_>>());
   let reference_inputs = transaction.body.reference_inputs.as_ref().map(|set| set.iter().map(review_input_json).collect::<Vec<_>>());
   let withdrawals = transaction.body.withdrawals.as_ref().map(|entries| {
-    entries.iter().map(|(address, amount)| serde_json::json!({
-      "rewardAddress": serde_json::to_value(address).unwrap_or(serde_json::Value::Null),
-      "amount": amount.to_string(),
-    })).collect::<Vec<_>>()
+    entries.iter().map(|(address, amount)| {
+      let reward_address = address.clone().to_address();
+      serde_json::json!({
+        "rewardAddress": reward_address.to_bech32(None).ok(),
+        "rewardAddressHex": hex::encode(reward_address.to_raw_bytes()),
+        "amount": amount.to_string(),
+      })
+    }).collect::<Vec<_>>()
   });
   let required_signers = transaction.body.required_signers.as_ref().map(|signers| {
     signers.iter().map(|signer| hex::encode(signer.to_raw_bytes())).collect::<Vec<_>>()
@@ -1501,7 +1505,6 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
       "mint": transaction.body.mint.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
       "scriptDataHashHex": transaction.body.script_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
       "auxiliaryDataHashHex": transaction.body.auxiliary_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
-      "auxiliaryDataHashHex": transaction.body.auxiliary_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
       "collateralInputs": collateral_inputs,
       "requiredSigners": required_signers,
       "networkId": transaction.body.network_id.map(|value| value.network.to_string()),
@@ -1539,10 +1542,22 @@ fn review_auxiliary_data_json(data: &cml_chain::auxdata::AuxiliaryData, cbor: &[
       (data.metadata.as_ref(), data.native_scripts.as_ref().map(|scripts| scripts.iter().collect()).unwrap_or_default(), plutus)
     }
   };
-  let metadata_labels = metadata.map(|metadata| metadata.entries.iter().map(|(label, value)| serde_json::json!({
-    "label": label.to_string(),
-    "data": serde_json::to_value(value).unwrap_or(serde_json::Value::Null),
-  })).collect::<Vec<_>>()).unwrap_or_default();
+  let metadata_labels = metadata.map(|metadata| metadata.entries.iter().map(|(label, value)| {
+    let basic_conversions_json = cml_chain::json::metadatums::decode_metadatum_to_json_value(
+      value,
+      cml_chain::json::metadatums::MetadataJsonSchema::BasicConversions,
+    ).ok().and_then(|decoded| decoded.to_string().ok());
+    let decoded_json = basic_conversions_json.as_ref().map(|text| {
+      serde_json::from_str::<serde_json::Value>(text)
+        .unwrap_or_else(|_| serde_json::Value::String(text.clone()))
+    });
+    serde_json::json!({
+      "label": label.to_string(),
+      "json": decoded_json,
+      "basicConversionsJson": basic_conversions_json,
+      "cmlJson": serde_json::to_value(value).unwrap_or(serde_json::Value::Null),
+    })
+  }).collect::<Vec<_>>()).unwrap_or_default();
   let native_scripts = native_scripts.iter().map(|script| serde_json::json!({
     "hashHex": hex::encode(script.hash().to_raw_bytes()),
     "cborHex": hex::encode(script.to_cbor_bytes()),
@@ -2564,6 +2579,8 @@ mod tests {
     ).unwrap();
     assert!(review["body"]["certificates"].is_array());
     assert_eq!(review["body"]["withdrawals"][0]["amount"], "3500000");
+    assert_eq!(review["body"]["withdrawals"][0]["rewardAddress"], reward);
+    assert!(review["body"]["withdrawals"][0]["rewardAddressHex"].is_string());
     assert_eq!(review["witnessSet"]["vkeys"], serde_json::json!([]));
 
     let addr = csl::Address::from_bech32(address).unwrap();
@@ -2931,6 +2948,13 @@ mod tests {
     );
     let cml_cbor = build_simple_payment_transaction_hex(&args).unwrap();
     let cml_cbor = hex::decode(cml_cbor.rsplit_once('|').unwrap().0).unwrap();
+    let review: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(&hex::encode(&cml_cbor)).unwrap(),
+    ).unwrap();
+    assert_eq!(
+      review["auxiliaryData"]["metadata"][0]["basicConversionsJson"],
+      r#"{"msg":["café | pipe",9007199254740993]}"#,
+    );
 
     let addr = csl::Address::from_bech32(address).unwrap();
     let linear_fee = csl::LinearFee::new(
