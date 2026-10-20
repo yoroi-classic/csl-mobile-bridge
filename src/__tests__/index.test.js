@@ -302,12 +302,13 @@ describe('CSL mobile bridge source entrypoint', () => {
   it('routes simple-payment building to the native CML helper with exact decimal fields', () => {
     const { bridge, moduleExports } = loadBridge();
     const args = {
-      inputTransactionHashHex: '01'.repeat(32),
-      inputIndex: '0',
-      inputAddress: 'addr_test_input',
-      inputLovelace: '10000000',
-      outputAddress: 'addr_test_output',
-      outputLovelace: '2000000',
+      inputs: [{
+        transactionHashHex: '01'.repeat(32),
+        index: '0',
+        address: 'addr_test_input',
+        lovelace: '10000000',
+      }],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000'}],
       changeAddress: 'addr_test_change',
       ttl: '123456',
       feeCoefficient: '44',
@@ -317,7 +318,12 @@ describe('CSL mobile bridge source entrypoint', () => {
       poolDeposit: '500000000',
       maxValueSize: '5000',
     };
-    const packed = Object.values(args).join('|');
+    const packed = [
+      '01'.repeat(32) + ',0,addr_test_input,10000000',
+      'addr_test_output,2000000',
+      'addr_test_change',
+      '123456', '44', '155381', '4310', '2000000', '500000000', '5000',
+    ].join('|');
 
     bridge.build_simple_payment_transaction_hex.mockReturnValue(`payment:${packed}|168581`);
     expect(moduleExports.buildSimplePaymentTransaction(args)).toEqual({

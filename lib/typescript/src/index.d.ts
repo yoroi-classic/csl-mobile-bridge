@@ -10,12 +10,16 @@ export declare const rewardAddressDetailsFromAddress: (address: string) => {
 };
 export declare const signTransactionHex: (transactionHex: string, privateKeyHex: string) => string;
 export type SimplePaymentBuilderArguments = {
-    inputTransactionHashHex: string;
-    inputIndex: string;
-    inputAddress: string;
-    inputLovelace: string;
-    outputAddress: string;
-    outputLovelace: string;
+    inputs: Array<{
+        transactionHashHex: string;
+        index: string;
+        address: string;
+        lovelace: string;
+    }>;
+    outputs: Array<{
+        address: string;
+        lovelace: string;
+    }>;
     changeAddress: string;
     ttl: string;
     feeCoefficient: string;
@@ -25,7 +29,7 @@ export type SimplePaymentBuilderArguments = {
     poolDeposit: string;
     maxValueSize: string;
 };
-/** Build the currently supported ADA-only one-input/one-output transaction with CML. */
+/** Build the currently supported ADA-only transaction with CML. */
 export declare const buildSimplePaymentTransaction: (args: SimplePaymentBuilderArguments) => {
     cborHex: string;
     fee: string;

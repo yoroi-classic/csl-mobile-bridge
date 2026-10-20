@@ -4,7 +4,7 @@ use cml_chain::transaction::Transaction;
 use cml_crypto::{PrivateKey, RawBytesEncoding};
 use std::convert::TryFrom;
 
-/// Build a one-input, one-output ADA payment using CML.
+/// Build an ADA-only payment using CML, with one or more inputs and outputs.
 ///
 /// The delimited argument format is intentionally narrow while the mobile
 /// builder API is being replaced. All integer quantities are decimal strings
@@ -27,29 +27,22 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   };
 
   let fields = args.split('|').collect::<Vec<_>>();
-  if fields.len() != 14 {
-    return Err(format!("expected 14 payment fields, received {}", fields.len()));
+  if fields.len() != 10 {
+    return Err(format!("expected 10 payment fields, received {}", fields.len()));
   }
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
     fields[index]
       .parse::<u64>()
       .map_err(|err| format!("invalid {name}: {err}"))
   };
-  let input_hash = hex::decode(fields[0]).map_err(|err| format!("invalid input hash: {err}"))?;
-  let input_hash = TransactionHash::from_raw_bytes(&input_hash).map_err(|err| err.to_string())?;
-  let input_index = parse_u64(1, "input index")?;
-  let input_address = Address::from_bech32(fields[2]).map_err(|err| err.to_string())?;
-  let input_coin = parse_u64(3, "input coin")?;
-  let output_address = Address::from_bech32(fields[4]).map_err(|err| err.to_string())?;
-  let output_coin = parse_u64(5, "output coin")?;
-  let change_address = Address::from_bech32(fields[6]).map_err(|err| err.to_string())?;
-  let ttl = parse_u64(7, "ttl")?;
-  let fee_coefficient = parse_u64(8, "fee coefficient")?;
-  let fee_constant = parse_u64(9, "fee constant")?;
-  let coins_per_utxo_byte = parse_u64(10, "coins per UTXO byte")?;
-  let key_deposit = parse_u64(11, "key deposit")?;
-  let pool_deposit = parse_u64(12, "pool deposit")?;
-  let max_value_size = u32::try_from(parse_u64(13, "max value size")?)
+  let change_address = Address::from_bech32(fields[2]).map_err(|err| err.to_string())?;
+  let ttl = parse_u64(3, "ttl")?;
+  let fee_coefficient = parse_u64(4, "fee coefficient")?;
+  let fee_constant = parse_u64(5, "fee constant")?;
+  let coins_per_utxo_byte = parse_u64(6, "coins per UTXO byte")?;
+  let key_deposit = parse_u64(7, "key deposit")?;
+  let pool_deposit = parse_u64(8, "pool deposit")?;
+  let max_value_size = u32::try_from(parse_u64(9, "max value size")?)
     .map_err(|err| format!("max value size is out of range: {err}"))?;
 
   let config = TransactionBuilderConfigBuilder::new()
@@ -68,23 +61,50 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     .prefer_pure_change(true)
     .build()
     .map_err(|err| err.to_string())?;
-  let input = TransactionInput::new(input_hash, input_index);
-  let utxo = TransactionOutput::new(input_address, Value::from(input_coin), None, None);
   let mut builder = TransactionBuilder::new(config);
-  builder
-    .add_input(SingleInputBuilder::new(input, utxo).payment_key().map_err(|err| err.to_string())?)
-    .map_err(|err| err.to_string())?;
-  builder
-    .add_output(
-      TransactionOutputBuilder::new()
-        .with_address(output_address)
-        .next()
-        .map_err(|err| err.to_string())?
-        .with_value(output_coin)
-        .build()
-        .map_err(|err| err.to_string())?,
-    )
-    .map_err(|err| err.to_string())?;
+  let inputs = fields[0].split(';').collect::<Vec<_>>();
+  if inputs.is_empty() || (inputs.len() == 1 && inputs[0].is_empty()) {
+    return Err("at least one input is required".to_owned());
+  }
+  for packed_input in inputs {
+    let input_fields = packed_input.split(',').collect::<Vec<_>>();
+    if input_fields.len() != 4 {
+      return Err("each input must contain hash,index,address,lovelace".to_owned());
+    }
+    let hash = hex::decode(input_fields[0]).map_err(|err| format!("invalid input hash: {err}"))?;
+    let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
+    let index = input_fields[1].parse::<u64>().map_err(|err| format!("invalid input index: {err}"))?;
+    let address = Address::from_bech32(input_fields[2]).map_err(|err| err.to_string())?;
+    let coin = input_fields[3].parse::<u64>().map_err(|err| format!("invalid input coin: {err}"))?;
+    let input = TransactionInput::new(hash, index);
+    let utxo = TransactionOutput::new(address, Value::from(coin), None, None);
+    builder
+      .add_input(SingleInputBuilder::new(input, utxo).payment_key().map_err(|err| err.to_string())?)
+      .map_err(|err| err.to_string())?;
+  }
+  let outputs = fields[1].split(';').collect::<Vec<_>>();
+  if outputs.is_empty() || (outputs.len() == 1 && outputs[0].is_empty()) {
+    return Err("at least one output is required".to_owned());
+  }
+  for packed_output in outputs {
+    let output_fields = packed_output.split(',').collect::<Vec<_>>();
+    if output_fields.len() != 2 {
+      return Err("each output must contain address,lovelace".to_owned());
+    }
+    let address = Address::from_bech32(output_fields[0]).map_err(|err| err.to_string())?;
+    let coin = output_fields[1].parse::<u64>().map_err(|err| format!("invalid output coin: {err}"))?;
+    builder
+      .add_output(
+        TransactionOutputBuilder::new()
+          .with_address(address)
+          .next()
+          .map_err(|err| err.to_string())?
+          .with_value(coin)
+          .build()
+          .map_err(|err| err.to_string())?,
+      )
+      .map_err(|err| err.to_string())?;
+  }
   builder.set_ttl(ttl);
   let tx = builder
     .build(ChangeSelectionAlgo::Default, &change_address)
@@ -130,7 +150,7 @@ mod tests {
   fn builds_simple_payment_with_csl_fee_change_and_serialization_parity() {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = format!(
-      "{}|0|{}|10000000|{}|2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000|{},2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32),
       address,
       address,
@@ -140,6 +160,23 @@ mod tests {
       build_simple_payment_transaction_hex(&args).unwrap(),
       "84a400d90102818258200101010101010101010101010101010101010101010101010101010101010101000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a00777f7b021a00029285031a0001e240a0f5f6|168581"
     );
+  }
+
+  #[test]
+  fn supports_multiple_payment_inputs_and_outputs() {
+    use cml_chain::{serialization::Deserialize, transaction::Transaction};
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let args = format!(
+      "{},0,{},5000000;{},1,{},5000000|{},2000000;{},2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "01".repeat(32), address, "02".repeat(32), address,
+      address, address, address,
+    );
+    let result = build_simple_payment_transaction_hex(&args).unwrap();
+    let cbor_hex = result.rsplit_once('|').unwrap().0;
+    let transaction = Transaction::from_cbor_bytes(&hex::decode(cbor_hex).unwrap()).unwrap();
+    assert_eq!(transaction.body.inputs.len(), 2);
+    assert_eq!(transaction.body.outputs.len(), 3); // two recipients and change
   }
 
   #[test]
@@ -251,7 +288,7 @@ mod tests {
 
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = CString::new(format!(
-      "{}|0|{}|10000000|{}|2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000|{},2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32), address, address, address,
     )).unwrap();
     let mut result = std::ptr::null();

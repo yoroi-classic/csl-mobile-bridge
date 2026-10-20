@@ -52,12 +52,13 @@ export const signTransactionHex = (
 };
 
 export type SimplePaymentBuilderArguments = {
-  inputTransactionHashHex: string;
-  inputIndex: string;
-  inputAddress: string;
-  inputLovelace: string;
-  outputAddress: string;
-  outputLovelace: string;
+  inputs: Array<{
+    transactionHashHex: string;
+    index: string;
+    address: string;
+    lovelace: string;
+  }>;
+  outputs: Array<{address: string; lovelace: string}>;
   changeAddress: string;
   ttl: string;
   feeCoefficient: string;
@@ -68,7 +69,7 @@ export type SimplePaymentBuilderArguments = {
   maxValueSize: string;
 };
 
-/** Build the currently supported ADA-only one-input/one-output transaction with CML. */
+/** Build the currently supported ADA-only transaction with CML. */
 export const buildSimplePaymentTransaction = (
   args: SimplePaymentBuilderArguments,
 ): {cborHex: string; fee: string} => {
@@ -77,12 +78,14 @@ export const buildSimplePaymentTransaction = (
   };
   const result = cmlBridge.build_simple_payment_transaction_hex(
     [
-      args.inputTransactionHashHex,
-      args.inputIndex,
-      args.inputAddress,
-      args.inputLovelace,
-      args.outputAddress,
-      args.outputLovelace,
+      args.inputs
+        .map(({transactionHashHex, index, address, lovelace}) =>
+          [transactionHashHex, index, address, lovelace].join(','),
+        )
+        .join(';'),
+      args.outputs
+        .map(({address, lovelace}) => [address, lovelace].join(','))
+        .join(';'),
       args.changeAddress,
       args.ttl,
       args.feeCoefficient,
