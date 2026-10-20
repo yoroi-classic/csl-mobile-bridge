@@ -51763,6 +51763,26 @@ static jsi::Object installBridgeExports(jsi::Runtime& rt) {
     )
   );
 
+  exports.setProperty(rt, "datum_info_from_output_cbor_hex",
+    jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "datum_info_from_output_cbor_hex"), 1,
+      [](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isString()) {
+          throw jsi::JSError(rt, "datum_info_from_output_cbor_hex(outputHex): expected a CBOR hex string");
+        }
+        const std::string outputHex = args[0].asString(rt).utf8(rt);
+        ScopedCharPtr result;
+        ScopedCharPtr error;
+        if (!cml_bridge_datum_info_from_output_cbor_hex(outputHex.c_str(), &result.ptr, &error.ptr)) {
+          throw jsi::JSError(rt, error.ptr ? error.ptr : "CML transaction output datum parsing failed");
+        }
+        if (!result.ptr) {
+          throw jsi::JSError(rt, "CML transaction output datum parser returned no result");
+        }
+        return jsi::String::createFromUtf8(rt, result.ptr);
+      }
+    )
+  );
+
   // reward_address_from_address(address, network): string (implemented by CML)
   exports.setProperty(rt, "reward_address_from_address",
     jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reward_address_from_address"), 2,

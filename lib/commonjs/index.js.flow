@@ -408,6 +408,14 @@ export const decodePlutusDataCborHex = (cborHex: string): string => {
   return cmlBridge.decode_plutus_data_cbor_hex(cborHex);
 };
 
+/** Extract inline datum/hash information from transaction-output CBOR. */
+export const datumInfoFromOutputCborHex = (outputCborHex: string): string => {
+  const cmlBridge = cslBridge as typeof bridgeTypes & {
+    datum_info_from_output_cbor_hex: (outputCborHex: string) => string;
+  };
+  return cmlBridge.datum_info_from_output_cbor_hex(outputCborHex);
+};
+
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export const rewardAddressFromAddress = (address: string, network: number): string => {
   const cmlBridge = cslBridge as typeof bridgeTypes & {

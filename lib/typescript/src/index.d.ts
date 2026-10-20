@@ -227,6 +227,8 @@ export declare const addressInfoFromAddress: (address: string) => {
 export declare const hashPlutusDataCborHex: (cborHex: string) => string;
 /** Decode serialized Plutus data into the Yoroi display structure with CML. */
 export declare const decodePlutusDataCborHex: (cborHex: string) => string;
+/** Extract inline datum/hash information from transaction-output CBOR. */
+export declare const datumInfoFromOutputCborHex: (outputCborHex: string) => string;
 /** CML-native helper exposed alongside the legacy CSL object bridge. */
 export declare const rewardAddressFromAddress: (address: string, network: number) => string;
 export declare const rewardAddressHexFromAccountPublicKey: (accountPublicKeyHex: string, network: number, role: number, index: number) => string;
