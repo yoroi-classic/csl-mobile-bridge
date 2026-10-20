@@ -67,4 +67,70 @@ mod tests {
       }
     }
   }
+
+  #[test]
+  fn cml_payment_builder_matches_csl_body_fee_and_change_fixture() {
+    use cml_chain::{
+      address::Address,
+      assets::Value,
+      builders::{
+        input_builder::SingleInputBuilder,
+        output_builder::TransactionOutputBuilder,
+        tx_builder::{ChangeSelectionAlgo, TransactionBuilder, TransactionBuilderConfigBuilder},
+      },
+      crypto::TransactionHash,
+      fees::LinearFee,
+      plutus::ExUnitPrices,
+      Rational,
+      serialization::Serialize,
+      transaction::{TransactionInput, TransactionOutput},
+    };
+
+    const ADDRESS_HEX: &str = "000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf";
+    const CSL_BODY_HEX: &str = "a400d90102818258200101010101010101010101010101010101010101010101010101010101010101000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a00777f7b021a00029285031a0001e240";
+
+    let address = Address::from_hex(ADDRESS_HEX).unwrap();
+    let config = TransactionBuilderConfigBuilder::new()
+      .fee_algo(LinearFee::new(44, 155381, 0))
+      .coins_per_utxo_byte(4310)
+      .ex_unit_prices(ExUnitPrices::new(
+        Rational::new(577, 10000),
+        Rational::new(721, 10000000),
+      ))
+      .pool_deposit(500000000)
+      .key_deposit(2000000)
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .collateral_percentage(150)
+      .max_collateral_inputs(3)
+      .build()
+      .unwrap();
+    let mut builder = TransactionBuilder::new(config);
+    let input = TransactionInput::new(TransactionHash::from([1u8; 32]), 0);
+    let utxo = TransactionOutput::new(address.clone(), Value::from(10000000), None, None);
+    builder
+      .add_input(SingleInputBuilder::new(input, utxo).payment_key().unwrap())
+      .unwrap();
+    builder
+      .add_output(
+        TransactionOutputBuilder::new()
+          .with_address(address.clone())
+          .next()
+          .unwrap()
+          .with_value(2000000)
+          .build()
+          .unwrap(),
+      )
+      .unwrap();
+    builder.set_ttl(123456);
+    let transaction = builder
+      .build(ChangeSelectionAlgo::Default, &address)
+      .unwrap()
+      .build_unchecked();
+
+    assert_eq!(hex::encode(transaction.body.to_cbor_bytes()), CSL_BODY_HEX);
+    assert_eq!(transaction.body.fee, 168581);
+    assert_eq!(transaction.body.outputs.len(), 2);
+    assert_eq!(transaction.body.outputs[1].amount().coin, 7831419);
+  }
 }
