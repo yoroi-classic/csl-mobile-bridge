@@ -1462,7 +1462,30 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
     signers.iter().map(|signer| hex::encode(signer.to_raw_bytes())).collect::<Vec<_>>()
   });
   let witness_set_cbor = transaction.witness_set.to_cbor_bytes();
+  let witnesses = &transaction.witness_set;
+  let vkeys = witnesses.vkeywitnesses.as_ref().map(|set| set.iter().map(|witness| serde_json::json!({
+    "publicKeyHex": hex::encode(witness.vkey.to_raw_bytes()),
+    "signatureHex": hex::encode(witness.ed25519_signature.to_raw_bytes()),
+  })).collect::<Vec<_>>()).unwrap_or_default();
+  let bootstraps = witnesses.bootstrap_witnesses.as_ref().map(|set| set.iter().map(|witness| serde_json::json!({
+    "publicKeyHex": hex::encode(witness.public_key.to_raw_bytes()),
+    "signatureHex": hex::encode(witness.signature.to_raw_bytes()),
+    "chainCodeHex": hex::encode(&witness.chain_code),
+    "attributes": serde_json::to_value(&witness.attributes).unwrap_or(serde_json::Value::Null),
+  })).collect::<Vec<_>>()).unwrap_or_default();
+  let native_scripts = witnesses.native_scripts.as_ref().map(|set| set.iter().map(|script| serde_json::json!({
+    "hashHex": hex::encode(script.hash().to_raw_bytes()),
+    "cborHex": hex::encode(script.to_cbor_bytes()),
+  })).collect::<Vec<_>>()).unwrap_or_default();
+  let plutus_scripts = [
+    witnesses.plutus_v1_scripts.as_ref().map(|set| set.iter().map(|script| serde_json::json!({"type":"plutusV1", "hashHex":hex::encode(script.hash().to_raw_bytes()), "bytesHex":hex::encode(script.to_raw_bytes()), "cborHex":hex::encode(script.to_cbor_bytes())})).collect::<Vec<_>>()).unwrap_or_default(),
+    witnesses.plutus_v2_scripts.as_ref().map(|set| set.iter().map(|script| serde_json::json!({"type":"plutusV2", "hashHex":hex::encode(script.hash().to_raw_bytes()), "bytesHex":hex::encode(script.to_raw_bytes()), "cborHex":hex::encode(script.to_cbor_bytes())})).collect::<Vec<_>>()).unwrap_or_default(),
+    witnesses.plutus_v3_scripts.as_ref().map(|set| set.iter().map(|script| serde_json::json!({"type":"plutusV3", "hashHex":hex::encode(script.hash().to_raw_bytes()), "bytesHex":hex::encode(script.to_raw_bytes()), "cborHex":hex::encode(script.to_cbor_bytes())})).collect::<Vec<_>>()).unwrap_or_default(),
+  ].concat();
+  let plutus_data = witnesses.plutus_datums.as_ref().map(|set| set.iter().map(|datum| hex::encode(datum.to_cbor_bytes())).collect::<Vec<_>>()).unwrap_or_default();
+  let redeemers = witnesses.redeemers.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null));
   let auxiliary_data_cbor = transaction.auxiliary_data.as_ref().map(|data| data.to_cbor_bytes());
+  let auxiliary_data = transaction.auxiliary_data.as_ref().map(|data| review_auxiliary_data_json(data, auxiliary_data_cbor.as_deref().unwrap_or_default()));
   serde_json::to_string(&serde_json::json!({
     "transactionIdHex": hex::encode(transaction.body.hash().to_raw_bytes()),
     "isValid": transaction.is_valid,
@@ -1477,6 +1500,8 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
       "withdrawals": withdrawals,
       "mint": transaction.body.mint.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
       "scriptDataHashHex": transaction.body.script_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
+      "auxiliaryDataHashHex": transaction.body.auxiliary_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
+      "auxiliaryDataHashHex": transaction.body.auxiliary_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
       "collateralInputs": collateral_inputs,
       "requiredSigners": required_signers,
       "networkId": transaction.body.network_id.map(|value| value.network.to_string()),
@@ -1490,13 +1515,45 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
     },
     "witnessSet": {
       "cborHex": hex::encode(witness_set_cbor),
-      "json": serde_json::to_value(&transaction.witness_set).unwrap_or(serde_json::Value::Null),
+      "vkeys": vkeys,
+      "bootstraps": bootstraps,
+      "nativeScripts": native_scripts,
+      "plutusScripts": plutus_scripts,
+      "plutusDataCborHex": plutus_data,
+      "redeemers": redeemers,
+      "cmlJson": serde_json::to_value(&transaction.witness_set).unwrap_or(serde_json::Value::Null),
     },
-    "auxiliaryData": transaction.auxiliary_data.as_ref().map(|data| serde_json::json!({
-      "cborHex": hex::encode(auxiliary_data_cbor.unwrap_or_default()),
-      "json": serde_json::to_value(data).unwrap_or(serde_json::Value::Null),
-    })),
+    "auxiliaryData": auxiliary_data,
   })).map_err(|err| err.to_string())
+}
+
+fn review_auxiliary_data_json(data: &cml_chain::auxdata::AuxiliaryData, cbor: &[u8]) -> serde_json::Value {
+  let (metadata, native_scripts, plutus_scripts) = match data {
+    cml_chain::auxdata::AuxiliaryData::Shelley(metadata) => (Some(metadata), Vec::new(), Vec::new()),
+    cml_chain::auxdata::AuxiliaryData::ShelleyMA(data) => (Some(&data.transaction_metadata), data.auxiliary_scripts.iter().collect(), Vec::new()),
+    cml_chain::auxdata::AuxiliaryData::Conway(data) => {
+      let mut plutus = Vec::new();
+      if let Some(scripts) = &data.plutus_v1_scripts { plutus.extend(scripts.iter().map(|script| serde_json::json!({"type":"plutusV1","hashHex":hex::encode(script.hash().to_raw_bytes()),"bytesHex":hex::encode(script.to_raw_bytes()),"cborHex":hex::encode(script.to_cbor_bytes())}))); }
+      if let Some(scripts) = &data.plutus_v2_scripts { plutus.extend(scripts.iter().map(|script| serde_json::json!({"type":"plutusV2","hashHex":hex::encode(script.hash().to_raw_bytes()),"bytesHex":hex::encode(script.to_raw_bytes()),"cborHex":hex::encode(script.to_cbor_bytes())}))); }
+      if let Some(scripts) = &data.plutus_v3_scripts { plutus.extend(scripts.iter().map(|script| serde_json::json!({"type":"plutusV3","hashHex":hex::encode(script.hash().to_raw_bytes()),"bytesHex":hex::encode(script.to_raw_bytes()),"cborHex":hex::encode(script.to_cbor_bytes())}))); }
+      (data.metadata.as_ref(), data.native_scripts.as_ref().map(|scripts| scripts.iter().collect()).unwrap_or_default(), plutus)
+    }
+  };
+  let metadata_labels = metadata.map(|metadata| metadata.entries.iter().map(|(label, value)| serde_json::json!({
+    "label": label.to_string(),
+    "data": serde_json::to_value(value).unwrap_or(serde_json::Value::Null),
+  })).collect::<Vec<_>>()).unwrap_or_default();
+  let native_scripts = native_scripts.iter().map(|script| serde_json::json!({
+    "hashHex": hex::encode(script.hash().to_raw_bytes()),
+    "cborHex": hex::encode(script.to_cbor_bytes()),
+  })).collect::<Vec<_>>();
+  serde_json::json!({
+    "cborHex": hex::encode(cbor),
+    "metadata": metadata_labels,
+    "nativeScripts": native_scripts,
+    "plutusScripts": plutus_scripts,
+    "cmlJson": serde_json::to_value(data).unwrap_or(serde_json::Value::Null),
+  })
 }
 
 fn review_input_json(input: &cml_chain::transaction::TransactionInput) -> serde_json::Value {
@@ -1535,7 +1592,10 @@ fn review_output_json(output: &cml_chain::transaction::TransactionOutput) -> ser
     "cborHex": hex::encode(script.to_cbor_bytes()),
   }));
   serde_json::json!({
-    "address": output.address().to_bech32(None).ok(),
+    "address": match output.address() {
+      cml_chain::address::Address::Byron(address) => Some(address.to_base58()),
+      _ => output.address().to_bech32(None).ok(),
+    },
     "addressHex": hex::encode(output.address().to_raw_bytes()),
     "networkId": output.address().network_id().ok().map(|network| network.to_string()),
     "addressKind": format!("{:?}", output.address().kind()),
@@ -1563,7 +1623,8 @@ mod tests {
     build_simple_payment_transaction_hex, calculate_reference_script_fee,
     derive_account_public_key_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data,
     sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
-    transaction_review_info_json, transaction_validation_info_json, transaction_witness_set_hex,
+    review_output_json, transaction_review_info_json, transaction_validation_info_json,
+    transaction_witness_set_hex,
     wallet_root_key_hex_from_entropy,
   };
 
@@ -1752,6 +1813,19 @@ mod tests {
     assert!(actual["witnessSet"]["cborHex"].is_string());
     assert!(actual["auxiliaryData"].is_null());
     assert!(transaction_review_info_json("zz").unwrap_err().contains("invalid transaction hex"));
+  }
+
+  #[test]
+  fn transaction_review_output_keeps_byron_address_base58() {
+    let address = "Ae2tdPwUPEZHtBmjZBF4YpMkK9tMSPTE2ADEZTPN97saNkhG78TvXdp3GDk";
+    let byron = cml_chain::byron::ByronAddress::from_base58(address).unwrap().to_address();
+    let output = cml_chain::transaction::TransactionOutput::new(
+      byron,
+      cml_chain::Value::zero(),
+      None,
+      None,
+    );
+    assert_eq!(review_output_json(&output)["address"], address);
   }
 
   #[test]
@@ -2224,7 +2298,6 @@ mod tests {
     );
     let cml = build_simple_payment_transaction_hex(&args).unwrap();
     let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
-
     let addr = csl::Address::from_bech32(address).unwrap();
     let fee = csl::LinearFee::new(
       &csl::BigNum::from_str("44").unwrap(),
@@ -2486,6 +2559,12 @@ mod tests {
     );
     let cml = build_simple_payment_transaction_hex(&args).unwrap();
     let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
+    let review: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(&hex::encode(&cml_cbor)).unwrap(),
+    ).unwrap();
+    assert!(review["body"]["certificates"].is_array());
+    assert_eq!(review["body"]["withdrawals"][0]["amount"], "3500000");
+    assert_eq!(review["witnessSet"]["vkeys"], serde_json::json!([]));
 
     let addr = csl::Address::from_bech32(address).unwrap();
     let fee = csl::LinearFee::new(
