@@ -57,8 +57,13 @@ export type SimplePaymentBuilderArguments = {
     index: string;
     address: string;
     lovelace: string;
+    assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
   }>;
-  outputs: Array<{address: string; lovelace: string}>;
+  outputs: Array<{
+    address: string;
+    lovelace: string;
+    assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+  }>;
   changeAddress: string;
   ttl: string;
   feeCoefficient: string;
@@ -79,12 +84,19 @@ export const buildSimplePaymentTransaction = (
   const result = cmlBridge.build_simple_payment_transaction_hex(
     [
       args.inputs
-        .map(({transactionHashHex, index, address, lovelace}) =>
-          [transactionHashHex, index, address, lovelace].join(','),
+        .map(({transactionHashHex, index, address, lovelace, assets}) =>
+          [transactionHashHex, index, address, lovelace,
+            (assets ?? [])
+              .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
+          ].join(','),
         )
         .join(';'),
       args.outputs
-        .map(({address, lovelace}) => [address, lovelace].join(','))
+        .map(({address, lovelace, assets}) => [
+          address,
+          lovelace,
+          (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
+        ].join(','))
         .join(';'),
       args.changeAddress,
       args.ttl,

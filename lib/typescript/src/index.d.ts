@@ -15,10 +15,20 @@ export type SimplePaymentBuilderArguments = {
         index: string;
         address: string;
         lovelace: string;
+        assets?: Array<{
+            policyIdHex: string;
+            assetNameHex: string;
+            quantity: string;
+        }>;
     }>;
     outputs: Array<{
         address: string;
         lovelace: string;
+        assets?: Array<{
+            policyIdHex: string;
+            assetNameHex: string;
+            quantity: string;
+        }>;
     }>;
     changeAddress: string;
     ttl: string;

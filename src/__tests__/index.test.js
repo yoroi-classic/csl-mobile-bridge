@@ -307,8 +307,9 @@ describe('CSL mobile bridge source entrypoint', () => {
         index: '0',
         address: 'addr_test_input',
         lovelace: '10000000',
+        assets: [{policyIdHex: 'ab'.repeat(28), assetNameHex: '00ff', quantity: '9007199254740993'}],
       }],
-      outputs: [{address: 'addr_test_output', lovelace: '2000000'}],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000', assets: []}],
       changeAddress: 'addr_test_change',
       ttl: '123456',
       feeCoefficient: '44',
@@ -319,8 +320,8 @@ describe('CSL mobile bridge source entrypoint', () => {
       maxValueSize: '5000',
     };
     const packed = [
-      '01'.repeat(32) + ',0,addr_test_input,10000000',
-      'addr_test_output,2000000',
+      '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993',
+      'addr_test_output,2000000,-',
       'addr_test_change',
       '123456', '44', '155381', '4310', '2000000', '500000000', '5000',
     ].join('|');

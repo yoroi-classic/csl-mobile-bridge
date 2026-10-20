@@ -1,6 +1,7 @@
 use cml_chain::crypto::Vkeywitness;
 use cml_chain::serialization::{Deserialize, Serialize};
 use cml_chain::transaction::Transaction;
+use cml_chain::{assets::{AssetName, MultiAsset}, crypto::ScriptHash};
 use cml_crypto::{PrivateKey, RawBytesEncoding};
 use std::convert::TryFrom;
 
@@ -68,8 +69,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   }
   for packed_input in inputs {
     let input_fields = packed_input.split(',').collect::<Vec<_>>();
-    if input_fields.len() != 4 {
-      return Err("each input must contain hash,index,address,lovelace".to_owned());
+    if input_fields.len() != 5 {
+      return Err("each input must contain hash,index,address,lovelace,assets".to_owned());
     }
     let hash = hex::decode(input_fields[0]).map_err(|err| format!("invalid input hash: {err}"))?;
     let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
@@ -77,7 +78,7 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     let address = Address::from_bech32(input_fields[2]).map_err(|err| err.to_string())?;
     let coin = input_fields[3].parse::<u64>().map_err(|err| format!("invalid input coin: {err}"))?;
     let input = TransactionInput::new(hash, index);
-    let utxo = TransactionOutput::new(address, Value::from(coin), None, None);
+    let utxo = TransactionOutput::new(address, Value::new(coin, parse_multiasset(input_fields[4])?), None, None);
     builder
       .add_input(SingleInputBuilder::new(input, utxo).payment_key().map_err(|err| err.to_string())?)
       .map_err(|err| err.to_string())?;
@@ -88,8 +89,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   }
   for packed_output in outputs {
     let output_fields = packed_output.split(',').collect::<Vec<_>>();
-    if output_fields.len() != 2 {
-      return Err("each output must contain address,lovelace".to_owned());
+    if output_fields.len() != 3 {
+      return Err("each output must contain address,lovelace,assets".to_owned());
     }
     let address = Address::from_bech32(output_fields[0]).map_err(|err| err.to_string())?;
     let coin = output_fields[1].parse::<u64>().map_err(|err| format!("invalid output coin: {err}"))?;
@@ -99,7 +100,7 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
           .with_address(address)
           .next()
           .map_err(|err| err.to_string())?
-          .with_value(coin)
+          .with_value(Value::new(coin, parse_multiasset(output_fields[2])?))
           .build()
           .map_err(|err| err.to_string())?,
       )
@@ -111,6 +112,28 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     .map_err(|err| err.to_string())?
     .build_unchecked();
   Ok(format!("{}|{}", hex::encode(tx.to_cbor_bytes()), tx.body.fee))
+}
+
+/// Assets use policyHex~assetNameHex~quantity entries separated by ^.
+/// This keeps quantities in decimal strings across JSI and avoids JS number loss.
+fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
+  let mut assets = MultiAsset::default();
+  if raw.is_empty() || raw == "-" {
+    return Ok(assets);
+  }
+  for packed in raw.split('^') {
+    let fields = packed.split('~').collect::<Vec<_>>();
+    if fields.len() != 3 {
+      return Err("each asset must contain policyHex~assetNameHex~quantity".to_owned());
+    }
+    let policy_bytes = hex::decode(fields[0]).map_err(|err| format!("invalid asset policy: {err}"))?;
+    let policy = ScriptHash::from_raw_bytes(&policy_bytes).map_err(|err| err.to_string())?;
+    let name_bytes = hex::decode(fields[1]).map_err(|err| format!("invalid asset name: {err}"))?;
+    let name = AssetName::new(name_bytes).map_err(|err| err.to_string())?;
+    let quantity = fields[2].parse::<u64>().map_err(|err| format!("invalid asset quantity: {err}"))?;
+    assets.set(policy, name, quantity);
+  }
+  Ok(assets)
 }
 
 /// Add one Ed25519 vkey witness to a transaction using CML.
@@ -150,7 +173,7 @@ mod tests {
   fn builds_simple_payment_with_csl_fee_change_and_serialization_parity() {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = format!(
-      "{},0,{},10000000|{},2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000,-|{},2000000,-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32),
       address,
       address,
@@ -168,7 +191,7 @@ mod tests {
 
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = format!(
-      "{},0,{},5000000;{},1,{},5000000|{},2000000;{},2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},5000000,-;{},1,{},5000000,-|{},2000000,-;{},2000000,-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32), address, "02".repeat(32), address,
       address, address, address,
     );
@@ -177,6 +200,32 @@ mod tests {
     let transaction = Transaction::from_cbor_bytes(&hex::decode(cbor_hex).unwrap()).unwrap();
     assert_eq!(transaction.body.inputs.len(), 2);
     assert_eq!(transaction.body.outputs.len(), 3); // two recipients and change
+  }
+
+  #[test]
+  fn preserves_asset_policy_name_and_large_quantity_through_build() {
+    use cml_chain::{
+      assets::AssetName,
+      crypto::ScriptHash,
+      serialization::Deserialize,
+      transaction::Transaction,
+    };
+    use cml_crypto::RawBytesEncoding;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let policy_hex = "ab".repeat(28);
+    let quantity = "9007199254740993";
+    let args = format!(
+      "{},0,{},10000000,{}~00ff~{}|{},2000000,{}~00ff~{}|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "01".repeat(32), address, policy_hex, quantity,
+      address, policy_hex, quantity, address,
+    );
+    let result = build_simple_payment_transaction_hex(&args).unwrap();
+    let cbor_hex = result.rsplit_once('|').unwrap().0;
+    let transaction = Transaction::from_cbor_bytes(&hex::decode(cbor_hex).unwrap()).unwrap();
+    let policy = ScriptHash::from_raw_bytes(&hex::decode(policy_hex).unwrap()).unwrap();
+    let name = AssetName::new(vec![0x00, 0xff]).unwrap();
+    assert_eq!(transaction.body.outputs[0].amount().multiasset.get(&policy, &name), Some(9007199254740993));
   }
 
   #[test]
@@ -288,7 +337,7 @@ mod tests {
 
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = CString::new(format!(
-      "{},0,{},10000000|{},2000000|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "{},0,{},10000000,-|{},2000000,-|{}|123456|44|155381|4310|2000000|500000000|5000",
       "01".repeat(32), address, address, address,
     )).unwrap();
     let mut result = std::ptr::null();
