@@ -58,6 +58,8 @@ export type SimplePaymentBuilderArguments = {
     address: string;
     lovelace: string;
     assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+    nativeScriptCborHex?: string;
+    nativeScriptWitnessCount?: string;
   }>;
   outputs: Array<{
     address: string;
@@ -74,6 +76,11 @@ export type SimplePaymentBuilderArguments = {
   poolDeposit: string;
   maxValueSize: string;
   metadata?: Array<{label: string; data: unknown}>;
+  nativeMints?: Array<{
+    policyIdHex: string;
+    scriptCborHex: string;
+    assets: Array<{assetNameHex: string; quantity: string}>;
+  }>;
 };
 
 export type CmlAssetQuantity = {
@@ -118,10 +125,12 @@ export const buildSimplePaymentTransaction = (
   const result = cmlBridge.build_simple_payment_transaction_hex(
     [
       args.inputs
-        .map(({transactionHashHex, index, address, lovelace, assets}) =>
+        .map(({transactionHashHex, index, address, lovelace, assets, nativeScriptCborHex, nativeScriptWitnessCount}) =>
           [transactionHashHex, index, address, lovelace,
             (assets ?? [])
               .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
+            nativeScriptCborHex ?? '-',
+            nativeScriptWitnessCount ?? '-',
           ].join(','),
         )
         .join(';'),
@@ -142,6 +151,12 @@ export const buildSimplePaymentTransaction = (
       args.poolDeposit,
       args.maxValueSize,
       args.metadata ? encodeURIComponent(JSON.stringify(args.metadata)) : '-',
+      args.nativeMints?.map(({policyIdHex, scriptCborHex, assets}) => [
+        policyIdHex,
+        'native',
+        scriptCborHex,
+        assets.map(({assetNameHex, quantity}) => [assetNameHex, quantity].join('~')).join('^'),
+      ].join(',')).join(';') || '-',
     ].join('|'),
   );
   const separator = result.lastIndexOf('|');

@@ -14,31 +14,32 @@ use std::convert::TryFrom;
 /// so the JS boundary does not lose lovelace precision.
 pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String> {
   use cml_chain::{
-    address::Address,
     assets::Value,
     builders::{
       input_builder::SingleInputBuilder,
+      witness_builder::NativeScriptWitnessInfo,
       output_builder::TransactionOutputBuilder,
       tx_builder::{ChangeSelectionAlgo, TransactionBuilder, TransactionBuilderConfigBuilder},
+      mint_builder::SingleMintBuilder,
     },
     crypto::TransactionHash,
     fees::LinearFee,
     plutus::ExUnitPrices,
-    serialization::Serialize,
+    serialization::{Deserialize, Serialize},
     transaction::{TransactionInput, TransactionOutput},
     Rational,
   };
 
   let fields = args.split('|').collect::<Vec<_>>();
-  if !(10..=11).contains(&fields.len()) {
-    return Err(format!("expected 10 or 11 payment fields, received {}", fields.len()));
+  if !(10..=12).contains(&fields.len()) {
+    return Err(format!("expected 10 to 12 payment fields, received {}", fields.len()));
   }
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
     fields[index]
       .parse::<u64>()
       .map_err(|err| format!("invalid {name}: {err}"))
   };
-  let change_address = Address::from_bech32(fields[2]).map_err(|err| err.to_string())?;
+  let change_address = parse_payment_address(fields[2])?;
   let ttl = parse_u64(3, "ttl")?;
   let fee_coefficient = parse_u64(4, "fee coefficient")?;
   let fee_constant = parse_u64(5, "fee constant")?;
@@ -71,19 +72,32 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   }
   for packed_input in inputs {
     let input_fields = packed_input.split(',').collect::<Vec<_>>();
-    if input_fields.len() != 5 {
-      return Err("each input must contain hash,index,address,lovelace,assets".to_owned());
+    if input_fields.len() != 5 && input_fields.len() != 7 {
+      return Err("each input must contain hash,index,address,lovelace,assets[,nativeScriptHex,witnessCount]".to_owned());
     }
     let hash = hex::decode(input_fields[0]).map_err(|err| format!("invalid input hash: {err}"))?;
     let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
     let index = input_fields[1].parse::<u64>().map_err(|err| format!("invalid input index: {err}"))?;
-    let address = Address::from_bech32(input_fields[2]).map_err(|err| err.to_string())?;
+    let address = parse_payment_address(input_fields[2])?;
     let coin = input_fields[3].parse::<u64>().map_err(|err| format!("invalid input coin: {err}"))?;
     let input = TransactionInput::new(hash, index);
     let utxo = TransactionOutput::new(address, Value::new(coin, parse_multiasset(input_fields[4])?), None, None);
-    builder
-      .add_input(SingleInputBuilder::new(input, utxo).payment_key().map_err(|err| err.to_string())?)
-      .map_err(|err| err.to_string())?;
+    let input_builder = SingleInputBuilder::new(input, utxo);
+    let input_result = if input_fields.len() == 7 && input_fields[5] != "-" {
+      let script_bytes = hex::decode(input_fields[5]).map_err(|err| format!("invalid native script: {err}"))?;
+      let script = cml_chain::transaction::NativeScript::from_cbor_bytes(&script_bytes)
+        .map_err(|err| format!("invalid native script CBOR: {err}"))?;
+      let witness_info = if input_fields[6] == "-" {
+        NativeScriptWitnessInfo::assume_signature_count()
+      } else {
+        let count = input_fields[6].parse::<usize>().map_err(|err| format!("invalid native script witness count: {err}"))?;
+        NativeScriptWitnessInfo::num_signatures(count)
+      };
+      input_builder.native_script(script, witness_info).map_err(|err| err.to_string())?
+    } else {
+      input_builder.payment_key().map_err(|err| err.to_string())?
+    };
+    builder.add_input(input_result).map_err(|err| err.to_string())?;
   }
   let outputs = fields[1].split(';').collect::<Vec<_>>();
   if outputs.is_empty() || (outputs.len() == 1 && outputs[0].is_empty()) {
@@ -94,7 +108,7 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     if output_fields.len() != 4 {
       return Err("each output must contain address,lovelace,assets,datum".to_owned());
     }
-    let address = Address::from_bech32(output_fields[0]).map_err(|err| err.to_string())?;
+    let address = parse_payment_address(output_fields[0])?;
     let coin = output_fields[1].parse::<u64>().map_err(|err| format!("invalid output coin: {err}"))?;
     let mut output_builder = TransactionOutputBuilder::new().with_address(address);
     if output_fields[3] != "-" {
@@ -128,6 +142,37 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
       builder.set_auxiliary_data(auxiliary_data);
     }
   }
+  if fields.len() == 12 && fields[11] != "-" {
+    for packed_mint in fields[11].split(';') {
+      let mint_fields = packed_mint.splitn(4, ',').collect::<Vec<_>>();
+      if mint_fields.len() != 4 || mint_fields[1] != "native" {
+        return Err("each supported mint must contain policyHex,native,scriptCborHex,assets".to_owned());
+      }
+      let script_bytes = hex::decode(mint_fields[2]).map_err(|err| format!("invalid mint native script: {err}"))?;
+      let script = cml_chain::transaction::NativeScript::from_cbor_bytes(&script_bytes)
+        .map_err(|err| format!("invalid mint native script CBOR: {err}"))?;
+      let policy = hex::decode(mint_fields[0]).map_err(|err| format!("invalid mint policy: {err}"))?;
+      let policy = ScriptHash::from_raw_bytes(&policy).map_err(|err| err.to_string())?;
+      if policy != script.hash() {
+        return Err("native mint policy ID does not match script hash".to_owned());
+      }
+      let mut mint_assets = cml_chain::OrderedHashMap::new();
+      for packed_asset in mint_fields[3].split('^') {
+        let asset_fields = packed_asset.split('~').collect::<Vec<_>>();
+        if asset_fields.len() != 2 {
+          return Err("each minted asset must contain assetNameHex~quantity".to_owned());
+        }
+        let name_bytes = hex::decode(asset_fields[0]).map_err(|err| format!("invalid minted asset name: {err}"))?;
+        let name = AssetName::new(name_bytes).map_err(|err| err.to_string())?;
+        let quantity = asset_fields[1].parse::<i64>().map_err(|err| format!("invalid mint quantity: {err}"))?;
+        mint_assets.insert(name, quantity);
+      }
+      builder.add_mint(SingleMintBuilder::new(mint_assets).native_script(
+        script,
+        NativeScriptWitnessInfo::assume_signature_count(),
+      )).map_err(|err| err.to_string())?;
+    }
+  }
   builder.set_ttl(ttl);
   let tx = builder
     .build(ChangeSelectionAlgo::Default, &change_address)
@@ -156,6 +201,16 @@ fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
     assets.set(policy, name, quantity);
   }
   Ok(assets)
+}
+
+fn parse_payment_address(raw: &str) -> Result<cml_chain::address::Address, String> {
+  use cml_chain::{address::Address, byron::ByronAddress};
+  match Address::from_bech32(raw) {
+    Ok(address) => Ok(address),
+    Err(bech32_error) => ByronAddress::from_base58(raw)
+      .map(|address| address.to_address())
+      .map_err(|byron_error| format!("invalid bech32 ({bech32_error}) or Byron ({byron_error}) address")),
+  }
 }
 
 fn parse_auxiliary_metadata(encoded_json: &str) -> Result<Option<cml_chain::auxdata::AuxiliaryData>, String> {
@@ -201,15 +256,12 @@ fn parse_auxiliary_metadata(encoded_json: &str) -> Result<Option<cml_chain::auxd
 /// Calculate the minimum coin for an output with assets using CML's current
 /// coins-per-UTxO-byte rule. Args are addressBech32|packedAssets|coinsPerByte.
 pub fn minimum_coin_for_assets(args: &str) -> Result<String, String> {
-  use cml_chain::{
-    address::Address,
-    builders::output_builder::TransactionOutputBuilder,
-  };
+  use cml_chain::builders::output_builder::TransactionOutputBuilder;
   let fields = args.split('|').collect::<Vec<_>>();
   if fields.len() != 3 {
     return Err(format!("expected 3 minimum-coin fields, received {}", fields.len()));
   }
-  let address = Address::from_bech32(fields[0]).map_err(|err| err.to_string())?;
+  let address = parse_payment_address(fields[0])?;
   let assets = parse_multiasset(fields[1])?;
   let coins_per_byte = fields[2].parse::<u64>().map_err(|err| format!("invalid coins per UTXO byte: {err}"))?;
   let output = TransactionOutputBuilder::new()
@@ -359,6 +411,211 @@ mod tests {
     let transaction = Transaction::from_cbor_bytes(&hex::decode(cbor_hex).unwrap()).unwrap();
     assert_eq!(transaction.body.inputs.len(), 2);
     assert_eq!(transaction.body.outputs.len(), 3); // two recipients and change
+  }
+
+  #[test]
+  fn accepts_byron_inputs_and_plutus_script_outputs_with_csl_parity() {
+    use cardano_serialization_lib as csl;
+
+    let byron = "Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd3";
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let script_address = "addr_test1wzzfgjazt5ts34cstrhzaac4xav8x7z2m3vg76s8qmaztzglsw8k5";
+    let args = format!(
+      "{},0,{},10000000,-|{},2000000,-,inline~d87980|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "01".repeat(32), byron, script_address, address,
+    );
+    let cml = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml = hex::decode(cml.rsplit_once('|').unwrap().0).unwrap();
+
+    let input_address = csl::ByronAddress::from_base58(byron).unwrap().to_address();
+    let output_address = csl::Address::from_bech32(script_address).unwrap();
+    let linear_fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&linear_fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    let mut output = csl::TransactionOutput::new(
+      &output_address,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    );
+    output.set_plutus_data(&csl::PlutusData::new_empty_constr_plutus_data(&csl::BigNum::zero()));
+    builder.add_output(&output).unwrap();
+    builder.set_ttl(123456);
+    builder.add_regular_input(
+      &input_address,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+        0,
+      ),
+      &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+    ).unwrap();
+    let change_address = csl::Address::from_bech32(address).unwrap();
+    assert!(builder.add_change_if_needed(&change_address).unwrap());
+    let body = builder.build().unwrap();
+    let expected = csl::Transaction::new(&body, &csl::TransactionWitnessSet::new(), None).to_bytes();
+    assert_eq!(cml, expected);
+  }
+
+  #[test]
+  fn multiple_native_script_inputs_and_required_signers_match_csl_fee() {
+    use cardano_serialization_lib as csl;
+
+    let script_cbor = format!("8200581c{}", "ab".repeat(28));
+    let second_script_cbor = format!("8200581c{}", "cd".repeat(28));
+    let script = csl::NativeScript::from_bytes(hex::decode(&script_cbor).unwrap()).unwrap();
+    let second_script = csl::NativeScript::from_bytes(hex::decode(&second_script_cbor).unwrap()).unwrap();
+    let address_for_script = |script: &csl::NativeScript| {
+      csl::EnterpriseAddress::new(
+        csl::NetworkInfo::new(0, 1).network_id(),
+        &csl::Credential::from_scripthash(&script.hash()),
+      ).to_address().to_bech32(None).unwrap()
+    };
+    let script_address = address_for_script(&script);
+    let second_script_address = address_for_script(&second_script);
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let args = format!(
+      "{},0,{},5000000,-,{},1;{},0,{},5000000,-,{},1|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "01".repeat(32), script_address, script_cbor,
+      "02".repeat(32), second_script_address, second_script_cbor,
+      address, address,
+    );
+    let cml = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml = hex::decode(cml.rsplit_once('|').unwrap().0).unwrap();
+
+    let linear_fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&linear_fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_output(&csl::TransactionOutput::new(
+      &csl::Address::from_bech32(address).unwrap(),
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    )).unwrap();
+    builder.set_ttl(123456);
+    builder.add_native_script_input(
+      &script,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+        0,
+      ),
+        &csl::Value::new(&csl::BigNum::from_str("5000000").unwrap()),
+    );
+    builder.add_native_script_input(
+      &second_script,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("02".repeat(32)).unwrap()).unwrap(),
+        0,
+      ),
+      &csl::Value::new(&csl::BigNum::from_str("5000000").unwrap()),
+    );
+    assert!(builder.add_change_if_needed(&csl::Address::from_bech32(address).unwrap()).unwrap());
+    let body = builder.build().unwrap();
+    let mut witnesses = csl::TransactionWitnessSet::new();
+    let mut native_scripts = csl::NativeScripts::new();
+    native_scripts.add(&second_script);
+    native_scripts.add(&script);
+    witnesses.set_native_scripts(&native_scripts);
+    let expected = csl::Transaction::new(&body, &witnesses, None).to_bytes();
+    assert_eq!(cml, expected);
+  }
+
+  #[test]
+  fn native_mint_and_token_output_match_csl_fee_and_witnesses() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let script_hex = format!("8200581c{}", "ab".repeat(28));
+    let script = csl::NativeScript::from_bytes(hex::decode(&script_hex).unwrap()).unwrap();
+    let policy_hex = hex::encode(script.hash().to_bytes());
+    let name_hex = "00ff";
+    let args = format!(
+      "{},0,{},10000000,-|{},5000000,{}~{}~1,-|{}|123456|44|155381|4310|2000000|500000000|5000|-|{},native,{},{}~1",
+      "01".repeat(32), address, address, policy_hex, name_hex, address, policy_hex, script_hex, name_hex,
+    );
+    let cml = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml = hex::decode(cml.rsplit_once('|').unwrap().0).unwrap();
+
+    let addr = csl::Address::from_bech32(address).unwrap();
+    let policy = csl::ScriptHash::from_bytes(hex::decode(&policy_hex).unwrap()).unwrap();
+    let asset_name = csl::AssetName::new(hex::decode(name_hex).unwrap()).unwrap();
+    let mut output_assets = csl::Assets::new();
+    output_assets.insert(&asset_name, &csl::BigNum::from_str("1").unwrap());
+    let mut output_multiasset = csl::MultiAsset::new();
+    output_multiasset.insert(&policy, &output_assets);
+    let mut output_value = csl::Value::new(&csl::BigNum::from_str("5000000").unwrap());
+    output_value.set_multiasset(&output_multiasset);
+    let fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build().unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_output(&csl::TransactionOutput::new(&addr, &output_value)).unwrap();
+    builder.set_ttl(123456);
+    builder.add_regular_input(
+      &addr,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(), 0,
+      ),
+      &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+    ).unwrap();
+    let mut mint_assets = csl::MintAssets::new();
+    mint_assets.insert(&asset_name, &csl::Int::new(&csl::BigNum::from_str("1").unwrap()));
+    let mut mint = csl::Mint::new();
+    mint.insert(&policy, &mint_assets);
+    let native_script = script;
+    let mut native_scripts = csl::NativeScripts::new();
+    native_scripts.add(&native_script);
+    builder.set_mint(&mint, &native_scripts).unwrap();
+    assert!(builder.add_change_if_needed(&addr).unwrap());
+    let body = builder.build().unwrap();
+    let mut witness_set = csl::TransactionWitnessSet::new();
+    witness_set.set_native_scripts(&native_scripts);
+    let expected = csl::Transaction::new(&body, &witness_set, None).to_bytes();
+    assert_eq!(cml, expected);
   }
 
   #[test]

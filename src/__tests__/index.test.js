@@ -321,10 +321,10 @@ describe('CSL mobile bridge source entrypoint', () => {
       maxValueSize: '5000',
     };
     const packed = [
-      '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993',
+      '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993,-,-',
       'addr_test_output,2000000,-,-',
       'addr_test_change',
-      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-',
+      '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-', '-',
     ].join('|');
 
     bridge.build_simple_payment_transaction_hex.mockReturnValue(`payment:${packed}|168581`);
@@ -333,6 +333,46 @@ describe('CSL mobile bridge source entrypoint', () => {
       fee: '168581',
     });
     expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(packed);
+  });
+
+  it('packs a native script input and exact witness-count fee hint', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {
+      inputs: [{
+        transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_script',
+        lovelace: '10000000', nativeScriptCborHex: '8200581c' + 'ab'.repeat(28),
+        nativeScriptWitnessCount: '1',
+      }],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000'}],
+      changeAddress: 'addr_test_change', ttl: '123456', feeCoefficient: '44',
+      feeConstant: '155381', coinsPerUtxoByte: '4310', keyDeposit: '2000000',
+      poolDeposit: '500000000', maxValueSize: '5000',
+    };
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+    moduleExports.buildSimplePaymentTransaction(args);
+    expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(
+      expect.stringContaining('addr_test_script,10000000,-,8200581c' + 'ab'.repeat(28) + ',1'),
+    );
+  });
+
+  it('packs native mint policy, script and signed exact asset quantities', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {
+      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
+      outputs: [{address: 'addr_test_output', lovelace: '5000000'}],
+      changeAddress: 'addr_test_change', ttl: '123456', feeCoefficient: '44',
+      feeConstant: '155381', coinsPerUtxoByte: '4310', keyDeposit: '2000000',
+      poolDeposit: '500000000', maxValueSize: '5000',
+      nativeMints: [{
+        policyIdHex: 'cd'.repeat(28), scriptCborHex: '8200581c' + 'ab'.repeat(28),
+        assets: [{assetNameHex: '00ff', quantity: '-9007199254740993'}],
+      }],
+    };
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+    moduleExports.buildSimplePaymentTransaction(args);
+    expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(
+      expect.stringContaining('cd'.repeat(28) + ',native,8200581c' + 'ab'.repeat(28) + ',00ff~-9007199254740993'),
+    );
   });
 
   it('routes minimum-coin-for-assets calculation through CML with exact quantities', () => {

@@ -20,6 +20,8 @@ export type SimplePaymentBuilderArguments = {
             assetNameHex: string;
             quantity: string;
         }>;
+        nativeScriptCborHex?: string;
+        nativeScriptWitnessCount?: string;
     }>;
     outputs: Array<{
         address: string;
@@ -45,6 +47,14 @@ export type SimplePaymentBuilderArguments = {
     metadata?: Array<{
         label: string;
         data: unknown;
+    }>;
+    nativeMints?: Array<{
+        policyIdHex: string;
+        scriptCborHex: string;
+        assets: Array<{
+            assetNameHex: string;
+            quantity: string;
+        }>;
     }>;
 };
 export type CmlAssetQuantity = {
