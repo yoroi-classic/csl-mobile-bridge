@@ -141,6 +141,24 @@ enum DRepArgs {
   ScriptHash(String),
 }
 
+fn parse_drep_arg(value: DRepArgs) -> Result<cml_chain::certs::DRep, String> {
+  use cml_chain::certs::DRep;
+  use cml_chain::crypto::Ed25519KeyHash;
+
+  match value {
+    DRepArgs::AlwaysAbstain => Ok(DRep::new_always_abstain()),
+    DRepArgs::AlwaysNoConfidence => Ok(DRep::new_always_no_confidence()),
+    DRepArgs::KeyHash(hash) => {
+      let bytes = hex::decode(&hash).map_err(|err| format!("invalid DRep key hash: {err}"))?;
+      Ok(DRep::new_key(Ed25519KeyHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?))
+    }
+    DRepArgs::ScriptHash(hash) => {
+      let bytes = hex::decode(&hash).map_err(|err| format!("invalid DRep script hash: {err}"))?;
+      Ok(DRep::new_script(ScriptHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?))
+    }
+  }
+}
+
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct WithdrawalArgs {
@@ -362,22 +380,39 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
             .map_err(|err| format!("invalid stake pool key hash: {err}"))?;
           Certificate::new_stake_delegation(credential, pool_hash)
         }
-        "VoteDelegation" => {
-          use cml_chain::certs::DRep;
-          let drep = match certificate.drep
-            .ok_or_else(|| "vote delegation is missing DRep".to_owned())? {
-            DRepArgs::AlwaysAbstain => DRep::new_always_abstain(),
-            DRepArgs::AlwaysNoConfidence => DRep::new_always_no_confidence(),
-            DRepArgs::KeyHash(hash) => {
-              let bytes = hex::decode(&hash).map_err(|err| format!("invalid DRep key hash: {err}"))?;
-              DRep::new_key(Ed25519KeyHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?)
-            }
-            DRepArgs::ScriptHash(hash) => {
-              let bytes = hex::decode(&hash).map_err(|err| format!("invalid DRep script hash: {err}"))?;
-              DRep::new_script(ScriptHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?)
-            }
-          };
-          Certificate::new_vote_deleg_cert(credential, drep)
+        "VoteDelegation" => Certificate::new_vote_deleg_cert(
+          credential,
+          parse_drep_arg(certificate.drep.ok_or_else(|| "vote delegation is missing DRep".to_owned())?)?,
+        ),
+        "StakeAndVoteDelegation" => {
+          let pool_hash = certificate.pool_key_hash
+            .ok_or_else(|| "stake/vote delegation is missing pool key hash".to_owned())?;
+          let pool_hash = Ed25519KeyHash::from_raw_bytes(
+            &hex::decode(&pool_hash).map_err(|err| format!("invalid stake pool key hash: {err}"))?,
+          ).map_err(|err| err.to_string())?;
+          let drep = parse_drep_arg(certificate.drep.ok_or_else(|| "stake/vote delegation is missing DRep".to_owned())?)?;
+          Certificate::new_stake_vote_deleg_cert(credential, pool_hash, drep)
+        }
+        "StakeRegistrationAndDelegation" => {
+          let pool_hash = certificate.pool_key_hash
+            .ok_or_else(|| "stake registration/delegation is missing pool key hash".to_owned())?;
+          let pool_hash = Ed25519KeyHash::from_raw_bytes(
+            &hex::decode(&pool_hash).map_err(|err| format!("invalid stake pool key hash: {err}"))?,
+          ).map_err(|err| err.to_string())?;
+          Certificate::new_stake_reg_deleg_cert(credential, pool_hash, key_deposit)
+        }
+        "VoteRegistrationAndDelegation" => {
+          let drep = parse_drep_arg(certificate.drep.ok_or_else(|| "vote registration/delegation is missing DRep".to_owned())?)?;
+          Certificate::new_vote_reg_deleg_cert(credential, drep, key_deposit)
+        }
+        "StakeVoteRegistrationAndDelegation" => {
+          let pool_hash = certificate.pool_key_hash
+            .ok_or_else(|| "stake/vote registration is missing pool key hash".to_owned())?;
+          let pool_hash = Ed25519KeyHash::from_raw_bytes(
+            &hex::decode(&pool_hash).map_err(|err| format!("invalid stake pool key hash: {err}"))?,
+          ).map_err(|err| err.to_string())?;
+          let drep = parse_drep_arg(certificate.drep.ok_or_else(|| "stake/vote registration is missing DRep".to_owned())?)?;
+          Certificate::new_stake_vote_reg_deleg_cert(credential, pool_hash, drep, key_deposit)
         }
         unsupported => return Err(format!("unsupported stake certificate: {unsupported}")),
       };
@@ -1836,6 +1871,95 @@ mod tests {
       "01".repeat(32), address, address, address, encoded,
     );
     assert!(build_simple_payment_transaction_hex(&args).is_err());
+  }
+
+  #[test]
+  fn combined_stake_and_vote_certificates_match_csl_deposits_and_cbor() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let stake_hex = "aa".repeat(28);
+    let pool_hex = "bb".repeat(28);
+    let stake_hash = csl::Ed25519KeyHash::from_bytes(hex::decode(&stake_hex).unwrap()).unwrap();
+    let pool_hash = csl::Ed25519KeyHash::from_bytes(hex::decode(&pool_hex).unwrap()).unwrap();
+    let credential = csl::Credential::from_keyhash(&stake_hash);
+    let drep_hash = csl::Ed25519KeyHash::from_bytes(hex::decode("cc".repeat(28)).unwrap()).unwrap();
+    let drep = csl::DRep::new_key_hash(&drep_hash);
+    let coin = csl::BigNum::from_str("2000000").unwrap();
+    let variants = [
+      (
+        "StakeAndVoteDelegation",
+        serde_json::json!({"kind":"StakeAndVoteDelegation","stakeCredentialKeyHashHex":stake_hex,"poolKeyHash":pool_hex,"drep":{"KeyHash":"cc".repeat(28)}}),
+        csl::Certificate::new_stake_and_vote_delegation(&csl::StakeAndVoteDelegation::new(&credential, &pool_hash, &drep)),
+      ),
+      (
+        "StakeRegistrationAndDelegation",
+        serde_json::json!({"kind":"StakeRegistrationAndDelegation","stakeCredentialKeyHashHex":stake_hex,"poolKeyHash":pool_hex}),
+        csl::Certificate::new_stake_registration_and_delegation(&csl::StakeRegistrationAndDelegation::new(&credential, &pool_hash, &coin)),
+      ),
+      (
+        "StakeVoteRegistrationAndDelegation",
+        serde_json::json!({"kind":"StakeVoteRegistrationAndDelegation","stakeCredentialKeyHashHex":stake_hex,"poolKeyHash":pool_hex,"drep":"AlwaysAbstain"}),
+        csl::Certificate::new_stake_vote_registration_and_delegation(&csl::StakeVoteRegistrationAndDelegation::new(&credential, &pool_hash, &csl::DRep::new_always_abstain(), &coin)),
+      ),
+      (
+        "VoteRegistrationAndDelegation",
+        serde_json::json!({"kind":"VoteRegistrationAndDelegation","stakeCredentialKeyHashHex":stake_hex,"drep":"AlwaysNoConfidence"}),
+        csl::Certificate::new_vote_registration_and_delegation(&csl::VoteRegistrationAndDelegation::new(&credential, &csl::DRep::new_always_no_confidence(), &coin)),
+      ),
+    ];
+    let fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&coin)
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let addr = csl::Address::from_bech32(address).unwrap();
+
+    for (kind, certificate_json, cert) in variants {
+      let packed = serde_json::json!([certificate_json]).to_string();
+      let encoded = packed.as_bytes().iter().map(|byte| format!("%{:02X}", byte)).collect::<String>();
+      let args = format!(
+        "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000|-|-|{}",
+        "01".repeat(32), address, address, address, encoded,
+      );
+      let cml = build_simple_payment_transaction_hex(&args).unwrap();
+      let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
+      let mut builder = csl::TransactionBuilder::new(&config);
+      builder.add_regular_input(
+        &addr,
+        &csl::TransactionInput::new(
+          &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+          0,
+        ),
+        &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+      ).unwrap();
+      builder.add_output(&csl::TransactionOutput::new(
+        &addr,
+        &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+      )).unwrap();
+      builder.set_ttl(123456);
+      let mut certs = csl::Certificates::new();
+      certs.add(&cert);
+      builder.set_certs(&certs).unwrap();
+      assert!(builder.add_change_if_needed(&addr).unwrap());
+      let body = builder.build().unwrap();
+      let expected = csl::Transaction::new(&body, &csl::TransactionWitnessSet::new(), None).to_bytes();
+      assert_eq!(cml_cbor, expected, "{kind} CBOR/fee/deposit mismatch");
+    }
   }
 
   #[test]

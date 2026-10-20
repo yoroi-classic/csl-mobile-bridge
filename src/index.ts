@@ -175,7 +175,7 @@ export type SimplePaymentBuilderArguments = {
     assets: Array<{assetNameHex: string; quantity: string}>;
   }>;
   certificates?: Array<{
-    kind: 'StakeRegistration' | 'StakeDeregistration' | 'StakeDelegation' | 'VoteDelegation';
+    kind: 'StakeRegistration' | 'StakeDeregistration' | 'StakeDelegation' | 'VoteDelegation' | 'StakeAndVoteDelegation' | 'StakeRegistrationAndDelegation' | 'StakeVoteRegistrationAndDelegation' | 'VoteRegistrationAndDelegation';
     stakeCredentialKeyHashHex: string;
     poolKeyHash?: string;
     drep?: 'AlwaysAbstain' | 'AlwaysNoConfidence' | {KeyHash: string} | {ScriptHash: string};
