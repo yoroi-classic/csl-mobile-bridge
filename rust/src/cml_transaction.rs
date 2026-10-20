@@ -192,8 +192,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   };
 
   let fields = args.split('|').collect::<Vec<_>>();
-  if !(10..=15).contains(&fields.len()) {
-    return Err(format!("expected 10 to 15 payment fields, received {}", fields.len()));
+  if !(10..=16).contains(&fields.len()) {
+    return Err(format!("expected 10 to 16 payment fields, received {}", fields.len()));
   }
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
     fields[index].parse::<u64>().map_err(|err| format!("invalid {name}: {err}"))
@@ -444,7 +444,36 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
       );
     }
   }
-  if fields.len() == 15 && fields[14] != "-" {
+  if fields.len() >= 16 && fields[15] != "-" {
+    use cml_chain::builders::tx_builder::TransactionUnspentOutput;
+    for packed_input in fields[15].split(';') {
+      let input_fields = packed_input.split(',').collect::<Vec<_>>();
+      if input_fields.len() != 5 {
+        return Err("each reference input must contain hash,index,address,lovelace,assets".to_owned());
+      }
+      let hash = hex::decode(input_fields[0])
+        .map_err(|err| format!("invalid reference input hash: {err}"))?;
+      let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
+      let index = input_fields[1]
+        .parse::<u64>()
+        .map_err(|err| format!("invalid reference input index: {err}"))?;
+      let address = parse_payment_address(input_fields[2])?;
+      let coin = input_fields[3]
+        .parse::<u64>()
+        .map_err(|err| format!("invalid reference input coin: {err}"))?;
+      let output = TransactionOutput::new(
+        address,
+        Value::new(coin, parse_multiasset(input_fields[4])?),
+        None,
+        None,
+      );
+      builder.add_reference_input(TransactionUnspentOutput::new(
+        cml_chain::transaction::TransactionInput::new(hash, index),
+        output,
+      ));
+    }
+  }
+  if fields.len() >= 15 && fields[14] != "-" {
     builder.set_validity_start_interval(parse_u64(14, "validity start")?);
   }
   builder.set_ttl(ttl);
@@ -2021,6 +2050,65 @@ mod tests {
     let mut fields = invalid.split('|').collect::<Vec<_>>();
     fields[3] = "not-a-slot";
     assert!(build_simple_payment_transaction_hex(&fields.join("|")).is_err());
+  }
+
+  #[test]
+  fn reference_input_matches_csl_transaction_cbor_and_fee() {
+    use cardano_serialization_lib as csl;
+
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let args = format!(
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000|-|-|-|-|-|{},1,{},1000000,-",
+      "01".repeat(32), address, address, address, "02".repeat(32), address,
+    );
+    let cml = build_simple_payment_transaction_hex(&args).unwrap();
+    let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
+
+    let addr = csl::Address::from_bech32(address).unwrap();
+    let fee = csl::LinearFee::new(
+      &csl::BigNum::from_str("44").unwrap(),
+      &csl::BigNum::from_str("155381").unwrap(),
+    );
+    let ex_prices = csl::ExUnitPrices::new(
+      &csl::UnitInterval::new(&csl::BigNum::from_str("577").unwrap(), &csl::BigNum::from_str("10000").unwrap()),
+      &csl::UnitInterval::new(&csl::BigNum::from_str("721").unwrap(), &csl::BigNum::from_str("10000000").unwrap()),
+    );
+    let config = csl::TransactionBuilderConfigBuilder::new()
+      .fee_algo(&fee)
+      .coins_per_utxo_byte(&csl::BigNum::from_str("4310").unwrap())
+      .ex_unit_prices(&ex_prices)
+      .pool_deposit(&csl::BigNum::from_str("500000000").unwrap())
+      .key_deposit(&csl::BigNum::from_str("2000000").unwrap())
+      .max_value_size(5000)
+      .max_tx_size(16384)
+      .prefer_pure_change(true)
+      .build()
+      .unwrap();
+    let mut builder = csl::TransactionBuilder::new(&config);
+    builder.add_regular_input(
+      &addr,
+      &csl::TransactionInput::new(
+        &csl::TransactionHash::from_bytes(hex::decode("01".repeat(32)).unwrap()).unwrap(),
+        0,
+      ),
+      &csl::Value::new(&csl::BigNum::from_str("10000000").unwrap()),
+    ).unwrap();
+    builder.add_output(&csl::TransactionOutput::new(
+      &addr,
+      &csl::Value::new(&csl::BigNum::from_str("2000000").unwrap()),
+    )).unwrap();
+    builder.add_reference_input(&csl::TransactionInput::new(
+      &csl::TransactionHash::from_bytes(hex::decode("02".repeat(32)).unwrap()).unwrap(),
+      1,
+    ));
+    builder.set_ttl_bignum(&csl::BigNum::from_str("123456").unwrap());
+    assert!(builder.add_change_if_needed(&addr).unwrap());
+    let body = builder.build().unwrap();
+    let expected = csl::Transaction::new(&body, &csl::TransactionWitnessSet::new(), None).to_bytes();
+    assert_eq!(cml_cbor, expected);
+
+    let invalid = args.replace(",1,", ",bad-index,");
+    assert!(build_simple_payment_transaction_hex(&invalid).is_err());
   }
 
   #[test]

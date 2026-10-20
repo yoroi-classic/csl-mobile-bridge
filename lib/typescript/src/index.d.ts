@@ -111,6 +111,17 @@ export type SimplePaymentBuilderArguments = {
         amount: string;
     }>;
     validityStart?: string;
+    referenceInputs?: Array<{
+        transactionHashHex: string;
+        index: string;
+        address: string;
+        lovelace: string;
+        assets?: Array<{
+            policyIdHex: string;
+            assetNameHex: string;
+            quantity: string;
+        }>;
+    }>;
 };
 export type CmlAssetQuantity = {
     policyIdHex: string;

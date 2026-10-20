@@ -182,6 +182,13 @@ export type SimplePaymentBuilderArguments = {
   }>;
   withdrawals?: Array<{rewardAddress: string; amount: string}>;
   validityStart?: string;
+  referenceInputs?: Array<{
+    transactionHashHex: string;
+    index: string;
+    address: string;
+    lovelace: string;
+    assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+  }>;
 };
 
 export type CmlAssetQuantity = {
@@ -321,6 +328,15 @@ export const buildSimplePaymentTransaction = (
       args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
       args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
       args.validityStart ?? '-',
+      args.referenceInputs?.map(({transactionHashHex, index, address, lovelace, assets}) => [
+        transactionHashHex,
+        index,
+        address,
+        lovelace,
+        (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
+          [policyIdHex, assetNameHex, quantity].join('~'),
+        ).join('^') || '-',
+      ].join(',')).join(';') || '-',
     ].join('|'),
   );
   const separator = result.lastIndexOf('|');
