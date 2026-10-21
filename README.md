@@ -66,6 +66,8 @@ node .yarn/releases/yarn-3.6.1.cjs example ios
 node .yarn/releases/yarn-3.6.1.cjs example android
 ```
 
+The example app has no committed npm lockfile, so this install resolves semver ranges and is not reproducible. The bridge package itself uses the immutable root Yarn lockfile.
+
 ### Prerequisites
 
 | Tool | Version | Check Command |
