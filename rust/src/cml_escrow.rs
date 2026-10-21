@@ -1,3 +1,4 @@
+use crate::panic::handle_exception_result;
 use cml_chain::{
   address::{Address, BaseAddress, EnterpriseAddress},
   certs::Credential,
@@ -57,6 +58,10 @@ fn integer_field(data: &PlutusData, label: &str) -> Result<String, String> {
 
 /// Decode the escrow contract datum into a stable JSON DTO; integers remain strings.
 pub fn escrow_datum_info_json(cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| escrow_datum_info_json_inner(cbor_hex))
+}
+
+fn escrow_datum_info_json_inner(cbor_hex: &str) -> Result<String, String> {
   let datum = parse_datum(cbor_hex)?;
   let fields = datum_fields(&datum)?;
   let address_fields = constr_fields(&fields[0], 0, "address field")?;
@@ -105,6 +110,10 @@ pub fn escrow_datum_info_json(cbor_hex: &str) -> Result<String, String> {
 
 /// Advance the next thaw time and decrement the remaining count.
 pub fn updated_escrow_datum_cbor_hex(cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| updated_escrow_datum_cbor_hex_inner(cbor_hex))
+}
+
+fn updated_escrow_datum_cbor_hex_inner(cbor_hex: &str) -> Result<String, String> {
   let datum = parse_datum(cbor_hex)?;
   let fields = datum_fields(&datum)?;
   escrow_datum_info_json(cbor_hex)?; // reject malformed nested address/field values
@@ -225,6 +234,7 @@ mod tests {
   #[test]
   fn rejects_invalid_or_exhausted_datum() {
     assert!(escrow_datum_info_json("zz").is_err());
+    assert!(escrow_datum_info_json("d8799f01e0ff").is_err());
     assert!(updated_escrow_datum_cbor_hex(&sample_datum(0))
       .unwrap_err()
       .contains("no thaws remaining"));

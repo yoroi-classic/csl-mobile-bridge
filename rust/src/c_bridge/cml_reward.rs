@@ -4,7 +4,7 @@ use super::bridge_tools::string::CharPtr;
 use crate::cml_reward::{
   address_info_from_address, address_to_hex, base_address_bech32_from_public_key_hashes,
   derive_public_key_from_account_path_hex, icarus_address_base58_from_account_public_key_hex,
-  reward_address_details_from_address, reward_address_from_address,
+  reward_address_details_json, reward_address_from_address,
   reward_address_hex_from_account_public_key, reward_address_hex_from_public_key_hash,
   stake_credential_hex_from_address,
 };
@@ -179,8 +179,8 @@ pub unsafe extern "C" fn cml_bridge_reward_address_details_from_address(
       return false;
     }
   };
-  match reward_address_details_from_address(address) {
-    Ok((bech32, key_hash)) => set_message(result, format!("{bech32}\n{key_hash}")),
+  match reward_address_details_json(address) {
+    Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);
       false

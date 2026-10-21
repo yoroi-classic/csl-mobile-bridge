@@ -1210,7 +1210,6 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
     // fee consumes the complete residual. In that case the address is only a
     // builder parameter and must not produce an output. Reuse a real address
     // already present in the recipe rather than inventing one.
-    .or_else(|| args.outputs.first().map(|output| output.address.as_str()))
     .or_else(|| args.inputs.first().map(|input| input.address.as_str()))
     .ok_or_else(|| "transaction recipe requires a change address".to_owned())?;
   let manual_fee = args.options.manual_fee.as_deref().unwrap_or("-");
@@ -3594,7 +3593,7 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
       "validityIntervalStart": transaction.body.validity_interval_start.map(|value| value.to_string()),
       "certificates": transaction.body.certs.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
       "withdrawals": withdrawals,
-      "mint": transaction.body.mint.as_ref().map(|value| serde_json::to_value(value).unwrap_or(serde_json::Value::Null)),
+      "mint": transaction.body.mint.as_ref().map(review_mint_json),
       "scriptDataHashHex": transaction.body.script_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
       "auxiliaryDataHashHex": transaction.body.auxiliary_data_hash.as_ref().map(|value| hex::encode(value.to_raw_bytes())),
       "collateralInputs": collateral_inputs,
@@ -3620,6 +3619,22 @@ pub fn transaction_review_info_json(transaction_hex: &str) -> Result<String, Str
     },
     "auxiliaryData": auxiliary_data,
   })).map_err(|err| err.to_string())
+}
+
+fn review_mint_json(mint: &cml_chain::assets::Mint) -> serde_json::Value {
+  let policies = mint
+    .iter()
+    .map(|(policy_id, assets)| {
+      let quantities = assets
+        .iter()
+        .map(|(asset_name, quantity)| {
+          (hex::encode(asset_name.to_raw_bytes()), serde_json::Value::String(quantity.to_string()))
+        })
+        .collect::<serde_json::Map<_, _>>();
+      (hex::encode(policy_id.to_raw_bytes()), serde_json::Value::Object(quantities))
+    })
+    .collect::<serde_json::Map<_, _>>();
+  serde_json::Value::Object(policies)
 }
 
 /// Return the transaction fields used to determine which wallet keys must sign.
@@ -3673,6 +3688,7 @@ pub fn transaction_signing_requirements_json(transaction_hex: &str) -> Result<St
             | Certificate::StakeDeregistration(_)
             | Certificate::StakeDelegation(_)
             | Certificate::StakeRegDelegCert(_)
+            | Certificate::StakeVoteRegDelegCert(_)
             | Certificate::StakeVoteDelegCert(_)
             | Certificate::VoteDelegCert(_)
             | Certificate::VoteRegDelegCert(_)
@@ -4157,10 +4173,23 @@ mod tests {
       &transaction_review_info_json(mint_tx_hex.split('|').next().unwrap()).unwrap(),
     )
     .unwrap();
-    assert_eq!(mint_review["body"]["mint"][&mint_policy_id]["01ff"], 3);
+    assert_eq!(mint_review["body"]["mint"][&mint_policy_id]["01ff"], "3");
     assert!(mint_tx.witness_set.redeemers.is_some());
     assert!(mint_tx.witness_set.plutus_v2_scripts.is_some());
     assert!(mint_tx.body.script_data_hash.is_some());
+
+    let large_quantity = "9007199254740993";
+    let mut large_mint_recipe = mint_recipe.clone();
+    large_mint_recipe["mints"][0]["assets"][0]["quantity"] =
+      serde_json::Value::String(large_quantity.to_owned());
+    let large_mint = build_transaction_recipe_cml_hex(&large_mint_recipe.to_string()).unwrap();
+    let large_mint_cbor = large_mint.split('|').next().unwrap();
+    let large_mint_review: serde_json::Value =
+      serde_json::from_str(&transaction_review_info_json(large_mint_cbor).unwrap()).unwrap();
+    assert_eq!(
+      large_mint_review["body"]["mint"][&mint_policy_id]["01ff"],
+      serde_json::Value::String(large_quantity.to_owned()),
+    );
     let mut reference_mint_recipe = mint_recipe.clone();
     reference_mint_recipe["mints"][0]["referenceInput"] = serde_json::json!({
       "txHashHex": "05".repeat(32),
@@ -5368,6 +5397,11 @@ mod tests {
       );
       let cml = build_simple_payment_transaction_hex(&args).unwrap();
       let cml_cbor = hex::decode(cml.split('|').next().unwrap()).unwrap();
+      let signing_requirements: serde_json::Value = serde_json::from_str(
+        &super::transaction_signing_requirements_json(&hex::encode(&cml_cbor)).unwrap(),
+      )
+      .unwrap();
+      assert_eq!(signing_requirements["hasStakingCertificate"], true, "{kind}");
       assert_eq!(hex::encode(&cml_cbor), expected_hex, "{kind} CBOR/deposit vector");
       let review: serde_json::Value =
         serde_json::from_str(&transaction_review_info_json(&hex::encode(&cml_cbor)).unwrap())
@@ -5571,6 +5605,27 @@ mod tests {
     assert_eq!(exact_tx.body.outputs.len(), 1);
     assert_eq!(exact_tx.body.fee, 200_000);
     assert_eq!(exact_tx.body.outputs[0].amount().coin + exact_tx.body.fee, 10_000_000);
+
+    // When change_address is omitted, residual input value must return to the
+    // input address rather than increasing the recipient's output.
+    let recipient =
+      "addr_test1qqhchrw4umcrf90ew5ep85zefj9724c5jcfg6kp667qau789d6z307gnggrp3hgye75yzgh5q0w6unkqnvfxjfu7vxlswtaxme";
+    let mut recipient_with_change = base.clone();
+    recipient_with_change["outputs"] =
+      serde_json::json!([{"address":recipient,"lovelace":"2000000","assets":[]}]);
+    let recipient_tx_hex =
+      build_transaction_recipe_cml_hex(&recipient_with_change.to_string()).unwrap();
+    let recipient_tx = Transaction::from_cbor_bytes(
+      &hex::decode(recipient_tx_hex.split('|').next().unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(recipient_tx.body.outputs.len(), 2);
+    assert_eq!(
+      recipient_tx.body.outputs[0].address().to_bech32(None).unwrap(),
+      recipient,
+    );
+    assert_eq!(recipient_tx.body.outputs[0].amount().coin, 2_000_000);
+    assert_eq!(recipient_tx.body.outputs[1].address().to_bech32(None).unwrap(), address);
 
     // Withdrawals are ledger input value and can fund a transaction without
     // ordinary UTxOs. The remaining withdrawal value is emitted as change.

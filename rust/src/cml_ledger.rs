@@ -1,3 +1,4 @@
+use crate::panic::handle_exception_result;
 use cml_chain::address::Address;
 use cml_chain::byron::{AddrAttributes, ByronAddress};
 use cml_chain::crypto::{BootstrapWitness, Ed25519Signature, Vkeywitness};
@@ -63,6 +64,10 @@ struct ChangeAddress {
 /// the parsed body/witness/auxiliary fields plus validated input paths and
 /// output change paths; callers map these plain fields to Ledger SDK enums.
 pub fn ledger_signing_request_info_json(args_json: &str) -> Result<String, String> {
+  handle_exception_result(|| ledger_signing_request_info_json_inner(args_json))
+}
+
+fn ledger_signing_request_info_json_inner(args_json: &str) -> Result<String, String> {
   let args: LedgerRequestArgs = serde_json::from_str(args_json)
     .map_err(|err| format!("invalid Ledger request arguments: {err}"))?;
   let transaction_bytes =
@@ -390,6 +395,19 @@ mod tests {
       "senderUtxos": []
     })
     .to_string()
+  }
+
+  #[test]
+  fn malformed_cbor_is_reported_without_panicking() {
+    let args = serde_json::json!({
+      "transactionHex": "d8799f01e0ff",
+      "networkId": 0,
+      "protocolMagic": 764824073,
+      "senderUtxos": [],
+      "changeAddresses": [],
+    })
+    .to_string();
+    assert!(ledger_signing_request_info_json(&args).is_err());
   }
 
   #[test]

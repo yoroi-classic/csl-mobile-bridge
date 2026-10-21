@@ -89,6 +89,13 @@ pub fn reward_address_details_from_address(address: &str) -> Result<(String, Str
   Ok((bech32, key_hash))
 }
 
+/// Serialize reward-address details for the native bridge ABI.
+pub fn reward_address_details_json(address: &str) -> Result<String, String> {
+  let (bech32, key_hash_hex) = reward_address_details_from_address(address)?;
+  serde_json::to_string(&serde_json::json!({"bech32": bech32, "keyHashHex": key_hash_hex}))
+    .map_err(|err| err.to_string())
+}
+
 /// Derive a reward address from an account extended public key and soft
 /// staking path, returning its serialized address bytes as lower-case hex.
 pub fn reward_address_hex_from_account_public_key(
@@ -225,7 +232,7 @@ mod tests {
   use super::{
     address_info_from_address, address_to_hex, base_address_bech32_from_public_key_hashes,
     derive_public_key_from_account_path_hex, icarus_address_base58_from_account_public_key_hex,
-    reward_address_details_from_address, reward_address_from_address,
+    reward_address_details_from_address, reward_address_details_json, reward_address_from_address,
     reward_address_hex_from_account_public_key, reward_address_hex_from_public_key_hash,
     stake_credential_hex_from_address,
   };
@@ -352,6 +359,14 @@ mod tests {
   }
 
   #[test]
+  fn reward_address_details_json_matches_the_native_bridge_contract() {
+    let details: serde_json::Value =
+      serde_json::from_str(&reward_address_details_json(REWARD_ADDRESS_HEX).unwrap()).unwrap();
+    assert_eq!(details["bech32"], "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk");
+    assert_eq!(details["keyHashHex"], "42d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40");
+  }
+
+  #[test]
   fn rejects_malformed_and_non_base_addresses() {
     assert!(reward_address_from_address("not-an-address", 0).is_err());
     assert_eq!(
@@ -396,6 +411,34 @@ mod tests {
 
     assert!(succeeded, "{}", unsafe { CStr::from_ptr(error) }.to_string_lossy());
     assert_eq!(unsafe { CStr::from_ptr(result) }.to_str().unwrap(), REWARD_TESTNET);
+    unsafe {
+      crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free(&mut result);
+      if !error.is_null() {
+        crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free(&mut error);
+      }
+    }
+  }
+
+  #[test]
+  fn reward_details_c_abi_returns_the_json_expected_by_typescript() {
+    use std::ffi::{CStr, CString};
+
+    let input = CString::new(REWARD_ADDRESS_HEX).unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+    let succeeded = unsafe {
+      crate::c_bridge::cml_reward::cml_bridge_reward_address_details_from_address(
+        input.as_ptr(),
+        &mut result,
+        &mut error,
+      )
+    };
+
+    assert!(succeeded, "{}", unsafe { CStr::from_ptr(error) }.to_string_lossy());
+    let details: serde_json::Value =
+      serde_json::from_str(unsafe { CStr::from_ptr(result) }.to_str().unwrap()).unwrap();
+    assert_eq!(details["bech32"], "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk");
+    assert_eq!(details["keyHashHex"], "42d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40");
     unsafe {
       crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free(&mut result);
       if !error.is_null() {

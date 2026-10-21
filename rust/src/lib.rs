@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 
 mod c_bridge;
+pub mod panic;
 
 pub mod cml_datum;
 pub mod cml_address;

@@ -1,3 +1,4 @@
+use crate::panic::handle_exception_result;
 use cml_chain::transaction::{DatumOption, TransactionOutput};
 use cml_chain::{
   crypto::hash::hash_plutus_data,
@@ -8,12 +9,20 @@ use cml_crypto::RawBytesEncoding;
 
 /// Hash serialized Plutus data with CML, accepting the CBOR hex used by Yoroi.
 pub fn hash_plutus_data_cbor_hex(cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| hash_plutus_data_cbor_hex_inner(cbor_hex))
+}
+
+fn hash_plutus_data_cbor_hex_inner(cbor_hex: &str) -> Result<String, String> {
   let data = parse_plutus_data_cbor_hex(cbor_hex)?;
   Ok(hash_plutus_data(&data).to_hex())
 }
 
 /// Decode Plutus CBOR into Yoroi's stable, lossless display structure.
 pub fn decode_plutus_data_cbor_hex(cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| decode_plutus_data_cbor_hex_inner(cbor_hex))
+}
+
+fn decode_plutus_data_cbor_hex_inner(cbor_hex: &str) -> Result<String, String> {
   fn decode(data: &PlutusData) -> serde_json::Value {
     match data {
       PlutusData::ConstrPlutusData(constr) => serde_json::json!({
@@ -42,6 +51,10 @@ pub fn decode_plutus_data_cbor_hex(cbor_hex: &str) -> Result<String, String> {
 
 /// Extract datum hash/data from serialized transaction-output CBOR.
 pub fn datum_info_from_output_cbor_hex(output_cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| datum_info_from_output_cbor_hex_inner(output_cbor_hex))
+}
+
+fn datum_info_from_output_cbor_hex_inner(output_cbor_hex: &str) -> Result<String, String> {
   let bytes =
     hex::decode(output_cbor_hex).map_err(|err| format!("invalid transaction output hex: {err}"))?;
   let output = TransactionOutput::from_cbor_bytes(&bytes)
@@ -97,6 +110,8 @@ mod tests {
     assert!(hash_plutus_data_cbor_hex("ff").unwrap_err().contains("invalid Plutus data CBOR"));
     assert!(hash_plutus_data_cbor_hex("8000").unwrap_err().contains("trailing bytes"));
     assert!(decode_plutus_data_cbor_hex("410100").unwrap_err().contains("trailing bytes"));
+    assert!(hash_plutus_data_cbor_hex("d8799f01e0ff").is_err());
+    assert!(decode_plutus_data_cbor_hex("d8799f01e0ff").is_err());
   }
 
   #[test]
