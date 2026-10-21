@@ -5200,8 +5200,7 @@ mod tests {
       );
       assert!(
         build_simple_payment_transaction_hex(&args).is_err(),
-        "{}",
-        format!("accepted invalid certificate {invalid_certificates}")
+        "invalid certificate was accepted"
       );
     }
   }
