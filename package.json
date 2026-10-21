@@ -1,13 +1,13 @@
 {
-  "name": "@yoroi-classic/csl-mobile-bridge",
+  "name": "@yoroi-classic/cml-mobile-bridge",
   "version": "9.0.1",
   "private": true,
-  "description": "Deprecated React Native bindings for Cardano Serialization Library; migrate new mobile work to dcSpark Cardano Multiplatform Lib.",
-  "main": "lib/commonjs/index",
-  "module": "lib/module/index",
-  "types": "lib/typescript/src/index.d.ts",
-  "react-native": "src/index",
-  "source": "src/index",
+  "description": "CML-backed native React Native bridge for Yoroi Classic Cardano wallet operations.",
+  "main": "lib/commonjs/cml",
+  "module": "lib/module/cml",
+  "types": "lib/typescript/src/cml.d.ts",
+  "react-native": "src/cml",
+  "source": "src/cml",
   "files": [
     "src",
     "lib",
@@ -31,7 +31,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @yoroi-classic/csl-mobile-bridge-example",
+    "example": "npm --prefix example run",
     "test": "jest",
     "test:ci": "jest --runInBand",
     "test:rust": "cargo test --locked --manifest-path rust/Cargo.toml",
@@ -40,14 +40,12 @@
     "verify": "yarn test:ci && yarn check:package && yarn test:rust",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "prepare": "bob build",
     "release": "release-it"
   },
   "keywords": [
     "cardano",
     "cml",
-    "csl",
-    "deprecated",
+    "cardano-multiplatform-lib",
     "react-native",
     "ios",
     "android"
@@ -101,9 +99,6 @@
     "react": "*",
     "react-native": "*"
   },
-  "workspaces": [
-    "example"
-  ],
   "packageManager": "yarn@3.6.1",
   "engines": {
     "node": ">= 18.0.0"
@@ -182,7 +177,7 @@
     ]
   },
   "codegenConfig": {
-    "name": "RNCslMobileBridgeSpec",
+    "name": "RNCmlMobileBridgeSpec",
     "type": "modules",
     "jsSrcsDir": "src"
   }

@@ -5,17 +5,17 @@ const packageJson = require('../../package.json');
 
 const readme = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
 
-describe('package deprecation metadata', () => {
-  it('keeps the existing bridge package entrypoints stable while deprecated', () => {
-    expect(packageJson.name).toBe('@yoroi-classic/csl-mobile-bridge');
+describe('CML package metadata', () => {
+  it('uses the CML-only bridge entrypoints', () => {
+    expect(packageJson.name).toBe('@yoroi-classic/cml-mobile-bridge');
     expect(packageJson.private).toBe(true);
-    expect(packageJson.description).toMatch(/Deprecated React Native bindings/);
+    expect(packageJson.description).toMatch(/CML-backed native React Native bridge/);
 
-    expect(packageJson.main).toBe('lib/commonjs/index');
-    expect(packageJson.module).toBe('lib/module/index');
-    expect(packageJson.types).toBe('lib/typescript/src/index.d.ts');
-    expect(packageJson['react-native']).toBe('src/index');
-    expect(packageJson.source).toBe('src/index');
+    expect(packageJson.main).toBe('lib/commonjs/cml');
+    expect(packageJson.module).toBe('lib/module/cml');
+    expect(packageJson.types).toBe('lib/typescript/src/cml.d.ts');
+    expect(packageJson['react-native']).toBe('src/cml');
+    expect(packageJson.source).toBe('src/cml');
   });
 
   it('documents verified CML migration packages without declaring speculative dependencies', () => {

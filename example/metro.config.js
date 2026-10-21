@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const modules = Object.keys({ ...pak.peerDependencies });
 
 // Path to the library at the repo root
-const cslMobileBridgePath = root; // since lib is at repo root
+const cmlMobileBridgePath = root; // since lib is at repo root
 
 const defaultConfig = getDefaultConfig(__dirname);
 
@@ -46,7 +46,7 @@ module.exports = {
         acc[name] = path.join(__dirname, 'node_modules', name);
         return acc;
       }, {}),
-      '@yoroi-classic/csl-mobile-bridge': cslMobileBridgePath,
+      '@yoroi-classic/cml-mobile-bridge': cmlMobileBridgePath,
     },
   },
 
