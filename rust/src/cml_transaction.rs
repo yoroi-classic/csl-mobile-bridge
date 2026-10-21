@@ -3640,7 +3640,6 @@ fn review_mint_json(mint: &cml_chain::assets::Mint) -> serde_json::Value {
 /// Return the transaction fields used to determine which wallet keys must sign.
 /// All ordered input arrays follow the order serialized in the transaction body.
 pub fn transaction_signing_requirements_json(transaction_hex: &str) -> Result<String, String> {
-  use cml_chain::certs::Certificate;
   use std::collections::HashSet;
 
   let transaction_bytes =
@@ -3681,19 +3680,7 @@ pub fn transaction_signing_requirements_json(transaction_hex: &str) -> Result<St
     .certs
     .as_ref()
     .map(|certificates| {
-      certificates.iter().any(|certificate| {
-        matches!(
-          certificate,
-          Certificate::StakeRegistration(_)
-            | Certificate::StakeDeregistration(_)
-            | Certificate::StakeDelegation(_)
-            | Certificate::StakeRegDelegCert(_)
-            | Certificate::StakeVoteRegDelegCert(_)
-            | Certificate::StakeVoteDelegCert(_)
-            | Certificate::VoteDelegCert(_)
-            | Certificate::VoteRegDelegCert(_)
-        )
-      })
+      certificates.iter().any(certificate_requires_staking_witness)
     })
     .unwrap_or(false);
   let mut seen_hashes = HashSet::new();
@@ -3716,6 +3703,23 @@ pub fn transaction_signing_requirements_json(transaction_hex: &str) -> Result<St
     "nativeScriptKeyHashesHex": native_script_key_hashes,
   }))
   .map_err(|err| err.to_string())
+}
+
+fn certificate_requires_staking_witness(certificate: &cml_chain::certs::Certificate) -> bool {
+  use cml_chain::certs::Certificate;
+  matches!(
+    certificate,
+    Certificate::StakeRegistration(_)
+      | Certificate::StakeDeregistration(_)
+      | Certificate::RegCert(_)
+      | Certificate::UnregCert(_)
+      | Certificate::StakeDelegation(_)
+      | Certificate::StakeRegDelegCert(_)
+      | Certificate::StakeVoteRegDelegCert(_)
+      | Certificate::StakeVoteDelegCert(_)
+      | Certificate::VoteDelegCert(_)
+      | Certificate::VoteRegDelegCert(_)
+  )
 }
 
 fn review_auxiliary_data_json(
@@ -3877,12 +3881,30 @@ mod tests {
   use super::{
     add_reference_fee_and_rebalance, build_escrow_redeem_transaction_hex,
     build_simple_payment_transaction_hex, build_transaction_recipe_cml_hex,
-    calculate_reference_script_fee, derive_account_public_key_hex, empty_witness_transaction_hex,
+    calculate_reference_script_fee, certificate_requires_staking_witness,
+    derive_account_public_key_hex, empty_witness_transaction_hex,
     minimum_coin_for_assets, review_output_json, sign_transaction_hex, sign_wallet_data,
     sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
     transaction_review_info_json, transaction_validation_info_json, transaction_witness_set_hex,
     wallet_root_key_hex_from_entropy,
   };
+
+  #[test]
+  fn conway_registration_certificates_require_stake_key_witnesses() {
+    use cml_chain::certs::{Certificate, Credential};
+    use cml_chain::crypto::Ed25519KeyHash;
+    use cml_crypto::RawBytesEncoding;
+
+    let credential = Credential::new_pub_key(Ed25519KeyHash::from_raw_bytes(&[0; 28]).unwrap());
+    assert!(certificate_requires_staking_witness(&Certificate::new_reg_cert(
+      credential.clone(),
+      0,
+    )));
+    assert!(certificate_requires_staking_witness(&Certificate::new_unreg_cert(
+      credential,
+      0,
+    )));
+  }
 
   #[test]
   fn empty_witness_transaction_preserves_body_validity_and_auxiliary_data() {

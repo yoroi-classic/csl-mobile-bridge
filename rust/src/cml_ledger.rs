@@ -192,6 +192,10 @@ fn parse_address_bytes(address: &str, address_hex: Option<&str>) -> Result<Vec<u
 /// Merge Ledger-produced signatures into a CML transaction. The transaction
 /// body is never changed; the supplied tx id is checked before any bytes return.
 pub fn apply_ledger_witnesses_to_transaction_hex(args_json: &str) -> Result<String, String> {
+  handle_exception_result(|| apply_ledger_witnesses_to_transaction_hex_inner(args_json))
+}
+
+fn apply_ledger_witnesses_to_transaction_hex_inner(args_json: &str) -> Result<String, String> {
   let args: ApplyWitnessesArgs = serde_json::from_str(args_json)
     .map_err(|err| format!("invalid Ledger witness arguments: {err}"))?;
   let tx_bytes =
@@ -408,6 +412,15 @@ mod tests {
     })
     .to_string();
     assert!(ledger_signing_request_info_json(&args).is_err());
+    assert!(apply_ledger_witnesses_to_transaction_hex(&serde_json::json!({
+      "transactionHex": "d8799f01e0ff",
+      "accountPublicKeyHex": "",
+      "purpose": "2147485500",
+      "coinType": "2147485463",
+      "accountIndex": "2147483655",
+      "witnesses": [],
+      "expectedTxIdHex": "00",
+    }).to_string()).is_err());
   }
 
   #[test]
