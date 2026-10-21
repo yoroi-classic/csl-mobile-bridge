@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 
 use super::bridge_tools::string::CharPtr;
-use crate::cml_native_script::native_script_required_key_hashes_json;
+use crate::cml_native_script::native_script_key_hashes_json;
 
 fn set_message(target: &mut CharPtr, message: String) -> bool {
   match CString::new(message) {
@@ -14,7 +14,7 @@ fn set_message(target: &mut CharPtr, message: String) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn cml_bridge_native_script_required_key_hashes_json(
+pub unsafe extern "C" fn cml_bridge_native_script_key_hashes_json(
   script_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
 ) -> bool {
   *result = std::ptr::null();
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn cml_bridge_native_script_required_key_hashes_json(
       return false;
     }
   };
-  match native_script_required_key_hashes_json(input) {
+  match native_script_key_hashes_json(input) {
     Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);

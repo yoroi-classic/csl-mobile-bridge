@@ -72,6 +72,13 @@ pub fn ledger_signing_request_info_json(args_json: &str) -> Result<String, Strin
   for address in &args.change_addresses {
     validate_ledger_path(&address.path)?;
   }
+  let parsed_change_addresses = args
+    .change_addresses
+    .iter()
+    .map(|change| {
+      Ok((change, parse_address_bytes(&change.address, change.address_hex.as_deref())?))
+    })
+    .collect::<Result<Vec<_>, String>>()?;
   if let Some(path) = &args.staking_path {
     validate_ledger_path(path)?;
   }
@@ -101,10 +108,10 @@ pub fn ledger_signing_request_info_json(args_json: &str) -> Result<String, Strin
   let mut outputs = Vec::with_capacity(transaction.body.outputs.len());
   for output in &transaction.body.outputs {
     let address_bytes = output.address().to_raw_bytes();
-    let matching_change = args.change_addresses.iter().find(|change| {
-      parse_address_bytes(&change.address, change.address_hex.as_deref()).ok().as_deref()
-        == Some(address_bytes.as_slice())
-    });
+    let matching_change = parsed_change_addresses
+      .iter()
+      .find(|(_, change_bytes)| change_bytes.as_slice() == address_bytes.as_slice())
+      .map(|(change, _)| *change);
     let mut data = crate::cml_transaction::review_output_json(output);
     if let Some(change) = matching_change {
       data["deviceOwnedPath"] = serde_json::json!(change.path);
@@ -526,5 +533,9 @@ mod tests {
       serde_json::json!([purpose, coin, account, 1_u32, 0_u32])
     );
     assert_eq!(info["network"]["protocolMagic"], 764824073_u64);
+    let mut invalid_change: serde_json::Value = serde_json::from_str(&args).unwrap();
+    invalid_change["changeAddresses"][0]["address"] = serde_json::json!("not-an-address");
+    assert!(ledger_signing_request_info_json(&invalid_change.to_string())
+      .unwrap_err().to_lowercase().contains("address"));
   }
 }

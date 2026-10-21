@@ -16,11 +16,9 @@ export const rewardAddressDetailsFromAddress = (
   address: string,
 ): {bech32: string; keyHashHex: string} => {
   const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
-    reward_address_details_from_address: (
-      address: string,
-    ) => {bech32: string; keyHashHex: string};
+    reward_address_details_from_address: (address: string) => string;
   };
-  return cmlBridge.reward_address_details_from_address(address);
+  return JSON.parse(cmlBridge.reward_address_details_from_address(address));
 };
 
 export type EscrowDatumInfo = {
@@ -334,11 +332,11 @@ export const valueFromAmountsHex = (args: ValueAmountArguments): string => {
 };
 
 /** Return unique key hashes in native-script traversal order. */
-export const nativeScriptRequiredKeyHashesJson = (scriptCborHex: string): string => {
+export const nativeScriptKeyHashesJson = (scriptCborHex: string): string => {
   const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
-    native_script_required_key_hashes_json: (scriptCborHex: string) => string;
+    native_script_key_hashes_json: (scriptCborHex: string) => string;
   };
-  return cmlBridge.native_script_required_key_hashes_json(scriptCborHex);
+  return cmlBridge.native_script_key_hashes_json(scriptCborHex);
 };
 
 /** Derive a raw Ed25519 public key from a 32-byte raw or 64-byte extended private key. */
@@ -662,8 +660,8 @@ export const buildEscrowRedeemTransactionCml = (
 };
 
 const assertSafeMetadataNumbers = (value: unknown): void => {
-  if (typeof value === 'number' && Number.isInteger(value) && !Number.isSafeInteger(value)) {
-    throw new RangeError('Metadata integers must be safe JavaScript integers');
+  if (typeof value === 'number' && (!Number.isFinite(value) || (Number.isInteger(value) && !Number.isSafeInteger(value)))) {
+    throw new RangeError('Metadata numbers must be finite and integers must be safe');
   }
   if (Array.isArray(value)) {
     value.forEach(assertSafeMetadataNumbers);
@@ -691,6 +689,9 @@ export const buildSimplePaymentTransaction = (
   args: SimplePaymentBuilderArguments,
 ): {cborHex: string; fee: string} => {
   args.metadata?.forEach(({data}) => assertSafeMetadataNumbers(data));
+  if (args.nativeMints?.some(({assets}) => assets.length === 0)) {
+    throw new Error('Native mint assets must not be empty');
+  }
   const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
     build_simple_payment_transaction_hex: (args: string) => string;
   };

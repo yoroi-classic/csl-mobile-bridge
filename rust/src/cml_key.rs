@@ -59,9 +59,17 @@ mod tests {
     "5ee16c0fc68637ffe09f0023e5206e3fcad0cfe484f4149b75229002ab73e245";
   const CATALYST_RAW_KEY_PUBLIC_HEX: &str =
     "26a0a7144417696537eafe6e942715a6a06e4257531023dba17b33f5a283f5cd";
+  const RFC8032_PRIVATE_KEY: &str =
+    "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+  const RFC8032_PUBLIC_KEY: &str =
+    "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+  const RFC8032_EMPTY_MESSAGE_SIGNATURE: &str =
+    "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b";
 
   #[test]
   fn derives_public_key_and_signs_exact_message_bytes() {
+    assert_eq!(public_key_hex_from_private_key_hex(RFC8032_PRIVATE_KEY).unwrap(), RFC8032_PUBLIC_KEY);
+    assert_eq!(sign_ed25519_message_hex(RFC8032_PRIVATE_KEY, "").unwrap(), RFC8032_EMPTY_MESSAGE_SIGNATURE);
     let public_key = public_key_hex_from_private_key_hex(EXTENDED_PRIVATE_KEY).unwrap();
     assert_eq!(public_key.len(), 64);
     let signature = sign_ed25519_message_hex(EXTENDED_PRIVATE_KEY, "010203").unwrap();

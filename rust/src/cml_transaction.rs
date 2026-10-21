@@ -8,6 +8,7 @@ use cml_chain::{
   crypto::ScriptHash,
 };
 use cml_crypto::{DatumHash, PrivateKey, RawBytesEncoding};
+use crate::cml_address::parse_payment_address;
 use std::convert::TryFrom;
 
 #[derive(serde::Deserialize)]
@@ -3192,58 +3193,23 @@ fn add_reference_fee_and_rebalance(
 /// Assets use policyHex~assetNameHex~quantity entries separated by ^.
 /// This keeps quantities in decimal strings across JSI and avoids JS number loss.
 fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
-  let mut assets = MultiAsset::default();
   if raw.is_empty() || raw == "-" {
-    return Ok(assets);
+    return Ok(MultiAsset::default());
   }
-  for packed in raw.split('^') {
+  let entries = raw.split('^').map(|packed| {
     let fields = packed.split('~').collect::<Vec<_>>();
     if fields.len() != 3 {
       return Err("each asset must contain policyHex~assetNameHex~quantity".to_owned());
     }
-    let policy_bytes =
-      hex::decode(fields[0]).map_err(|err| format!("invalid asset policy: {err}"))?;
-    let policy = ScriptHash::from_raw_bytes(&policy_bytes).map_err(|err| err.to_string())?;
-    let name_bytes = hex::decode(fields[1]).map_err(|err| format!("invalid asset name: {err}"))?;
-    let name = AssetName::new(name_bytes).map_err(|err| err.to_string())?;
-    let quantity =
-      fields[2].parse::<u64>().map_err(|err| format!("invalid asset quantity: {err}"))?;
-    assets.set(policy, name, quantity);
-  }
-  Ok(assets)
+    Ok((fields[0], fields[1], fields[2]))
+  }).collect::<Result<Vec<_>, _>>()?;
+  crate::cml_assets::multiasset_from_hex_amounts(entries)
 }
 
 fn parse_assets(assets: &[ScriptAssetArgs]) -> Result<MultiAsset, String> {
-  let mut result = MultiAsset::default();
-  for asset in assets {
-    let policy_bytes =
-      hex::decode(&asset.policy_id_hex).map_err(|err| format!("invalid asset policy: {err}"))?;
-    let policy = ScriptHash::from_raw_bytes(&policy_bytes).map_err(|err| err.to_string())?;
-    let name_bytes =
-      hex::decode(&asset.asset_name_hex).map_err(|err| format!("invalid asset name: {err}"))?;
-    let name = AssetName::new(name_bytes).map_err(|err| err.to_string())?;
-    let quantity =
-      asset.quantity.parse::<u64>().map_err(|err| format!("invalid asset quantity: {err}"))?;
-    result.set(policy, name, quantity);
-  }
-  Ok(result)
-}
-
-fn parse_payment_address(raw: &str) -> Result<cml_chain::address::Address, String> {
-  use cml_chain::{address::Address, byron::ByronAddress};
-  match Address::from_bech32(raw) {
-    Ok(address) => Ok(address),
-    Err(bech32_error) => match ByronAddress::from_base58(raw) {
-      Ok(address) => Ok(address.to_address()),
-      Err(byron_error) => {
-        let raw_bytes = hex::decode(raw).map_err(|_| {
-          format!("invalid bech32 ({bech32_error}) or Byron ({byron_error}) address")
-        })?;
-        Address::from_raw_bytes(&raw_bytes)
-          .map_err(|err| format!("invalid serialized address hex: {err}"))
-      }
-    },
-  }
+  crate::cml_assets::multiasset_from_hex_amounts(assets.iter().map(|asset| {
+    (asset.policy_id_hex.as_str(), asset.asset_name_hex.as_str(), asset.quantity.as_str())
+  }))
 }
 
 fn parse_auxiliary_metadata(
@@ -3718,7 +3684,7 @@ pub fn transaction_signing_requirements_json(transaction_hex: &str) -> Result<St
   let mut native_script_key_hashes = Vec::new();
   if let Some(scripts) = transaction.witness_set.native_scripts.as_ref() {
     for script in scripts {
-      for hash in crate::cml_native_script::native_script_required_key_hashes(script) {
+      for hash in crate::cml_native_script::native_script_key_hashes(script) {
         if seen_hashes.insert(hash.clone()) {
           native_script_key_hashes.push(hash);
         }

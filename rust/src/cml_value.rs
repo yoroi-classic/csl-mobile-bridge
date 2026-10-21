@@ -1,11 +1,7 @@
-use cml_chain::{
-  assets::{AssetName, MultiAsset, Value},
-  serialization::{Deserialize, Serialize},
-  PolicyId,
-};
+use cml_chain::{assets::Value, serialization::{Deserialize, Serialize}};
 use cml_crypto::RawBytesEncoding;
+use crate::cml_assets::multiasset_from_hex_amounts;
 use serde::Deserialize as SerdeDeserialize;
-use std::collections::HashSet;
 
 #[derive(SerdeDeserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,24 +27,14 @@ fn parse_decimal_u64(value: &str, name: &str) -> Result<u64, String> {
 
 fn value_from_amounts(args: ValueAmounts) -> Result<Value, String> {
   let coin = parse_decimal_u64(&args.coin, "coin")?;
-  let mut assets = MultiAsset::new();
-  let mut seen = HashSet::new();
-  for asset in args.assets {
-    let policy_bytes = hex::decode(&asset.policy_id_hex)
-      .map_err(|err| format!("invalid asset policy ID hex: {err}"))?;
-    let policy = PolicyId::from_raw_bytes(&policy_bytes)
-      .map_err(|err| format!("invalid asset policy ID: {err}"))?;
-    let asset_name_bytes =
-      hex::decode(&asset.asset_name_hex).map_err(|err| format!("invalid asset name hex: {err}"))?;
-    let asset_name =
-      AssetName::new(asset_name_bytes).map_err(|err| format!("invalid asset name: {err}"))?;
-    let quantity = parse_decimal_u64(&asset.quantity, "asset quantity")?;
-    let identity =
-      (asset.policy_id_hex.to_ascii_lowercase(), asset.asset_name_hex.to_ascii_lowercase());
-    if !seen.insert(identity) {
-      return Err("duplicate asset in value arguments".to_owned());
-    }
-    assets.set(policy, asset_name, quantity);
+  let assets = multiasset_from_hex_amounts(
+    args.assets.iter().map(|asset| {
+      (asset.policy_id_hex.as_str(), asset.asset_name_hex.as_str(), asset.quantity.as_str())
+    }),
+  )?;
+  // Preserve the value API's unsigned-decimal validation and error wording.
+  for asset in &args.assets {
+    parse_decimal_u64(&asset.quantity, "asset quantity")?;
   }
   Ok(Value::new(coin, assets))
 }
@@ -133,5 +119,10 @@ mod tests {
     }]})
     .to_string();
     assert!(value_from_amounts_hex(&invalid_policy).is_err());
+    let duplicate = serde_json::json!({"coin":"1", "assets":[
+      {"policyIdHex": POLICY_HEX, "assetNameHex":"01", "quantity":"1"},
+      {"policyIdHex": POLICY_HEX.to_uppercase(), "assetNameHex":"01", "quantity":"2"}
+    ]}).to_string();
+    assert!(value_from_amounts_hex(&duplicate).unwrap_err().contains("duplicate asset"));
   }
 }

@@ -63,7 +63,14 @@ pub fn datum_info_from_output_cbor_hex(output_cbor_hex: &str) -> Result<String, 
 
 fn parse_plutus_data_cbor_hex(cbor_hex: &str) -> Result<PlutusData, String> {
   let bytes = hex::decode(cbor_hex).map_err(|err| format!("invalid Plutus data hex: {err}"))?;
-  PlutusData::from_cbor_bytes(&bytes).map_err(|err| format!("invalid Plutus data CBOR: {err}"))
+  use std::io::Cursor;
+  let mut decoder = cbor_event::de::Deserializer::from(Cursor::new(bytes.as_slice()));
+  let data = PlutusData::deserialize(&mut decoder)
+    .map_err(|err| format!("invalid Plutus data CBOR: {err}"))?;
+  if decoder.as_ref().position() != bytes.len() as u64 {
+    return Err("invalid Plutus data CBOR: trailing bytes".to_owned());
+  }
+  Ok(data)
 }
 
 #[cfg(test)]
@@ -88,6 +95,8 @@ mod tests {
   fn malformed_datum_cbor_is_rejected() {
     assert!(hash_plutus_data_cbor_hex("zz").unwrap_err().contains("invalid Plutus data hex"));
     assert!(hash_plutus_data_cbor_hex("ff").unwrap_err().contains("invalid Plutus data CBOR"));
+    assert!(hash_plutus_data_cbor_hex("8000").unwrap_err().contains("trailing bytes"));
+    assert!(decode_plutus_data_cbor_hex("410100").unwrap_err().contains("trailing bytes"));
   }
 
   #[test]
@@ -106,6 +115,11 @@ mod tests {
       serde_json::from_str::<serde_json::Value>(&decode_plutus_data_cbor_hex("4101").unwrap())
         .unwrap(),
       serde_json::json!({"type":"bytes","value":"01"})
+    );
+    assert_eq!(
+      serde_json::from_str::<serde_json::Value>(&decode_plutus_data_cbor_hex("01").unwrap())
+        .unwrap(),
+      serde_json::json!({"type":"integer","value":"1"})
     );
   }
 

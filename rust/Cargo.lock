@@ -261,6 +261,7 @@ dependencies = [
  "base64 0.20.0",
  "byteorder",
  "cbindgen",
+ "cbor_event",
  "cml-chain",
  "cml-crypto",
  "hex",

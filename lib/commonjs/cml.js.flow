@@ -35,7 +35,7 @@ export {
   transactionUnspentOutputHex,
   valueFromHexInfoJson,
   valueFromAmountsHex,
-  nativeScriptRequiredKeyHashesJson,
+  nativeScriptKeyHashesJson,
   publicKeyHexFromPrivateKeyHex,
   signEd25519MessageHex,
   scriptHashHexFromCbor,

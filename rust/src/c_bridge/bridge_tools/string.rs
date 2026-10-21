@@ -3,6 +3,32 @@ use std::os::raw::c_char;
 
 pub type CharPtr = *const c_char;
 
+pub fn set_message(target: &mut CharPtr, message: String) -> bool {
+  match CString::new(message.replace('\0', "\\0")) {
+    Ok(value) => {
+      *target = value.into_raw();
+      true
+    }
+    Err(_) => false,
+  }
+}
+
+pub unsafe fn read_input<'a>(
+  input: CharPtr, error: &mut CharPtr, label: &str,
+) -> Option<&'a str> {
+  if input.is_null() {
+    set_message(error, format!("{label} is null"));
+    return None;
+  }
+  match CStr::from_ptr(input).to_str() {
+    Ok(value) => Some(value),
+    Err(err) => {
+      set_message(error, format!("{label} is not UTF-8: {err}"));
+      None
+    }
+  }
+}
+
 pub trait IntoStr<T> {
   fn into_str(&self) -> T;
 }

@@ -33,10 +33,14 @@ pub fn address_to_hex(address: &str) -> Result<String, String> {
 /// `bech32` is null for Byron addresses, matching CSL's `to_bech32` behavior.
 pub fn address_info_from_address(address: &str) -> Result<String, String> {
   let parsed = parse_address(address)?;
+  let bech32 = match &parsed {
+    Address::Byron(_) => None,
+    _ => parsed.to_bech32(None).ok(),
+  };
   let info = serde_json::json!({
     "hex": parsed.to_hex(),
     "networkId": parsed.network_id().map_err(|err| err.to_string())?,
-    "bech32": parsed.to_bech32(None).ok(),
+    "bech32": bech32,
     "isValid": true,
   });
   serde_json::to_string(&info).map_err(|err| err.to_string())
@@ -321,8 +325,7 @@ mod tests {
     );
     assert_eq!(info["networkId"], 1);
     assert_eq!(
-      info["bech32"],
-      "addr1stvpskppsdvpck6x388ulepa32y79jge0k7qjya9s2x8ggtgwzgrjfsw62sqqxn3k8y95ms7784"
+      info["bech32"], serde_json::Value::Null
     );
     assert_eq!(info["isValid"], true);
     assert!(address_info_from_address(

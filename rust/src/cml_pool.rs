@@ -5,6 +5,10 @@ pub fn normalize_pool_identifier(pool_id_or_hash: &str) -> Result<(String, Strin
   let key_hash = if is_hex_key_hash(pool_id_or_hash) {
     Ed25519KeyHash::from_hex(pool_id_or_hash).map_err(|err| err.to_string())?
   } else {
+    let hrp = pool_id_or_hash.split_once('1').map(|(hrp, _)| hrp).unwrap_or("");
+    if !hrp.eq_ignore_ascii_case("pool") {
+      return Err("pool identifier must use the pool bech32 prefix".to_owned());
+    }
     Ed25519KeyHash::from_bech32(pool_id_or_hash).map_err(|err| err.to_string())?
   };
   let id = key_hash.to_bech32("pool").map_err(|err| err.to_string())?;
@@ -33,5 +37,7 @@ mod tests {
   fn rejects_invalid_pool_identifiers_and_hashes() {
     assert!(normalize_pool_identifier("not-a-pool-id").is_err());
     assert!(normalize_pool_identifier(&"0a".repeat(27)).is_err());
+    let non_pool = "addr1pmm654jfx088td54ekkkd0j28x6r5gnjdhnutzggursrxjnpk2y";
+    assert!(normalize_pool_identifier(non_pool).unwrap_err().contains("pool bech32 prefix"));
   }
 }

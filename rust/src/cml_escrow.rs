@@ -72,11 +72,7 @@ pub fn escrow_datum_info_json(cbor_hex: &str) -> Result<String, String> {
   let staking_cred_hash = if address_fields.len() == 1 {
     None
   } else {
-    let stake_fields = constr_fields(&address_fields[1], 0, "staking cred")?;
-    if stake_fields.len() != 1 {
-      return Err("Invalid escrow datum: staking cred field count".to_owned());
-    }
-    match &stake_fields[0] {
+    match &address_fields[1] {
       PlutusData::ConstrPlutusData(nothing)
         if nothing.alternative == 1 && nothing.fields.is_empty() =>
       {
@@ -144,6 +140,9 @@ pub fn updated_escrow_datum_cbor_hex(cbor_hex: &str) -> Result<String, String> {
 pub fn derive_escrow_address(
   eligible_address: &str, script_hash_hex: &str, network: u8,
 ) -> Result<String, String> {
+  if network > 15 {
+    return Err("network ID must be 0..=15".to_owned());
+  }
   let address = Address::from_bech32(eligible_address).map_err(|err| err.to_string())?;
   let script_hash_bytes =
     hex::decode(script_hash_hex).map_err(|err| format!("invalid escrow script hash hex: {err}"))?;
@@ -174,15 +173,18 @@ mod tests {
   }
 
   fn sample_datum(remaining: u64) -> String {
+    sample_datum_with_stake(remaining, true)
+  }
+
+  fn sample_datum_with_stake(remaining: u64, has_stake: bool) -> String {
     let payment_hash = vec![0; 28];
     let stake_hash = vec![0x11; 28];
-    let address = constr(
-      0,
-      vec![
-        constr(0, vec![PlutusData::new_bytes(payment_hash)]),
-        constr(0, vec![constr(0, vec![constr(0, vec![PlutusData::new_bytes(stake_hash)])])]),
-      ],
-    );
+    let stake = if has_stake {
+      constr(0, vec![constr(0, vec![PlutusData::new_bytes(stake_hash)])])
+    } else {
+      constr(1, vec![])
+    };
+    let address = constr(0, vec![constr(0, vec![PlutusData::new_bytes(payment_hash)]), stake]);
     let datum = constr(
       0,
       vec![
@@ -229,11 +231,20 @@ mod tests {
   }
 
   #[test]
+  fn accepts_enterprise_datum_with_no_staking_credential() {
+    let info: serde_json::Value =
+      serde_json::from_str(&escrow_datum_info_json(&sample_datum_with_stake(2, false)).unwrap())
+        .unwrap();
+    assert_eq!(info["stakingCredHash"], serde_json::Value::Null);
+  }
+
+  #[test]
   fn script_address_matches_frozen_base_and_enterprise_vectors() {
     assert_eq!(derive_escrow_address(BASE, SCRIPT_HASH, 0).unwrap(), "addr_test1zpvcd07vpjluvr0v3hu8w9wvjhgrs9a2cwrtp6wn8ksrkw09d6z307gnggrp3hgye75yzgh5q0w6unkqnvfxjfu7vxlslphzte");
     assert_eq!(
       derive_escrow_address(ENTERPRISE, SCRIPT_HASH, 0).unwrap(),
       "addr_test1wpvcd07vpjluvr0v3hu8w9wvjhgrs9a2cwrtp6wn8ksrkwg3xg088"
     );
+    assert!(derive_escrow_address(ENTERPRISE, SCRIPT_HASH, 16).unwrap_err().contains("0..=15"));
   }
 }

@@ -3,6 +3,8 @@
 mod c_bridge;
 
 pub mod cml_datum;
+pub mod cml_address;
+pub mod cml_assets;
 pub mod cml_escrow;
 pub mod cml_key;
 pub mod cml_ledger;

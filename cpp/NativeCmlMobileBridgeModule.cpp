@@ -1,6 +1,7 @@
 #include "NativeCmlMobileBridgeModule.h"
 
 #include <jsi/jsi.h>
+#include <cmath>
 #include <memory>
 #include <string>
 
@@ -18,6 +19,10 @@ struct ScopedCharPtr {
 };
 
 using StringFunction = bool (*)(CharPtr, CharPtr *, CharPtr *);
+
+bool isIntegerInRange(double value, double maximum) {
+  return std::isfinite(value) && value >= 0 && value <= maximum && std::floor(value) == value;
+}
 
 void installStringFunction(facebook::jsi::Runtime &rt,
                            facebook::jsi::Object &exports,
@@ -124,8 +129,8 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
                  cml_bridge_transaction_unspent_output_hex);
   INSTALL_STRING(value_from_hex_info_json, cml_bridge_value_from_hex_info_json);
   INSTALL_STRING(value_from_amounts_hex, cml_bridge_value_from_amounts_hex);
-  INSTALL_STRING(native_script_required_key_hashes_json,
-                 cml_bridge_native_script_required_key_hashes_json);
+  INSTALL_STRING(native_script_key_hashes_json,
+                 cml_bridge_native_script_key_hashes_json);
   INSTALL_STRING(script_hash_hex_from_cbor,
                  cml_bridge_script_hash_hex_from_cbor);
   INSTALL_STRING(public_key_hex_from_private_key_hex,
@@ -190,7 +195,7 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
                   "reward_address_from_address: expected address and network number");
             }
             const auto network = args[1].asNumber();
-            if (network < 0 || network > 255 || network != static_cast<uint32_t>(network)) {
+            if (!isIntegerInRange(network, 255)) {
               throw facebook::jsi::JSError(runtime, "network must be an integer from 0 to 255");
             }
             const std::string address = args[0].asString(runtime).utf8(runtime);
@@ -218,9 +223,8 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
             const auto network = args[1].asNumber();
             const auto role = args[2].asNumber();
             const auto index = args[3].asNumber();
-            if (network < 0 || network > 255 || network != static_cast<uint32_t>(network) ||
-                role < 0 || role > UINT32_MAX || role != static_cast<uint32_t>(role) ||
-                index < 0 || index > UINT32_MAX || index != static_cast<uint32_t>(index)) {
+            if (!isIntegerInRange(network, 255) || !isIntegerInRange(role, UINT32_MAX) ||
+                !isIntegerInRange(index, UINT32_MAX)) {
               throw facebook::jsi::JSError(runtime, "reward address path values are out of range");
             }
             const std::string key = args[0].asString(runtime).utf8(runtime);

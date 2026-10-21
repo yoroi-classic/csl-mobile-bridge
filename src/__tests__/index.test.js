@@ -156,7 +156,7 @@ const createBridgeFixture = () => {
       isValid: true,
     })),
     stake_credential_hex_from_address: jest.fn((address) => `stake:${address}`),
-    reward_address_details_from_address: jest.fn((address) => ({
+    reward_address_details_from_address: jest.fn((address) => JSON.stringify({
       bech32: `bech32:${address}`,
       keyHashHex: 'ab'.repeat(28),
     })),
@@ -191,7 +191,7 @@ const createBridgeFixture = () => {
     transaction_unspent_output_hex: jest.fn((args) => `unspent:${args}`),
     value_from_hex_info_json: jest.fn((valueCborHex) => `value-info:${valueCborHex}`),
     value_from_amounts_hex: jest.fn((args) => `value-cbor:${args}`),
-    native_script_required_key_hashes_json: jest.fn((scriptCborHex) => `hashes:${scriptCborHex}`),
+    native_script_key_hashes_json: jest.fn((scriptCborHex) => `hashes:${scriptCborHex}`),
     script_hash_hex_from_cbor: jest.fn((args) => `script-hash:${args}`),
     public_key_hex_from_private_key_hex: jest.fn((keyHex) => `public-key:${keyHex}`),
     sign_ed25519_message_hex: jest.fn((keyHex, messageHex) => `signature:${keyHex}:${messageHex}`),
@@ -265,7 +265,7 @@ describe('CML mobile bridge source entrypoint', () => {
     expect(moduleExports.valueFromHexInfoJson('82182a')).toBe('value-info:82182a');
     expect(bridge.value_from_hex_info_json).toHaveBeenCalledWith('82182a');
     expect(moduleExports.valueFromAmountsHex(amounts)).toBe(`value-cbor:${JSON.stringify(amounts)}`);
-    expect(moduleExports.nativeScriptRequiredKeyHashesJson('8200')).toBe('hashes:8200');
+    expect(moduleExports.nativeScriptKeyHashesJson('8200')).toBe('hashes:8200');
     expect(moduleExports.publicKeyHexFromPrivateKeyHex('ab'.repeat(32))).toBe(`public-key:${'ab'.repeat(32)}`);
     expect(moduleExports.signEd25519MessageHex('ab'.repeat(32), '010203')).toBe(
       `signature:${'ab'.repeat(32)}:010203`,
@@ -707,6 +707,20 @@ describe('CML mobile bridge source entrypoint', () => {
     );
   });
 
+  it('rejects an empty native mint asset list before calling the bridge', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const args = {
+      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000'}],
+      changeAddress: 'addr_test_change', ttl: '123456', feeCoefficient: '44',
+      feeConstant: '155381', coinsPerUtxoByte: '4310', keyDeposit: '2000000',
+      poolDeposit: '500000000', maxValueSize: '5000',
+      nativeMints: [{policyIdHex: 'cd'.repeat(28), scriptCborHex: '40', assets: []}],
+    };
+    expect(() => moduleExports.buildSimplePaymentTransaction(args)).toThrow('Native mint assets must not be empty');
+    expect(bridge.build_simple_payment_transaction_hex).not.toHaveBeenCalled();
+  });
+
   it('routes minimum-coin-for-assets calculation through CML with exact quantities', () => {
     const { bridge, moduleExports } = loadBridge();
     const packed = `addr_test_change|${'ab'.repeat(28)}~00ff~9007199254740993|4310`;
@@ -747,8 +761,12 @@ describe('CML mobile bridge source entrypoint', () => {
       maxValueSize: '5000', metadata: [{label: '674', data: {value: Number.MAX_SAFE_INTEGER + 1}}],
     };
     expect(() => moduleExports.buildSimplePaymentTransaction(args)).toThrow(
-      'Metadata integers must be safe JavaScript integers',
+      'Metadata numbers must be finite and integers must be safe',
     );
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      args.metadata[0].data.value = value;
+      expect(() => moduleExports.buildSimplePaymentTransaction(args)).toThrow('Metadata numbers must be finite');
+    }
   });
 
   it('routes xpub reward-address derivation to the native CML helper', () => {

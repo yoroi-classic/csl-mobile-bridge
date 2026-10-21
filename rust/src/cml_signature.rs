@@ -37,6 +37,12 @@ mod tests {
   fn verifies_cip8_signature_and_rejects_other_message() {
     assert!(verify_ed25519_signature(PUBLIC_KEY_HEX, MESSAGE_HEX, SIGNATURE_HEX).unwrap());
     assert!(!verify_ed25519_signature(PUBLIC_KEY_HEX, "00", SIGNATURE_HEX).unwrap());
+    let wrong_key = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+    assert!(!verify_ed25519_signature(wrong_key, MESSAGE_HEX, SIGNATURE_HEX).unwrap());
+    assert!(verify_ed25519_signature("zz", MESSAGE_HEX, SIGNATURE_HEX).unwrap_err().contains("public key hex"));
+    assert!(verify_ed25519_signature("00", MESSAGE_HEX, SIGNATURE_HEX).unwrap_err().contains("public key"));
+    assert!(verify_ed25519_signature(PUBLIC_KEY_HEX, MESSAGE_HEX, "zz").unwrap_err().contains("signature hex"));
+    assert!(verify_ed25519_signature(PUBLIC_KEY_HEX, MESSAGE_HEX, "00").unwrap_err().contains("signature"));
   }
 
   #[test]

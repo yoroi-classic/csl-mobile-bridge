@@ -14,7 +14,10 @@ fn set_message(target: &mut CharPtr, message: String) -> bool {
 }
 
 fn arg<'a>(args: &'a serde_json::Value, name: &str) -> Result<&'a str, String> {
-  args.get(name).and_then(serde_json::Value::as_str).ok_or_else(|| format!("missing {name}"))
+  match args.get(name) {
+    None => Err(format!("missing {name}")),
+    Some(value) => value.as_str().ok_or_else(|| format!("{name} must be a string")),
+  }
 }
 
 #[no_mangle]

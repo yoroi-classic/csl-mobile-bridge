@@ -69,39 +69,47 @@ pub fn resolve_cns_address_record(
     )
   };
 
-  let stake_hash_bytes = match &address_fields[1] {
+  let (staking_kind, stake_hash_bytes) = match &address_fields[1] {
     PlutusData::ConstrPlutusData(nothing)
       if nothing.alternative == 1 && nothing.fields.is_empty() =>
     {
-      None
+      (None, None)
     }
     some => {
       let just_fields = constr_fields(some, 0, "staking option")?;
       let staking_credential = single_field(just_fields, "staking option")?;
       let staking_hash_fields = constr_fields(staking_credential, 0, "staking credential")?;
       let hash_wrapper = single_field(staking_hash_fields, "staking credential")?;
-      let hash_fields = constr_fields(hash_wrapper, 0, "staking hash")?;
-      Some(credential_hash(single_field(hash_fields, "staking hash")?, "staking credential hash")?)
+      let (kind, hash_fields) = match hash_wrapper {
+        PlutusData::ConstrPlutusData(constr) if constr.alternative == 0 => ("key", &constr.fields),
+        PlutusData::ConstrPlutusData(constr) if constr.alternative == 1 => ("script", &constr.fields),
+        _ => return Err("Invalid CNS address record: staking credential constructor".to_owned()),
+      };
+      (Some(kind), Some(credential_hash(single_field(hash_fields, "staking hash")?, "staking credential hash")?))
     }
   };
 
-  let (address, staking_hash_hex) = match stake_hash_bytes {
-    Some(bytes) => {
-      let staking = Credential::new_pub_key(
-        Ed25519KeyHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?,
-      );
+  let (address, staking_hash_hex) = match (staking_kind, stake_hash_bytes) {
+    (Some(kind), Some(bytes)) => {
+      let staking = if kind == "key" {
+        Credential::new_pub_key(Ed25519KeyHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?)
+      } else {
+        Credential::new_script(ScriptHash::from_raw_bytes(&bytes).map_err(|err| err.to_string())?)
+      };
       let addr = BaseAddress::new(network, payment, staking).to_address();
       (addr.to_bech32(None).map_err(|err| err.to_string())?, Some(hex::encode(bytes)))
     }
-    None => {
+    (None, None) => {
       let addr = EnterpriseAddress::new(network, payment).to_address();
       (addr.to_bech32(None).map_err(|err| err.to_string())?, None)
     }
+    _ => return Err("Invalid CNS address record: incomplete staking credential".to_owned()),
   };
 
   serde_json::to_string(&serde_json::json!({
     "paymentCredentialKind": payment_kind,
     "paymentCredentialHashHex": hex::encode(payment_hash_bytes),
+    "stakingCredentialKind": staking_kind,
     "stakingCredentialHashHex": staking_hash_hex,
     "addressBech32": address,
   }))
@@ -114,6 +122,7 @@ mod tests {
 
   const KEY_ADDRESS: &str = r#"{"constructor":0,"fields":[{"constructor":0,"fields":[{"bytes":"a5644bcb8cd82b5e0478657e2c8feea865682a5b20db45d095807d84"}]},{"constructor":0,"fields":[{"constructor":0,"fields":[{"constructor":0,"fields":[{"bytes":"e40482bb4648fc54bffc06175c4a9e5f268b70da54bf6de4d6ad71df"}]}]}]}]}"#;
   const SCRIPT_ADDRESS: &str = r#"{"constructor":0,"fields":[{"constructor":1,"fields":[{"bytes":"a5644bcb8cd82b5e0478657e2c8feea865682a5b20db45d095807d84"}]},{"constructor":0,"fields":[{"constructor":0,"fields":[{"constructor":0,"fields":[{"bytes":"e40482bb4648fc54bffc06175c4a9e5f268b70da54bf6de4d6ad71df"}]}]}]}]}"#;
+  const SCRIPT_STAKE_ADDRESS: &str = r#"{"constructor":0,"fields":[{"constructor":0,"fields":[{"bytes":"a5644bcb8cd82b5e0478657e2c8feea865682a5b20db45d095807d84"}]},{"constructor":0,"fields":[{"constructor":0,"fields":[{"constructor":1,"fields":[{"bytes":"e40482bb4648fc54bffc06175c4a9e5f268b70da54bf6de4d6ad71df"}]}]}]}]}"#;
   const NO_STAKE: &str = r#"{"constructor":0,"fields":[{"constructor":0,"fields":[{"bytes":"a5644bcb8cd82b5e0478657e2c8feea865682a5b20db45d095807d84"}]},{"constructor":1,"fields":[]}] }"#;
 
   #[test]
@@ -135,6 +144,11 @@ mod tests {
       serde_json::from_str(&resolve_cns_address_record(SCRIPT_ADDRESS, 1).unwrap()).unwrap();
     assert_eq!(script["paymentCredentialKind"], "script");
     assert_eq!(script["addressBech32"], "addr1zxjkgj7t3nvzkhsy0pjhuty0a65x26p2tvsdk3wsjkq8mp8yqjptk3jgl32tllqxzawy48jly69hpkj5hak7f44dw80s0xayjy");
+    let script_stake: serde_json::Value = serde_json::from_str(
+      &resolve_cns_address_record(SCRIPT_STAKE_ADDRESS, 1).unwrap(),
+    ).unwrap();
+    assert_eq!(script_stake["stakingCredentialKind"], "script");
+    assert_eq!(script_stake["stakingCredentialHashHex"], "e40482bb4648fc54bffc06175c4a9e5f268b70da54bf6de4d6ad71df");
   }
 
   #[test]

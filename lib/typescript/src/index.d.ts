@@ -112,7 +112,7 @@ export declare const valueFromHexInfoJson: (valueCborHex: string) => string;
 /** Encode decimal-string quantities as CML Value CBOR. */
 export declare const valueFromAmountsHex: (args: ValueAmountArguments) => string;
 /** Return unique key hashes in native-script traversal order. */
-export declare const nativeScriptRequiredKeyHashesJson: (scriptCborHex: string) => string;
+export declare const nativeScriptKeyHashesJson: (scriptCborHex: string) => string;
 /** Derive a raw Ed25519 public key from a 32-byte raw or 64-byte extended private key. */
 export declare const publicKeyHexFromPrivateKeyHex: (privateKeyHex: string) => string;
 /** Sign exact message bytes with a 32-byte raw or 64-byte extended Ed25519 private key. */

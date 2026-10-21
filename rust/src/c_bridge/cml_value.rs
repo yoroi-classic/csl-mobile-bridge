@@ -1,31 +1,5 @@
-use std::ffi::{CStr, CString};
-
-use super::bridge_tools::string::CharPtr;
+use super::bridge_tools::string::{read_input, set_message, CharPtr};
 use crate::cml_value::{value_from_amounts_hex, value_from_hex_info_json};
-
-fn set_message(target: &mut CharPtr, message: String) -> bool {
-  match CString::new(message) {
-    Ok(value) => {
-      *target = value.into_raw();
-      true
-    }
-    Err(_) => false,
-  }
-}
-
-unsafe fn read_input<'a>(input: CharPtr, error: &mut CharPtr, label: &str) -> Option<&'a str> {
-  if input.is_null() {
-    set_message(error, format!("{label} is null"));
-    return None;
-  }
-  match CStr::from_ptr(input).to_str() {
-    Ok(value) => Some(value),
-    Err(err) => {
-      set_message(error, format!("{label} is not UTF-8: {err}"));
-      None
-    }
-  }
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn cml_bridge_value_from_hex_info_json(
