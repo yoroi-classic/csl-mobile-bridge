@@ -1,4 +1,4 @@
-#include "NativeCslMobileBridgeModule.h"
+#include "NativeCmlMobileBridgeModule.h"
 
 #include <jsi/jsi.h>
 #include <memory>
@@ -8,12 +8,12 @@ extern "C" {
 #include "react_native_haskell_shelley.h"
 }
 
-namespace cslmobilebridge {
+namespace cmlmobilebridge {
 namespace {
 struct ScopedCharPtr {
   CharPtr ptr = nullptr;
   ~ScopedCharPtr() {
-    if (ptr) csl_bridge_charptr_free(&ptr);
+    if (ptr) cml_bridge_charptr_free(&ptr);
   }
 };
 
@@ -59,6 +59,22 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
                  cml_bridge_stake_credential_hex_from_address);
   INSTALL_STRING(reward_address_details_from_address,
                  cml_bridge_reward_address_details_from_address);
+  INSTALL_STRING(derive_public_key_from_account_path_hex,
+                 cml_bridge_derive_public_key_from_account_path_hex);
+  INSTALL_STRING(base_address_bech32_from_public_key_hashes,
+                 cml_bridge_base_address_bech32_from_public_key_hashes);
+  INSTALL_STRING(reward_address_hex_from_public_key_hash,
+                 cml_bridge_reward_address_hex_from_public_key_hash);
+  INSTALL_STRING(icarus_address_base58_from_account_public_key_hex,
+                 cml_bridge_icarus_address_base58_from_account_public_key_hex);
+  INSTALL_STRING(normalize_pool_identifier,
+                 cml_bridge_normalize_pool_identifier);
+  INSTALL_STRING(resolve_cns_address_record,
+                 cml_bridge_resolve_cns_address_record);
+  INSTALL_STRING(verify_ed25519_signature,
+                 cml_bridge_verify_ed25519_signature);
+  INSTALL_STRING(public_key_hash_hex_from_raw_hex,
+                 cml_bridge_public_key_hash_hex_from_raw_hex);
   INSTALL_STRING(sign_wallet_transaction_hex,
                  cml_bridge_sign_wallet_transaction_hex);
   INSTALL_STRING(wallet_root_key_hex_from_entropy,
@@ -75,10 +91,16 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
                  cml_bridge_transaction_validation_info_json);
   INSTALL_STRING(transaction_review_info_json,
                  cml_bridge_transaction_review_info_json);
+  INSTALL_STRING(transaction_signing_requirements_json,
+                 cml_bridge_transaction_signing_requirements_json);
   INSTALL_STRING(transaction_witness_set_hex,
                  cml_bridge_transaction_witness_set_hex);
+  INSTALL_STRING(empty_witness_transaction_hex,
+                 cml_bridge_empty_witness_transaction_hex);
   INSTALL_STRING(build_simple_payment_transaction_hex,
                  cml_bridge_build_simple_payment_transaction_hex);
+  INSTALL_STRING(build_transaction_recipe_cml_hex,
+                 cml_bridge_build_transaction_recipe_cml_hex);
   INSTALL_STRING(build_escrow_redeem_transaction_hex,
                  cml_bridge_build_escrow_redeem_transaction_hex);
   INSTALL_STRING(minimum_coin_for_assets,
@@ -92,7 +114,50 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
                  cml_bridge_decode_plutus_data_cbor_hex);
   INSTALL_STRING(datum_info_from_output_cbor_hex,
                  cml_bridge_datum_info_from_output_cbor_hex);
+  INSTALL_STRING(escrow_datum_info_json,
+                 cml_bridge_escrow_datum_info_json);
+  INSTALL_STRING(updated_escrow_datum_cbor_hex,
+                 cml_bridge_updated_escrow_datum_cbor_hex);
+  INSTALL_STRING(derive_escrow_address,
+                 cml_bridge_derive_escrow_address);
+  INSTALL_STRING(transaction_unspent_output_hex,
+                 cml_bridge_transaction_unspent_output_hex);
+  INSTALL_STRING(value_from_hex_info_json, cml_bridge_value_from_hex_info_json);
+  INSTALL_STRING(value_from_amounts_hex, cml_bridge_value_from_amounts_hex);
+  INSTALL_STRING(native_script_required_key_hashes_json,
+                 cml_bridge_native_script_required_key_hashes_json);
+  INSTALL_STRING(script_hash_hex_from_cbor,
+                 cml_bridge_script_hash_hex_from_cbor);
+  INSTALL_STRING(public_key_hex_from_private_key_hex,
+                 cml_bridge_public_key_hex_from_private_key_hex);
+  INSTALL_STRING(catalyst_private_key_hex_from_entropy,
+                 cml_bridge_catalyst_private_key_hex_from_entropy);
+  INSTALL_STRING(apply_ledger_witnesses_to_transaction_hex,
+                 cml_bridge_apply_ledger_witnesses_to_transaction_hex);
+  INSTALL_STRING(ledger_signing_request_info_json,
+                 cml_bridge_ledger_signing_request_info_json);
 #undef INSTALL_STRING
+  exports.setProperty(
+      rt, "sign_ed25519_message_hex",
+      facebook::jsi::Function::createFromHostFunction(
+          rt, facebook::jsi::PropNameID::forAscii(rt, "sign_ed25519_message_hex"), 2,
+          [](facebook::jsi::Runtime &runtime, const facebook::jsi::Value &,
+             const facebook::jsi::Value *args, size_t count) -> facebook::jsi::Value {
+            if (count < 2 || !args[0].isString() || !args[1].isString()) {
+              throw facebook::jsi::JSError(runtime,
+                  "sign_ed25519_message_hex: expected private key and message hex strings");
+            }
+            const std::string key = args[0].asString(runtime).utf8(runtime);
+            const std::string message = args[1].asString(runtime).utf8(runtime);
+            ScopedCharPtr result;
+            ScopedCharPtr error;
+            if (!cml_bridge_sign_ed25519_message_hex(key.c_str(), message.c_str(),
+                                                     &result.ptr, &error.ptr)) {
+              throw facebook::jsi::JSError(runtime,
+                  error.ptr ? error.ptr : "CML Ed25519 signing failed");
+            }
+            return facebook::jsi::String::createFromUtf8(runtime, result.ptr);
+          }));
   exports.setProperty(
       rt, "sign_transaction_hex",
       facebook::jsi::Function::createFromHostFunction(
@@ -174,13 +239,13 @@ facebook::jsi::Object installCmlExports(facebook::jsi::Runtime &rt) {
 }
 } // namespace
 
-NativeCslMobileBridgeModule::NativeCslMobileBridgeModule(
+NativeCmlMobileBridgeModule::NativeCmlMobileBridgeModule(
     std::shared_ptr<facebook::react::CallInvoker> jsInvoker)
-    : facebook::react::NativeCslMobileBridgeCxxSpec<NativeCslMobileBridgeModule>(
+    : facebook::react::NativeCmlMobileBridgeCxxSpec<NativeCmlMobileBridgeModule>(
           std::move(jsInvoker)) {}
 
-facebook::jsi::Object NativeCslMobileBridgeModule::install(
+facebook::jsi::Object NativeCmlMobileBridgeModule::install(
     facebook::jsi::Runtime &rt) {
   return installCmlExports(rt);
 }
-} // namespace cslmobilebridge
+} // namespace cmlmobilebridge

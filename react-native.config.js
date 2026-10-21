@@ -11,9 +11,9 @@ module.exports = {
        * @type {import('@react-native-community/cli-types').AndroidDependencyParams}
        */
       android: {
-        cxxModuleCMakeListsModuleName: 'csl_mobile_bridge_jsi',
+        cxxModuleCMakeListsModuleName: 'cml_mobile_bridge_jsi',
         cxxModuleCMakeListsPath: 'CMakeLists.txt',
-        cxxModuleHeaderName: 'NativeCslMobileBridgeModule',
+        cxxModuleHeaderName: 'NativeCmlMobileBridgeModule',
         cxxModuleHeaderPath: '../cpp',
       },
     },

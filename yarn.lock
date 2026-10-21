@@ -3608,9 +3608,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@yoroi-classic/csl-mobile-bridge@workspace:.":
+"@yoroi-classic/cml-mobile-bridge@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@yoroi-classic/csl-mobile-bridge@workspace:."
+  resolution: "@yoroi-classic/cml-mobile-bridge@workspace:."
   dependencies:
     "@babel/eslint-parser": ^7.23.9
     "@babel/preset-typescript": ^7.28.5

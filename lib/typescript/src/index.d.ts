@@ -1,13 +1,52 @@
-import * as bridgeTypes from './BridgeTypes';
-export { AddressKind, BlockEra, ByronAddressType, CborContainerType, CborSetType, CertificateKind, CoinSelectionStrategyCIP2, CredKind, DRepKind, GovernanceActionKind, LanguageKind, MIRKind, MIRPot, MetadataJsonSchema, NativeScriptKind, NetworkIdKind, PlutusDataKind, PlutusDatumSchema, RedeemerTagKind, RelayKind, ScriptHashNamespace, ScriptSchema, TransactionMetadatumKind, TransactionSetsState, VoteKind, VoterKind } from './BridgeTypes';
-declare const cslBridge: typeof bridgeTypes;
-export default cslBridge;
 /** Extract the canonical serialized stake credential from a base address using CML. */
 export declare const stakeCredentialHexFromAddress: (address: string) => string;
 export declare const rewardAddressDetailsFromAddress: (address: string) => {
     bech32: string;
     keyHashHex: string;
 };
+export type EscrowDatumInfo = {
+    paymentCredHash: string;
+    stakingCredHash: string | null;
+    nightPerThaw: string;
+    nextThawTime: string;
+    thawsRemaining: string;
+    interval: string;
+};
+/** Decode the escrow datum using CML; all integer fields are decimal strings. */
+export declare const escrowDatumInfoJson: (datumCborHex: string) => string;
+/** Advance an escrow datum's thaw time and decrement its remaining count. */
+export declare const updatedEscrowDatumCborHex: (datumCborHex: string) => string;
+export type EscrowAddressArguments = {
+    eligibleAddress: string;
+    scriptHashHex: string;
+    networkId: number;
+};
+/** Derive an escrow script address with CML, retaining base-address staking credentials. */
+export declare const deriveEscrowAddress: (args: EscrowAddressArguments) => string;
+/** Normalize a Cardano pool identifier or key hash using CML. */
+export declare const normalizePoolIdentifier: (poolIdOrHash: string) => {
+    id: string;
+    hash: string;
+};
+export type CnsAddressRecordResult = {
+    paymentCredentialKind: 'key' | 'script';
+    paymentCredentialHashHex: string;
+    stakingCredentialHashHex: string | null;
+    addressBech32: string;
+};
+/** Resolve a CNS Plutus address record into normalized credential data and a CML address. */
+export declare const resolveCnsAddressRecord: (args: {
+    plutusAddressJson: string;
+    networkId: number;
+}) => CnsAddressRecordResult;
+/** Verify the Ed25519 signature over caller-supplied bytes (CIP-8 Sig_structure for signData). */
+export declare const verifyEd25519Signature: (args: {
+    publicKeyHex: string;
+    messageHex: string;
+    signatureHex: string;
+}) => boolean;
+/** Derive the Cardano key hash from a raw Ed25519 public key. */
+export declare const publicKeyHashHexFromRawHex: (publicKeyHex: string) => string;
 export declare const signTransactionHex: (transactionHex: string, privateKeyHex: string) => string;
 export type WalletTransactionSigningArguments = {
     transactionHex: string;
@@ -30,6 +69,11 @@ export type AccountPublicKeyDerivationArguments = {
 };
 /** Derive an account public key in CML without exporting derived private keys. */
 export declare const deriveAccountPublicKeyHex: (args: AccountPublicKeyDerivationArguments) => string;
+/** Derive a raw child public key from an account extended public key and soft path. */
+export declare const derivePublicKeyFromAccountPathHex: (accountPublicKeyHex: string, path: number[]) => string;
+export declare const baseAddressBech32FromPublicKeyHashes: (paymentKeyHashHex: string, stakeKeyHashHex: string, networkId: number) => string;
+export declare const rewardAddressHexFromPublicKeyHash: (stakeKeyHashHex: string, networkId: number) => string;
+export declare const icarusAddressBase58FromAccountPublicKeyHex: (accountPublicKeyHex: string, role: number, index: number, protocolMagic: number) => string;
 export type WalletPathSigningArguments = {
     transactionHex: string;
     masterKeyHex: string;
@@ -53,13 +97,78 @@ export declare const transactionIdHex: (transactionHex: string) => string;
 export declare const transactionValidationInfoJson: (transactionHex: string) => string;
 /** Parse a transaction into the CML-backed ReviewTx DTO (all quantities are strings). */
 export declare const transactionReviewInfoJson: (transactionHex: string) => string;
+/** Parse normalized body/witness fields used to determine required wallet signers. */
+export declare const transactionSigningRequirementsJson: (transactionHex: string) => string;
 /** Extract the serialized witness set from a signed transaction using CML. */
 export declare const transactionWitnessSetHex: (transactionHex: string) => string;
+/** Replace witnesses with an empty set while preserving transaction body and auxiliary data. */
+export declare const emptyWitnessTransactionHex: (transactionHex: string) => string;
+export type ValueAmountArguments = {
+    coin: string;
+    assets: CmlAssetQuantity[];
+};
+/** Decode CML Value CBOR into lossless decimal-string quantities. */
+export declare const valueFromHexInfoJson: (valueCborHex: string) => string;
+/** Encode decimal-string quantities as CML Value CBOR. */
+export declare const valueFromAmountsHex: (args: ValueAmountArguments) => string;
+/** Return unique key hashes in native-script traversal order. */
+export declare const nativeScriptRequiredKeyHashesJson: (scriptCborHex: string) => string;
+/** Derive a raw Ed25519 public key from a 32-byte raw or 64-byte extended private key. */
+export declare const publicKeyHexFromPrivateKeyHex: (privateKeyHex: string) => string;
+/** Sign exact message bytes with a 32-byte raw or 64-byte extended Ed25519 private key. */
+export declare const signEd25519MessageHex: (privateKeyHex: string, messageHex: string) => string;
+export type ScriptHashType = 'native' | 'plutusV1' | 'plutusV2' | 'plutusV3';
+/** Calculate a policy/script hash; Plutus language must be explicit for correct namespacing. */
+export declare const scriptHashHexFromCbor: (scriptType: ScriptHashType, scriptCborHex: string) => string;
+/** Generate the legacy-compatible Catalyst raw private-key bytes from BIP39 entropy/password hex. */
+export declare const catalystPrivateKeyHexFromEntropy: (entropyHex: string, passwordHex?: string) => string;
+/** Add verified Ledger signatures to an unsigned transaction without changing its body. */
+export declare const applyLedgerWitnessesToTransactionHex: (args: {
+    transactionHex: string;
+    accountPublicKeyHex: string;
+    purpose: string;
+    coinType: string;
+    accountIndex: string;
+    witnesses: Array<{
+        path: number[];
+        signatureHex: string;
+    }>;
+    expectedTxIdHex: string;
+    plutusDataHexes?: string[];
+    senderUtxos?: Array<{
+        txHashHex: string;
+        outputIndex: number;
+        address: string;
+        addressHex?: string;
+        path: number[];
+    }>;
+}) => string;
+/** Return CML-decoded transaction fields, validated source paths, and change output paths for Ledger mapping. */
+export declare const ledgerSigningRequestInfoJson: (args: {
+    transactionHex: string;
+    networkId: number;
+    protocolMagic: number;
+    senderUtxos: Array<{
+        txHashHex: string;
+        outputIndex: number;
+        address: string;
+        addressHex?: string;
+        path: number[];
+    }>;
+    changeAddresses: Array<{
+        address: string;
+        addressHex?: string;
+        path: number[];
+    }>;
+    stakingPath?: number[];
+}) => string;
 export type SimplePaymentBuilderArguments = {
     inputs: Array<{
         transactionHashHex: string;
         index: string;
         address: string;
+        addressHex?: string;
+        isBootstrap?: boolean;
         lovelace: string;
         assets?: Array<{
             policyIdHex: string;
@@ -83,7 +192,17 @@ export type SimplePaymentBuilderArguments = {
         };
     }>;
     changeAddress: string;
-    ttl: string;
+    ttl?: string;
+    manualFee?: string;
+    manualChangeOutput?: {
+        address: string;
+        lovelace: string;
+        assets: CmlAssetQuantity[];
+        datum?: {
+            kind: 'hash' | 'inline';
+            hex: string;
+        };
+    };
     feeCoefficient: string;
     feeConstant: string;
     coinsPerUtxoByte: string;
@@ -128,6 +247,175 @@ export type SimplePaymentBuilderArguments = {
             quantity: string;
         }>;
     }>;
+};
+export type CmlTransactionRecipeUtxo = {
+    txHashHex: string;
+    index: string;
+    address: string;
+    addressHex?: string;
+    isBootstrap?: boolean;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+    inlineDatumCborHex?: string;
+    datumHashHex?: string;
+    referenceScript?: {
+        hash: string;
+        type?: string;
+        size?: number;
+        bytes?: string;
+    };
+    nativeScriptCborHex?: string;
+    nativeScriptWitnessCount?: string;
+};
+export type CmlTransactionRecipeOutput = {
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+    datum?: {
+        kind: 'hash' | 'inline';
+        hex: string;
+    };
+};
+export type CmlTransactionRecipeCertificate = NonNullable<SimplePaymentBuilderArguments['certificates']>[number] | {
+    kind: 'PoolRegistration';
+    poolParams: Record<string, unknown>;
+} | {
+    kind: 'PoolRetirement';
+    poolKeyHash: string;
+    epoch: string;
+} | {
+    kind: 'MoveInstantaneousRewardsCert';
+    pot: 'reserves' | 'treasury';
+    rewards: Array<{
+        credential: {
+            kind: 'key' | 'script';
+            hashHex: string;
+        };
+        amount: string;
+    }>;
+} | {
+    kind: 'GenesisKeyDelegation';
+    genesisHashHex: string;
+    genesisDelegateHashHex: string;
+    vrfKeyHashHex: string;
+} | {
+    kind: 'CommitteeHotAuth';
+    coldCredential: {
+        kind: 'key' | 'script';
+        hashHex: string;
+    };
+    hotCredential: {
+        kind: 'key' | 'script';
+        hashHex: string;
+    };
+} | {
+    kind: 'CommitteeColdResign';
+    coldCredential: {
+        kind: 'key' | 'script';
+        hashHex: string;
+    };
+    anchor?: {
+        url: string;
+        dataHashHex: string;
+    };
+} | {
+    kind: 'DRepRegistration' | 'DRepDeregistration' | 'DRepUpdate';
+    credential: {
+        kind: 'key' | 'script';
+        hashHex: string;
+    };
+    deposit?: string;
+    anchor?: {
+        url: string;
+        dataHashHex: string;
+    };
+};
+export type CmlTransactionRecipeArguments = {
+    protocolParams: {
+        linearFee: {
+            coefficient: string;
+            constant: string;
+        };
+        coinsPerUtxoByte: string;
+        keyDeposit: string;
+        poolDeposit: string;
+        maxValueSize: string;
+        maxTxSize?: string;
+        collateralPercentage?: string;
+        refScriptCoinsPerByte?: {
+            numerator: string;
+            denominator: string;
+        };
+        refScriptTierStepBytes?: string;
+        refScriptMultiplier?: string;
+        exUnitPricesMemory?: {
+            numerator: string;
+            denominator: string;
+        };
+        exUnitPricesSteps?: {
+            numerator: string;
+            denominator: string;
+        };
+        plutusV1CostModel?: number[];
+        plutusV2CostModel?: number[];
+        plutusV3CostModel?: number[];
+    };
+    inputs: Array<CmlTransactionRecipeUtxo & {
+        kind?: 'paymentKey' | 'nativeScript';
+    }>;
+    outputs: CmlTransactionRecipeOutput[];
+    certificates: CmlTransactionRecipeCertificate[];
+    withdrawals: Array<{
+        rewardAddress: string;
+        amount: string;
+    }>;
+    referenceInputs: Array<Omit<CmlTransactionRecipeUtxo, 'inlineDatumCborHex' | 'datumHashHex' | 'nativeScriptCborHex' | 'nativeScriptWitnessCount'>>;
+    scriptInputs: Array<{
+        utxo: CmlTransactionRecipeUtxo;
+        scriptHashHex?: string;
+        plutusVersion: 'V1' | 'V2' | 'V3';
+        inlineScriptCborHex?: string;
+        redeemerCborHex: string;
+        redeemerMem: string;
+        redeemerSteps: string;
+        datumSource: 'inline' | {
+            kind: 'explicit';
+            cborHex: string;
+        };
+        referenceScript?: {
+            utxo: CmlTransactionRecipeUtxo;
+            scriptCborHex: string;
+            size: string;
+        };
+    }>;
+    collateralInputs: CmlTransactionRecipeUtxo[];
+    collateralReturn?: CmlTransactionRecipeOutput;
+    totalCollateral?: string;
+    mints: Array<{
+        policyIdHex: string;
+        scriptType: 'native' | 'plutusV1' | 'plutusV2' | 'plutusV3';
+        scriptCborHex: string;
+        assets: Array<{
+            assetNameHex: string;
+            quantity: string;
+        }>;
+        redeemerCborHex?: string;
+        redeemerMem?: string;
+        redeemerSteps?: string;
+        referenceInput?: CmlTransactionRecipeUtxo;
+    }>;
+    metadata: Array<{
+        label: string;
+        data: unknown;
+    }>;
+    options: {
+        changeAddress?: string;
+        ttl?: string;
+        validityIntervalStart?: string;
+        validityIntervalEnd?: string;
+        manualFee?: string;
+        manualChangeOutput?: CmlTransactionRecipeOutput;
+    };
 };
 export type CmlAssetQuantity = {
     policyIdHex: string;
@@ -218,6 +506,11 @@ export declare const buildSimplePaymentTransaction: (args: SimplePaymentBuilderA
     cborHex: string;
     fee: string;
 };
+/** Build a normalized decimal-string transaction recipe through the CML bridge. */
+export declare const buildTransactionRecipeCml: (args: CmlTransactionRecipeArguments) => {
+    cborHex: string;
+    fee: string;
+};
 /** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
 export declare const addressToHex: (address: string) => string;
 /** Parse an address with CML and return normalized bytes, network ID and bech32 when available. */
@@ -233,205 +526,16 @@ export declare const hashPlutusDataCborHex: (cborHex: string) => string;
 export declare const decodePlutusDataCborHex: (cborHex: string) => string;
 /** Extract inline datum/hash information from transaction-output CBOR. */
 export declare const datumInfoFromOutputCborHex: (outputCborHex: string) => string;
-/** CML-native helper exposed alongside the legacy CSL object bridge. */
+export type TransactionUnspentOutputArguments = {
+    txHashHex: string;
+    index: string;
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+};
+/** Serialize a CIP-30 TransactionUnspentOutput using CML. */
+export declare const transactionUnspentOutputHex: (args: TransactionUnspentOutputArguments) => string;
+/** Extract a reward address from a Cardano address using CML. */
 export declare const rewardAddressFromAddress: (address: string, network: number) => string;
 export declare const rewardAddressHexFromAccountPublicKey: (accountPublicKeyHex: string, network: number, role: number, index: number) => string;
-export type Address = bridgeTypes.Address;
-export type Anchor = bridgeTypes.Anchor;
-export type AnchorDataHash = bridgeTypes.AnchorDataHash;
-export type AssetName = bridgeTypes.AssetName;
-export type AssetNames = bridgeTypes.AssetNames;
-export type Assets = bridgeTypes.Assets;
-export type AuxiliaryData = bridgeTypes.AuxiliaryData;
-export type AuxiliaryDataHash = bridgeTypes.AuxiliaryDataHash;
-export type AuxiliaryDataSet = bridgeTypes.AuxiliaryDataSet;
-export type BaseAddress = bridgeTypes.BaseAddress;
-export type BigInt = bridgeTypes.BigInt;
-export type BigNum = bridgeTypes.BigNum;
-export type Bip32PrivateKey = bridgeTypes.Bip32PrivateKey;
-export type Bip32PublicKey = bridgeTypes.Bip32PublicKey;
-export type Block = bridgeTypes.Block;
-export type BlockHash = bridgeTypes.BlockHash;
-export type BootstrapWitness = bridgeTypes.BootstrapWitness;
-export type BootstrapWitnesses = bridgeTypes.BootstrapWitnesses;
-export type ByronAddress = bridgeTypes.ByronAddress;
-export type Certificate = bridgeTypes.Certificate;
-export type Certificates = bridgeTypes.Certificates;
-export type CertificatesBuilder = bridgeTypes.CertificatesBuilder;
-export type ChangeConfig = bridgeTypes.ChangeConfig;
-export type Committee = bridgeTypes.Committee;
-export type CommitteeColdResign = bridgeTypes.CommitteeColdResign;
-export type CommitteeHotAuth = bridgeTypes.CommitteeHotAuth;
-export type Constitution = bridgeTypes.Constitution;
-export type ConstrPlutusData = bridgeTypes.ConstrPlutusData;
-export type CostModel = bridgeTypes.CostModel;
-export type Costmdls = bridgeTypes.Costmdls;
-export type Credential = bridgeTypes.Credential;
-export type Credentials = bridgeTypes.Credentials;
-export type DNSRecordAorAAAA = bridgeTypes.DNSRecordAorAAAA;
-export type DNSRecordSRV = bridgeTypes.DNSRecordSRV;
-export type DRep = bridgeTypes.DRep;
-export type DRepDeregistration = bridgeTypes.DRepDeregistration;
-export type DRepRegistration = bridgeTypes.DRepRegistration;
-export type DRepUpdate = bridgeTypes.DRepUpdate;
-export type DRepVotingThresholds = bridgeTypes.DRepVotingThresholds;
-export type DataCost = bridgeTypes.DataCost;
-export type DataHash = bridgeTypes.DataHash;
-export type DatumSource = bridgeTypes.DatumSource;
-export type Ed25519KeyHash = bridgeTypes.Ed25519KeyHash;
-export type Ed25519KeyHashes = bridgeTypes.Ed25519KeyHashes;
-export type Ed25519Signature = bridgeTypes.Ed25519Signature;
-export type EnterpriseAddress = bridgeTypes.EnterpriseAddress;
-export type ExUnitPrices = bridgeTypes.ExUnitPrices;
-export type ExUnits = bridgeTypes.ExUnits;
-export type FixedBlock = bridgeTypes.FixedBlock;
-export type FixedTransaction = bridgeTypes.FixedTransaction;
-export type FixedTransactionBodies = bridgeTypes.FixedTransactionBodies;
-export type FixedTransactionBody = bridgeTypes.FixedTransactionBody;
-export type FixedTxWitnessesSet = bridgeTypes.FixedTxWitnessesSet;
-export type FixedVersionedBlock = bridgeTypes.FixedVersionedBlock;
-export type GeneralTransactionMetadata = bridgeTypes.GeneralTransactionMetadata;
-export type GenesisDelegateHash = bridgeTypes.GenesisDelegateHash;
-export type GenesisHash = bridgeTypes.GenesisHash;
-export type GenesisHashes = bridgeTypes.GenesisHashes;
-export type GenesisKeyDelegation = bridgeTypes.GenesisKeyDelegation;
-export type GovernanceAction = bridgeTypes.GovernanceAction;
-export type GovernanceActionId = bridgeTypes.GovernanceActionId;
-export type GovernanceActionIds = bridgeTypes.GovernanceActionIds;
-export type HardForkInitiationAction = bridgeTypes.HardForkInitiationAction;
-export type Header = bridgeTypes.Header;
-export type HeaderBody = bridgeTypes.HeaderBody;
-export type InfoAction = bridgeTypes.InfoAction;
-export type Int = bridgeTypes.Int;
-export type Ipv4 = bridgeTypes.Ipv4;
-export type Ipv6 = bridgeTypes.Ipv6;
-export type KESSignature = bridgeTypes.KESSignature;
-export type KESVKey = bridgeTypes.KESVKey;
-export type Language = bridgeTypes.Language;
-export type Languages = bridgeTypes.Languages;
-export type LegacyDaedalusPrivateKey = bridgeTypes.LegacyDaedalusPrivateKey;
-export type LinearFee = bridgeTypes.LinearFee;
-export type MIRToStakeCredentials = bridgeTypes.MIRToStakeCredentials;
-export type MalformedAddress = bridgeTypes.MalformedAddress;
-export type MetadataList = bridgeTypes.MetadataList;
-export type MetadataMap = bridgeTypes.MetadataMap;
-export type Mint = bridgeTypes.Mint;
-export type MintAssets = bridgeTypes.MintAssets;
-export type MintBuilder = bridgeTypes.MintBuilder;
-export type MintWitness = bridgeTypes.MintWitness;
-export type MintsAssets = bridgeTypes.MintsAssets;
-export type MoveInstantaneousReward = bridgeTypes.MoveInstantaneousReward;
-export type MoveInstantaneousRewardsCert = bridgeTypes.MoveInstantaneousRewardsCert;
-export type MultiAsset = bridgeTypes.MultiAsset;
-export type MultiHostName = bridgeTypes.MultiHostName;
-export type NativeScript = bridgeTypes.NativeScript;
-export type NativeScriptSource = bridgeTypes.NativeScriptSource;
-export type NativeScripts = bridgeTypes.NativeScripts;
-export type NetworkId = bridgeTypes.NetworkId;
-export type NetworkInfo = bridgeTypes.NetworkInfo;
-export type NewConstitutionAction = bridgeTypes.NewConstitutionAction;
-export type NoConfidenceAction = bridgeTypes.NoConfidenceAction;
-export type Nonce = bridgeTypes.Nonce;
-export type OperationalCert = bridgeTypes.OperationalCert;
-export type OutputDatum = bridgeTypes.OutputDatum;
-export type ParameterChangeAction = bridgeTypes.ParameterChangeAction;
-export type PlutusData = bridgeTypes.PlutusData;
-export type PlutusList = bridgeTypes.PlutusList;
-export type PlutusMap = bridgeTypes.PlutusMap;
-export type PlutusMapValues = bridgeTypes.PlutusMapValues;
-export type PlutusScript = bridgeTypes.PlutusScript;
-export type PlutusScriptSource = bridgeTypes.PlutusScriptSource;
-export type PlutusScripts = bridgeTypes.PlutusScripts;
-export type PlutusWitness = bridgeTypes.PlutusWitness;
-export type PlutusWitnesses = bridgeTypes.PlutusWitnesses;
-export type Pointer = bridgeTypes.Pointer;
-export type PointerAddress = bridgeTypes.PointerAddress;
-export type PoolMetadata = bridgeTypes.PoolMetadata;
-export type PoolMetadataHash = bridgeTypes.PoolMetadataHash;
-export type PoolParams = bridgeTypes.PoolParams;
-export type PoolRegistration = bridgeTypes.PoolRegistration;
-export type PoolRetirement = bridgeTypes.PoolRetirement;
-export type PoolVotingThresholds = bridgeTypes.PoolVotingThresholds;
-export type PrivateKey = bridgeTypes.PrivateKey;
-export type ProposedProtocolParameterUpdates = bridgeTypes.ProposedProtocolParameterUpdates;
-export type ProtocolParamUpdate = bridgeTypes.ProtocolParamUpdate;
-export type ProtocolVersion = bridgeTypes.ProtocolVersion;
-export type PublicKey = bridgeTypes.PublicKey;
-export type PublicKeys = bridgeTypes.PublicKeys;
-export type Redeemer = bridgeTypes.Redeemer;
-export type RedeemerTag = bridgeTypes.RedeemerTag;
-export type Redeemers = bridgeTypes.Redeemers;
-export type Relay = bridgeTypes.Relay;
-export type Relays = bridgeTypes.Relays;
-export type RewardAddress = bridgeTypes.RewardAddress;
-export type RewardAddresses = bridgeTypes.RewardAddresses;
-export type ScriptAll = bridgeTypes.ScriptAll;
-export type ScriptAny = bridgeTypes.ScriptAny;
-export type ScriptDataHash = bridgeTypes.ScriptDataHash;
-export type ScriptHash = bridgeTypes.ScriptHash;
-export type ScriptHashes = bridgeTypes.ScriptHashes;
-export type ScriptNOfK = bridgeTypes.ScriptNOfK;
-export type ScriptPubkey = bridgeTypes.ScriptPubkey;
-export type ScriptRef = bridgeTypes.ScriptRef;
-export type SingleHostAddr = bridgeTypes.SingleHostAddr;
-export type SingleHostName = bridgeTypes.SingleHostName;
-export type StakeAndVoteDelegation = bridgeTypes.StakeAndVoteDelegation;
-export type StakeDelegation = bridgeTypes.StakeDelegation;
-export type StakeDeregistration = bridgeTypes.StakeDeregistration;
-export type StakeRegistration = bridgeTypes.StakeRegistration;
-export type StakeRegistrationAndDelegation = bridgeTypes.StakeRegistrationAndDelegation;
-export type StakeVoteRegistrationAndDelegation = bridgeTypes.StakeVoteRegistrationAndDelegation;
-export type Strings = bridgeTypes.Strings;
-export type TimelockExpiry = bridgeTypes.TimelockExpiry;
-export type TimelockStart = bridgeTypes.TimelockStart;
-export type Transaction = bridgeTypes.Transaction;
-export type TransactionBatch = bridgeTypes.TransactionBatch;
-export type TransactionBatchList = bridgeTypes.TransactionBatchList;
-export type TransactionBodies = bridgeTypes.TransactionBodies;
-export type TransactionBody = bridgeTypes.TransactionBody;
-export type TransactionBuilder = bridgeTypes.TransactionBuilder;
-export type TransactionBuilderConfig = bridgeTypes.TransactionBuilderConfig;
-export type TransactionBuilderConfigBuilder = bridgeTypes.TransactionBuilderConfigBuilder;
-export type TransactionHash = bridgeTypes.TransactionHash;
-export type TransactionInput = bridgeTypes.TransactionInput;
-export type TransactionInputs = bridgeTypes.TransactionInputs;
-export type TransactionMetadatum = bridgeTypes.TransactionMetadatum;
-export type TransactionMetadatumLabels = bridgeTypes.TransactionMetadatumLabels;
-export type TransactionOutput = bridgeTypes.TransactionOutput;
-export type TransactionOutputAmountBuilder = bridgeTypes.TransactionOutputAmountBuilder;
-export type TransactionOutputBuilder = bridgeTypes.TransactionOutputBuilder;
-export type TransactionOutputs = bridgeTypes.TransactionOutputs;
-export type TransactionUnspentOutput = bridgeTypes.TransactionUnspentOutput;
-export type TransactionUnspentOutputs = bridgeTypes.TransactionUnspentOutputs;
-export type TransactionWitnessSet = bridgeTypes.TransactionWitnessSet;
-export type TransactionWitnessSets = bridgeTypes.TransactionWitnessSets;
-export type TreasuryWithdrawals = bridgeTypes.TreasuryWithdrawals;
-export type TreasuryWithdrawalsAction = bridgeTypes.TreasuryWithdrawalsAction;
-export type TxInputsBuilder = bridgeTypes.TxInputsBuilder;
-export type URL = bridgeTypes.URL;
-export type UnitInterval = bridgeTypes.UnitInterval;
-export type Update = bridgeTypes.Update;
-export type UpdateCommitteeAction = bridgeTypes.UpdateCommitteeAction;
-export type VRFCert = bridgeTypes.VRFCert;
-export type VRFKeyHash = bridgeTypes.VRFKeyHash;
-export type VRFVKey = bridgeTypes.VRFVKey;
-export type Value = bridgeTypes.Value;
-export type VersionedBlock = bridgeTypes.VersionedBlock;
-export type Vkey = bridgeTypes.Vkey;
-export type Vkeys = bridgeTypes.Vkeys;
-export type Vkeywitness = bridgeTypes.Vkeywitness;
-export type Vkeywitnesses = bridgeTypes.Vkeywitnesses;
-export type VoteDelegation = bridgeTypes.VoteDelegation;
-export type VoteRegistrationAndDelegation = bridgeTypes.VoteRegistrationAndDelegation;
-export type Voter = bridgeTypes.Voter;
-export type Voters = bridgeTypes.Voters;
-export type VotingBuilder = bridgeTypes.VotingBuilder;
-export type VotingProcedure = bridgeTypes.VotingProcedure;
-export type VotingProcedures = bridgeTypes.VotingProcedures;
-export type VotingProposal = bridgeTypes.VotingProposal;
-export type VotingProposalBuilder = bridgeTypes.VotingProposalBuilder;
-export type VotingProposals = bridgeTypes.VotingProposals;
-export type Withdrawals = bridgeTypes.Withdrawals;
-export type WithdrawalsBuilder = bridgeTypes.WithdrawalsBuilder;
-export declare const Address: typeof bridgeTypes.Address, Anchor: typeof bridgeTypes.Anchor, AnchorDataHash: typeof bridgeTypes.AnchorDataHash, AssetName: typeof bridgeTypes.AssetName, AssetNames: typeof bridgeTypes.AssetNames, Assets: typeof bridgeTypes.Assets, AuxiliaryData: typeof bridgeTypes.AuxiliaryData, AuxiliaryDataHash: typeof bridgeTypes.AuxiliaryDataHash, AuxiliaryDataSet: typeof bridgeTypes.AuxiliaryDataSet, BaseAddress: typeof bridgeTypes.BaseAddress, BigInt: typeof bridgeTypes.BigInt, BigNum: typeof bridgeTypes.BigNum, Bip32PrivateKey: typeof bridgeTypes.Bip32PrivateKey, Bip32PublicKey: typeof bridgeTypes.Bip32PublicKey, Block: typeof bridgeTypes.Block, BlockHash: typeof bridgeTypes.BlockHash, BootstrapWitness: typeof bridgeTypes.BootstrapWitness, BootstrapWitnesses: typeof bridgeTypes.BootstrapWitnesses, ByronAddress: typeof bridgeTypes.ByronAddress, Certificate: typeof bridgeTypes.Certificate, Certificates: typeof bridgeTypes.Certificates, CertificatesBuilder: typeof bridgeTypes.CertificatesBuilder, ChangeConfig: typeof bridgeTypes.ChangeConfig, Committee: typeof bridgeTypes.Committee, CommitteeColdResign: typeof bridgeTypes.CommitteeColdResign, CommitteeHotAuth: typeof bridgeTypes.CommitteeHotAuth, Constitution: typeof bridgeTypes.Constitution, ConstrPlutusData: typeof bridgeTypes.ConstrPlutusData, CostModel: typeof bridgeTypes.CostModel, Costmdls: typeof bridgeTypes.Costmdls, Credential: typeof bridgeTypes.Credential, Credentials: typeof bridgeTypes.Credentials, DNSRecordAorAAAA: typeof bridgeTypes.DNSRecordAorAAAA, DNSRecordSRV: typeof bridgeTypes.DNSRecordSRV, DRep: typeof bridgeTypes.DRep, DRepDeregistration: typeof bridgeTypes.DRepDeregistration, DRepRegistration: typeof bridgeTypes.DRepRegistration, DRepUpdate: typeof bridgeTypes.DRepUpdate, DRepVotingThresholds: typeof bridgeTypes.DRepVotingThresholds, DataCost: typeof bridgeTypes.DataCost, DataHash: typeof bridgeTypes.DataHash, DatumSource: typeof bridgeTypes.DatumSource, Ed25519KeyHash: typeof bridgeTypes.Ed25519KeyHash, Ed25519KeyHashes: typeof bridgeTypes.Ed25519KeyHashes, Ed25519Signature: typeof bridgeTypes.Ed25519Signature, EnterpriseAddress: typeof bridgeTypes.EnterpriseAddress, ExUnitPrices: typeof bridgeTypes.ExUnitPrices, ExUnits: typeof bridgeTypes.ExUnits, FixedBlock: typeof bridgeTypes.FixedBlock, FixedTransaction: typeof bridgeTypes.FixedTransaction, FixedTransactionBodies: typeof bridgeTypes.FixedTransactionBodies, FixedTransactionBody: typeof bridgeTypes.FixedTransactionBody, FixedTxWitnessesSet: typeof bridgeTypes.FixedTxWitnessesSet, FixedVersionedBlock: typeof bridgeTypes.FixedVersionedBlock, GeneralTransactionMetadata: typeof bridgeTypes.GeneralTransactionMetadata, GenesisDelegateHash: typeof bridgeTypes.GenesisDelegateHash, GenesisHash: typeof bridgeTypes.GenesisHash, GenesisHashes: typeof bridgeTypes.GenesisHashes, GenesisKeyDelegation: typeof bridgeTypes.GenesisKeyDelegation, GovernanceAction: typeof bridgeTypes.GovernanceAction, GovernanceActionId: typeof bridgeTypes.GovernanceActionId, GovernanceActionIds: typeof bridgeTypes.GovernanceActionIds, HardForkInitiationAction: typeof bridgeTypes.HardForkInitiationAction, Header: typeof bridgeTypes.Header, HeaderBody: typeof bridgeTypes.HeaderBody, InfoAction: typeof bridgeTypes.InfoAction, Int: typeof bridgeTypes.Int, Ipv4: typeof bridgeTypes.Ipv4, Ipv6: typeof bridgeTypes.Ipv6, KESSignature: typeof bridgeTypes.KESSignature, KESVKey: typeof bridgeTypes.KESVKey, Language: typeof bridgeTypes.Language, Languages: typeof bridgeTypes.Languages, LegacyDaedalusPrivateKey: typeof bridgeTypes.LegacyDaedalusPrivateKey, LinearFee: typeof bridgeTypes.LinearFee, MIRToStakeCredentials: typeof bridgeTypes.MIRToStakeCredentials, MalformedAddress: typeof bridgeTypes.MalformedAddress, MetadataList: typeof bridgeTypes.MetadataList, MetadataMap: typeof bridgeTypes.MetadataMap, Mint: typeof bridgeTypes.Mint, MintAssets: typeof bridgeTypes.MintAssets, MintBuilder: typeof bridgeTypes.MintBuilder, MintWitness: typeof bridgeTypes.MintWitness, MintsAssets: typeof bridgeTypes.MintsAssets, MoveInstantaneousReward: typeof bridgeTypes.MoveInstantaneousReward, MoveInstantaneousRewardsCert: typeof bridgeTypes.MoveInstantaneousRewardsCert, MultiAsset: typeof bridgeTypes.MultiAsset, MultiHostName: typeof bridgeTypes.MultiHostName, NativeScript: typeof bridgeTypes.NativeScript, NativeScriptSource: typeof bridgeTypes.NativeScriptSource, NativeScripts: typeof bridgeTypes.NativeScripts, NetworkId: typeof bridgeTypes.NetworkId, NetworkInfo: typeof bridgeTypes.NetworkInfo, NewConstitutionAction: typeof bridgeTypes.NewConstitutionAction, NoConfidenceAction: typeof bridgeTypes.NoConfidenceAction, Nonce: typeof bridgeTypes.Nonce, OperationalCert: typeof bridgeTypes.OperationalCert, OutputDatum: typeof bridgeTypes.OutputDatum, ParameterChangeAction: typeof bridgeTypes.ParameterChangeAction, PlutusData: typeof bridgeTypes.PlutusData, PlutusList: typeof bridgeTypes.PlutusList, PlutusMap: typeof bridgeTypes.PlutusMap, PlutusMapValues: typeof bridgeTypes.PlutusMapValues, PlutusScript: typeof bridgeTypes.PlutusScript, PlutusScriptSource: typeof bridgeTypes.PlutusScriptSource, PlutusScripts: typeof bridgeTypes.PlutusScripts, PlutusWitness: typeof bridgeTypes.PlutusWitness, PlutusWitnesses: typeof bridgeTypes.PlutusWitnesses, Pointer: typeof bridgeTypes.Pointer, PointerAddress: typeof bridgeTypes.PointerAddress, PoolMetadata: typeof bridgeTypes.PoolMetadata, PoolMetadataHash: typeof bridgeTypes.PoolMetadataHash, PoolParams: typeof bridgeTypes.PoolParams, PoolRegistration: typeof bridgeTypes.PoolRegistration, PoolRetirement: typeof bridgeTypes.PoolRetirement, PoolVotingThresholds: typeof bridgeTypes.PoolVotingThresholds, PrivateKey: typeof bridgeTypes.PrivateKey, ProposedProtocolParameterUpdates: typeof bridgeTypes.ProposedProtocolParameterUpdates, ProtocolParamUpdate: typeof bridgeTypes.ProtocolParamUpdate, ProtocolVersion: typeof bridgeTypes.ProtocolVersion, PublicKey: typeof bridgeTypes.PublicKey, PublicKeys: typeof bridgeTypes.PublicKeys, Redeemer: typeof bridgeTypes.Redeemer, RedeemerTag: typeof bridgeTypes.RedeemerTag, Redeemers: typeof bridgeTypes.Redeemers, Relay: typeof bridgeTypes.Relay, Relays: typeof bridgeTypes.Relays, RewardAddress: typeof bridgeTypes.RewardAddress, RewardAddresses: typeof bridgeTypes.RewardAddresses, ScriptAll: typeof bridgeTypes.ScriptAll, ScriptAny: typeof bridgeTypes.ScriptAny, ScriptDataHash: typeof bridgeTypes.ScriptDataHash, ScriptHash: typeof bridgeTypes.ScriptHash, ScriptHashes: typeof bridgeTypes.ScriptHashes, ScriptNOfK: typeof bridgeTypes.ScriptNOfK, ScriptPubkey: typeof bridgeTypes.ScriptPubkey, ScriptRef: typeof bridgeTypes.ScriptRef, SingleHostAddr: typeof bridgeTypes.SingleHostAddr, SingleHostName: typeof bridgeTypes.SingleHostName, StakeAndVoteDelegation: typeof bridgeTypes.StakeAndVoteDelegation, StakeDelegation: typeof bridgeTypes.StakeDelegation, StakeDeregistration: typeof bridgeTypes.StakeDeregistration, StakeRegistration: typeof bridgeTypes.StakeRegistration, StakeRegistrationAndDelegation: typeof bridgeTypes.StakeRegistrationAndDelegation, StakeVoteRegistrationAndDelegation: typeof bridgeTypes.StakeVoteRegistrationAndDelegation, Strings: typeof bridgeTypes.Strings, TimelockExpiry: typeof bridgeTypes.TimelockExpiry, TimelockStart: typeof bridgeTypes.TimelockStart, Transaction: typeof bridgeTypes.Transaction, TransactionBatch: typeof bridgeTypes.TransactionBatch, TransactionBatchList: typeof bridgeTypes.TransactionBatchList, TransactionBodies: typeof bridgeTypes.TransactionBodies, TransactionBody: typeof bridgeTypes.TransactionBody, TransactionBuilder: typeof bridgeTypes.TransactionBuilder, TransactionBuilderConfig: typeof bridgeTypes.TransactionBuilderConfig, TransactionBuilderConfigBuilder: typeof bridgeTypes.TransactionBuilderConfigBuilder, TransactionHash: typeof bridgeTypes.TransactionHash, TransactionInput: typeof bridgeTypes.TransactionInput, TransactionInputs: typeof bridgeTypes.TransactionInputs, TransactionMetadatum: typeof bridgeTypes.TransactionMetadatum, TransactionMetadatumLabels: typeof bridgeTypes.TransactionMetadatumLabels, TransactionOutput: typeof bridgeTypes.TransactionOutput, TransactionOutputAmountBuilder: typeof bridgeTypes.TransactionOutputAmountBuilder, TransactionOutputBuilder: typeof bridgeTypes.TransactionOutputBuilder, TransactionOutputs: typeof bridgeTypes.TransactionOutputs, TransactionUnspentOutput: typeof bridgeTypes.TransactionUnspentOutput, TransactionUnspentOutputs: typeof bridgeTypes.TransactionUnspentOutputs, TransactionWitnessSet: typeof bridgeTypes.TransactionWitnessSet, TransactionWitnessSets: typeof bridgeTypes.TransactionWitnessSets, TreasuryWithdrawals: typeof bridgeTypes.TreasuryWithdrawals, TreasuryWithdrawalsAction: typeof bridgeTypes.TreasuryWithdrawalsAction, TxInputsBuilder: typeof bridgeTypes.TxInputsBuilder, URL: typeof bridgeTypes.URL, UnitInterval: typeof bridgeTypes.UnitInterval, Update: typeof bridgeTypes.Update, UpdateCommitteeAction: typeof bridgeTypes.UpdateCommitteeAction, VRFCert: typeof bridgeTypes.VRFCert, VRFKeyHash: typeof bridgeTypes.VRFKeyHash, VRFVKey: typeof bridgeTypes.VRFVKey, Value: typeof bridgeTypes.Value, VersionedBlock: typeof bridgeTypes.VersionedBlock, Vkey: typeof bridgeTypes.Vkey, Vkeys: typeof bridgeTypes.Vkeys, Vkeywitness: typeof bridgeTypes.Vkeywitness, Vkeywitnesses: typeof bridgeTypes.Vkeywitnesses, VoteDelegation: typeof bridgeTypes.VoteDelegation, VoteRegistrationAndDelegation: typeof bridgeTypes.VoteRegistrationAndDelegation, Voter: typeof bridgeTypes.Voter, Voters: typeof bridgeTypes.Voters, VotingBuilder: typeof bridgeTypes.VotingBuilder, VotingProcedure: typeof bridgeTypes.VotingProcedure, VotingProcedures: typeof bridgeTypes.VotingProcedures, VotingProposal: typeof bridgeTypes.VotingProposal, VotingProposalBuilder: typeof bridgeTypes.VotingProposalBuilder, VotingProposals: typeof bridgeTypes.VotingProposals, Withdrawals: typeof bridgeTypes.Withdrawals, WithdrawalsBuilder: typeof bridgeTypes.WithdrawalsBuilder, calculate_ex_units_ceil_cost: typeof bridgeTypes.calculate_ex_units_ceil_cost, create_send_all: typeof bridgeTypes.create_send_all, decode_arbitrary_bytes_from_metadatum: typeof bridgeTypes.decode_arbitrary_bytes_from_metadatum, decode_metadatum_to_json_str: typeof bridgeTypes.decode_metadatum_to_json_str, decode_plutus_datum_to_json_str: typeof bridgeTypes.decode_plutus_datum_to_json_str, decrypt_with_password: typeof bridgeTypes.decrypt_with_password, encode_arbitrary_bytes_as_metadatum: typeof bridgeTypes.encode_arbitrary_bytes_as_metadatum, encode_json_str_to_metadatum: typeof bridgeTypes.encode_json_str_to_metadatum, encode_json_str_to_native_script: typeof bridgeTypes.encode_json_str_to_native_script, encode_json_str_to_plutus_datum: typeof bridgeTypes.encode_json_str_to_plutus_datum, encrypt_with_password: typeof bridgeTypes.encrypt_with_password, get_deposit: typeof bridgeTypes.get_deposit, get_implicit_input: typeof bridgeTypes.get_implicit_input, has_transaction_set_tag: typeof bridgeTypes.has_transaction_set_tag, hash_auxiliary_data: typeof bridgeTypes.hash_auxiliary_data, hash_plutus_data: typeof bridgeTypes.hash_plutus_data, hash_script_data: typeof bridgeTypes.hash_script_data, make_daedalus_bootstrap_witness: typeof bridgeTypes.make_daedalus_bootstrap_witness, make_icarus_bootstrap_witness: typeof bridgeTypes.make_icarus_bootstrap_witness, make_vkey_witness: typeof bridgeTypes.make_vkey_witness, min_ada_for_output: typeof bridgeTypes.min_ada_for_output, min_fee: typeof bridgeTypes.min_fee, min_ref_script_fee: typeof bridgeTypes.min_ref_script_fee, min_script_fee: typeof bridgeTypes.min_script_fee;
 //# sourceMappingURL=index.d.ts.map

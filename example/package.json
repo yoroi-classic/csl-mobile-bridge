@@ -1,5 +1,5 @@
 {
-  "name": "@yoroi-classic/csl-mobile-bridge-example",
+  "name": "@yoroi-classic/cml-mobile-bridge-example",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -16,7 +16,7 @@
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
-    "@yoroi-classic/csl-mobile-bridge": "file:..",
+    "@yoroi-classic/cml-mobile-bridge": "file:..",
     "expo": "~53.0.24",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",

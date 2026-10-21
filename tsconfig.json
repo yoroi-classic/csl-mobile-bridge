@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "@yoroi-classic/csl-mobile-bridge": ["./src/index"]
+      "@yoroi-classic/cml-mobile-bridge": ["./src/cml"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

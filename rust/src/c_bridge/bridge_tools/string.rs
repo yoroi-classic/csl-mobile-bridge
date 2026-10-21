@@ -15,7 +15,7 @@ pub trait IntoOptionalCString {
   fn into_opt_cstr(&self) -> Option<CharPtr>;
 }
 
-impl <'a> IntoStr<&'a str> for CharPtr<> {
+impl<'a> IntoStr<&'a str> for CharPtr {
   fn into_str(&self) -> &'a str {
     unsafe { CStr::from_ptr(*self).to_str().unwrap() }
   }
@@ -49,7 +49,7 @@ impl IntoOptionalCString for Option<&str> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn csl_bridge_charptr_free(ptr: &mut CharPtr) {
+pub unsafe extern "C" fn cml_bridge_charptr_free(ptr: &mut CharPtr) {
   let _ = CString::from_raw(*ptr as *mut c_char);
   *ptr = std::ptr::null_mut();
 }

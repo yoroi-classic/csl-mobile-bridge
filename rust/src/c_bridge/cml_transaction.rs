@@ -1,7 +1,14 @@
 use std::ffi::{CStr, CString};
 
 use super::bridge_tools::string::CharPtr;
-use crate::cml_transaction::{build_escrow_redeem_transaction_hex, build_simple_payment_transaction_hex, derive_account_public_key_hex, derive_wallet_public_key_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data, sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex, transaction_review_info_json, transaction_validation_info_json, transaction_witness_set_hex, wallet_root_key_hex_from_entropy};
+use crate::cml_transaction::{
+  build_escrow_redeem_transaction_hex, build_simple_payment_transaction_hex,
+  build_transaction_recipe_cml_hex, derive_account_public_key_hex, derive_wallet_public_key_hex,
+  empty_witness_transaction_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data,
+  sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
+  transaction_review_info_json, transaction_signing_requirements_json,
+  transaction_validation_info_json, transaction_witness_set_hex, wallet_root_key_hex_from_entropy,
+};
 
 fn set_message(target: &mut CharPtr, message: String) -> bool {
   match CString::new(message) {
@@ -222,6 +229,32 @@ pub unsafe extern "C" fn cml_bridge_transaction_review_info_json(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_signing_requirements_json(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  *result = std::ptr::null();
+  *error = std::ptr::null();
+  if transaction_hex.is_null() {
+    set_message(error, "transaction hex is null".to_owned());
+    return false;
+  }
+  let transaction_hex = match CStr::from_ptr(transaction_hex).to_str() {
+    Ok(value) => value,
+    Err(err) => {
+      set_message(error, format!("transaction hex is not UTF-8: {err}"));
+      return false;
+    }
+  };
+  match transaction_signing_requirements_json(transaction_hex) {
+    Ok(value) => set_message(result, value),
+    Err(err) => {
+      set_message(error, err);
+      false
+    }
+  }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn cml_bridge_transaction_witness_set_hex(
   transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
 ) -> bool {
@@ -239,6 +272,32 @@ pub unsafe extern "C" fn cml_bridge_transaction_witness_set_hex(
     }
   };
   match transaction_witness_set_hex(transaction_hex) {
+    Ok(value) => set_message(result, value),
+    Err(err) => {
+      set_message(error, err);
+      false
+    }
+  }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_empty_witness_transaction_hex(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  *result = std::ptr::null();
+  *error = std::ptr::null();
+  if transaction_hex.is_null() {
+    set_message(error, "transaction hex is null".to_owned());
+    return false;
+  }
+  let transaction_hex = match CStr::from_ptr(transaction_hex).to_str() {
+    Ok(value) => value,
+    Err(err) => {
+      set_message(error, format!("transaction hex is not UTF-8: {err}"));
+      return false;
+    }
+  };
+  match empty_witness_transaction_hex(transaction_hex) {
     Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);
@@ -324,6 +383,32 @@ pub unsafe extern "C" fn cml_bridge_build_simple_payment_transaction_hex(
     }
   };
   match build_simple_payment_transaction_hex(args) {
+    Ok(value) => set_message(result, value),
+    Err(err) => {
+      set_message(error, err);
+      false
+    }
+  }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_build_transaction_recipe_cml_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  *result = std::ptr::null();
+  *error = std::ptr::null();
+  if args.is_null() {
+    set_message(error, "transaction recipe arguments are null".to_owned());
+    return false;
+  }
+  let args = match CStr::from_ptr(args).to_str() {
+    Ok(value) => value,
+    Err(err) => {
+      set_message(error, format!("transaction recipe arguments are not UTF-8: {err}"));
+      return false;
+    }
+  };
+  match build_transaction_recipe_cml_hex(args) {
     Ok(value) => set_message(result, value),
     Err(err) => {
       set_message(error, err);

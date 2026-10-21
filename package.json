@@ -1,8 +1,8 @@
 {
-  "name": "@yoroi-classic/csl-mobile-bridge",
+  "name": "@yoroi-classic/cml-mobile-bridge",
   "version": "9.0.1",
   "private": true,
-  "description": "Deprecated React Native bindings for Cardano Serialization Library; migrate new mobile work to dcSpark Cardano Multiplatform Lib.",
+  "description": "CML-backed native React Native bridge for Yoroi Classic Cardano wallet operations.",
   "main": "lib/commonjs/cml",
   "module": "lib/module/cml",
   "types": "lib/typescript/src/cml.d.ts",
@@ -45,8 +45,7 @@
   "keywords": [
     "cardano",
     "cml",
-    "csl",
-    "deprecated",
+    "cardano-multiplatform-lib",
     "react-native",
     "ios",
     "android"
@@ -178,7 +177,7 @@
     ]
   },
   "codegenConfig": {
-    "name": "RNCslMobileBridgeSpec",
+    "name": "RNCmlMobileBridgeSpec",
     "type": "modules",
     "jsSrcsDir": "src"
   }

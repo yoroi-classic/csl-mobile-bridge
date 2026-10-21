@@ -1,7 +1,9 @@
 use std::ffi::{CStr, CString};
 
 use super::bridge_tools::string::CharPtr;
-use crate::cml_datum::{datum_info_from_output_cbor_hex, decode_plutus_data_cbor_hex, hash_plutus_data_cbor_hex};
+use crate::cml_datum::{
+  datum_info_from_output_cbor_hex, decode_plutus_data_cbor_hex, hash_plutus_data_cbor_hex,
+};
 
 fn set_message(target: &mut CharPtr, message: String) -> bool {
   match CString::new(message) {
