@@ -48,7 +48,9 @@ mod tests {
     let input = CString::new("8200a1f640").unwrap();
     let mut result = std::ptr::null();
     let mut error = std::ptr::null();
-    assert!(!unsafe { cml_bridge_value_from_hex_info_json(input.as_ptr(), &mut result, &mut error) });
+    assert!(!unsafe {
+      cml_bridge_value_from_hex_info_json(input.as_ptr(), &mut result, &mut error)
+    });
     assert!(result.is_null());
     assert!(!error.is_null());
     unsafe { cml_bridge_charptr_free(&mut error) };
