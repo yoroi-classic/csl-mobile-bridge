@@ -58,6 +58,7 @@ For contributors and library developers.
 # 2. Install dependencies and build package outputs
 node .yarn/releases/yarn-3.6.1.cjs install --immutable
 node .yarn/releases/yarn-3.6.1.cjs prepare
+npm install --prefix example
 
 # 3. Run example app
 node .yarn/releases/yarn-3.6.1.cjs example ios
@@ -201,6 +202,7 @@ lsof -ti:8081 | xargs kill -9
 rm -rf node_modules example/node_modules
 node .yarn/releases/yarn-3.6.1.cjs install --immutable
 node .yarn/releases/yarn-3.6.1.cjs prepare
+npm install --prefix example
 ```
 
 ## Resources

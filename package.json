@@ -31,7 +31,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @yoroi-classic/cml-mobile-bridge-example",
+    "example": "npm --prefix example run",
     "test": "jest",
     "test:ci": "jest --runInBand",
     "test:rust": "cargo test --locked --manifest-path rust/Cargo.toml",
@@ -99,9 +99,6 @@
     "react": "*",
     "react-native": "*"
   },
-  "workspaces": [
-    "example"
-  ],
   "packageManager": "yarn@3.6.1",
   "engines": {
     "node": ">= 18.0.0"

@@ -6,18 +6,17 @@ We want this community to be friendly and respectful to each other. Please follo
 
 ## Development workflow
 
-This project is a monorepo managed using [Yarn workspaces](https://yarnpkg.com/features/workspaces). It contains the following packages:
+The bridge package is managed with Yarn. The `example/` app has its own npm dependencies and uses the local bridge package:
 
 - The library package in the root directory.
 - An example app in the `example/` directory.
 
-To get started with the project, run `yarn` in the root directory to install the required dependencies for each package:
+To get started, install the bridge dependencies at the root and the example dependencies separately:
 
 ```sh
 yarn
+npm install --prefix example
 ```
-
-> Since the project relies on Yarn workspaces, you cannot use [`npm`](https://github.com/npm/cli) for development.
 
 The [example app](/example/) demonstrates usage of the library. You need to run it to test any changes you make.
 
