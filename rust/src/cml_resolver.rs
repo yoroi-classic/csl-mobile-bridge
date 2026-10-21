@@ -4,6 +4,7 @@ use cml_chain::{
   plutus::PlutusData,
 };
 use cml_crypto::{Ed25519KeyHash, RawBytesEncoding, ScriptHash};
+use crate::panic::handle_exception_result;
 
 fn constr_fields<'a>(
   data: &'a PlutusData, alternative: u64, label: &str,
@@ -38,6 +39,12 @@ fn credential_hash(data: &PlutusData, label: &str) -> Result<Vec<u8>, String> {
 /// The input shape is the two-field Plutus Address used by the CNS registry:
 /// payment credential plus Maybe staking credential.
 pub fn resolve_cns_address_record(
+  plutus_address_json: &str, network: u8,
+) -> Result<String, String> {
+  handle_exception_result(|| resolve_cns_address_record_inner(plutus_address_json, network))
+}
+
+fn resolve_cns_address_record_inner(
   plutus_address_json: &str, network: u8,
 ) -> Result<String, String> {
   if network > 15 {

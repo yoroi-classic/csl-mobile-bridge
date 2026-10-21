@@ -412,15 +412,30 @@ mod tests {
     })
     .to_string();
     assert!(ledger_signing_request_info_json(&args).is_err());
-    assert!(apply_ledger_witnesses_to_transaction_hex(&serde_json::json!({
-      "transactionHex": "d8799f01e0ff",
-      "accountPublicKeyHex": "",
-      "purpose": "2147485500",
-      "coinType": "2147485463",
-      "accountIndex": "2147483655",
-      "witnesses": [],
-      "expectedTxIdHex": "00",
-    }).to_string()).is_err());
+    let error = apply_ledger_witnesses_to_transaction_hex(
+      &serde_json::json!({
+        "transactionHex": "d8799f01e0ff",
+        "accountPublicKeyHex": "",
+        "purpose": "2147485500",
+        "coinType": "2147485463",
+        "accountIndex": "2147483655",
+        "witnesses": [],
+        "expectedTxIdHex": "00",
+      })
+      .to_string(),
+    )
+    .unwrap_err();
+    assert!(error.starts_with("invalid transaction CBOR:"), "unexpected parse error: {error}");
+  }
+
+  #[test]
+  fn malformed_ledger_plutus_data_is_reported_without_unwinding() {
+    let transaction = Transaction::from_cbor_bytes(&hex::decode(UNSIGNED).unwrap()).unwrap();
+    let expected = hex::encode(transaction.body.hash().to_raw_bytes());
+    let mut args: serde_json::Value = serde_json::from_str(&make_args(&expected)).unwrap();
+    args["plutusDataHexes"] = serde_json::json!(["d8799f01e0ff"]);
+    let error = apply_ledger_witnesses_to_transaction_hex(&args.to_string()).unwrap_err();
+    assert!(!error.is_empty());
   }
 
   #[test]

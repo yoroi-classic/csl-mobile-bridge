@@ -1,5 +1,6 @@
 use cml_chain::{serialization::Deserialize, transaction::NativeScript};
 use cml_crypto::RawBytesEncoding;
+use crate::panic::handle_exception_result;
 use std::collections::HashSet;
 
 fn append_key_hashes(
@@ -41,6 +42,10 @@ pub(crate) fn native_script_key_hashes(script: &NativeScript) -> Vec<String> {
 
 /// Return unique key hashes nested in a decoded native script, in traversal order.
 pub fn native_script_key_hashes_json(script_cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| native_script_key_hashes_json_inner(script_cbor_hex))
+}
+
+fn native_script_key_hashes_json_inner(script_cbor_hex: &str) -> Result<String, String> {
   let bytes =
     hex::decode(script_cbor_hex).map_err(|err| format!("invalid native script CBOR hex: {err}"))?;
   let script = NativeScript::from_cbor_bytes(&bytes)

@@ -38,3 +38,21 @@ pub unsafe extern "C" fn cml_bridge_native_script_key_hashes_json(
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::cml_bridge_native_script_key_hashes_json;
+  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use std::ffi::CString;
+
+  #[test]
+  fn malformed_native_script_returns_false_without_unwinding() {
+    let input = CString::new("820181f6").unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+    assert!(!unsafe { cml_bridge_native_script_key_hashes_json(input.as_ptr(), &mut result, &mut error) });
+    assert!(result.is_null());
+    assert!(!error.is_null());
+    unsafe { cml_bridge_charptr_free(&mut error) };
+  }
+}

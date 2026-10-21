@@ -1,5 +1,6 @@
 use cml_chain::{assets::Value, serialization::{Deserialize, Serialize}};
 use cml_crypto::RawBytesEncoding;
+use crate::panic::handle_exception_result;
 use crate::cml_assets::multiasset_from_hex_amounts;
 use serde::Deserialize as SerdeDeserialize;
 
@@ -41,6 +42,10 @@ fn value_from_amounts(args: ValueAmounts) -> Result<Value, String> {
 
 /// Decode a CML Value from canonical CBOR hex into lossless JSON quantities.
 pub fn value_from_hex_info_json(value_cbor_hex: &str) -> Result<String, String> {
+  handle_exception_result(|| value_from_hex_info_json_inner(value_cbor_hex))
+}
+
+fn value_from_hex_info_json_inner(value_cbor_hex: &str) -> Result<String, String> {
   let bytes =
     hex::decode(value_cbor_hex).map_err(|err| format!("invalid value CBOR hex: {err}"))?;
   let value = Value::from_cbor_bytes(&bytes).map_err(|err| format!("invalid value CBOR: {err}"))?;
@@ -65,6 +70,10 @@ pub fn value_from_hex_info_json(value_cbor_hex: &str) -> Result<String, String> 
 
 /// Build canonical CML Value CBOR from decimal-string quantities.
 pub fn value_from_amounts_hex(args_json: &str) -> Result<String, String> {
+  handle_exception_result(|| value_from_amounts_hex_inner(args_json))
+}
+
+fn value_from_amounts_hex_inner(args_json: &str) -> Result<String, String> {
   let args: ValueAmounts =
     serde_json::from_str(args_json).map_err(|err| format!("invalid value arguments: {err}"))?;
   let value = value_from_amounts(args)?;

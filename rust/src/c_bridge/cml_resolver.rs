@@ -6,6 +6,24 @@ use std::{
 use super::bridge_tools::string::CharPtr;
 use crate::cml_resolver::resolve_cns_address_record;
 
+#[cfg(test)]
+mod tests {
+  use super::cml_bridge_resolve_cns_address_record;
+  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use std::ffi::CString;
+
+  #[test]
+  fn malformed_plutus_number_returns_false_without_unwinding() {
+    let args = CString::new(r#"{"plutusAddressJson":"{\"int\":1.5}","networkId":1}"#).unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+    assert!(!unsafe { cml_bridge_resolve_cns_address_record(args.as_ptr(), &mut result, &mut error) });
+    assert!(result.is_null());
+    assert!(!error.is_null());
+    unsafe { cml_bridge_charptr_free(&mut error) };
+  }
+}
+
 fn set_message(target: &mut CharPtr, message: String) -> bool {
   match CString::new(message) {
     Ok(value) => {

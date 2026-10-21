@@ -4,6 +4,7 @@ use cml_chain::{
   transaction::NativeScript,
 };
 use cml_crypto::RawBytesEncoding;
+use crate::panic::handle_exception_result;
 use serde::Deserialize as SerdeDeserialize;
 
 #[derive(SerdeDeserialize)]
@@ -16,6 +17,10 @@ struct ScriptHashArguments {
 /// Calculate a policy/script hash from serialized native or Plutus script CBOR.
 /// Plutus language is explicit because the language namespace is part of its hash.
 pub fn script_hash_hex_from_cbor(args_json: &str) -> Result<String, String> {
+  handle_exception_result(|| script_hash_hex_from_cbor_inner(args_json))
+}
+
+fn script_hash_hex_from_cbor_inner(args_json: &str) -> Result<String, String> {
   let args: ScriptHashArguments = serde_json::from_str(args_json)
     .map_err(|err| format!("invalid script hash arguments: {err}"))?;
   let bytes =

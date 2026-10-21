@@ -46,6 +46,17 @@ mod tests {
   use std::ffi::{CStr, CString};
 
   #[test]
+  fn malformed_native_script_returns_false_without_unwinding() {
+    let args = CString::new(r#"{"scriptType":"native","scriptCborHex":"820181f6"}"#).unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+    assert!(!unsafe { cml_bridge_script_hash_hex_from_cbor(args.as_ptr(), &mut result, &mut error) });
+    assert!(result.is_null());
+    assert!(!error.is_null());
+    unsafe { cml_bridge_charptr_free(&mut error) };
+  }
+
+  #[test]
   fn c_abi_returns_the_expected_plutus_v2_hash() {
     let args = CString::new(r#"{"scriptType":"plutusV2","scriptCborHex":"40"}"#).unwrap();
     let mut result = std::ptr::null();
