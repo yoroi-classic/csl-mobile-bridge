@@ -57,6 +57,8 @@ mod tests {
   const RAW_PRIVATE_KEY: &str = "0000000000000000000000000000000000000000000000000000000000000000";
   const CATALYST_RAW_KEY_SHA256: &str =
     "5ee16c0fc68637ffe09f0023e5206e3fcad0cfe484f4149b75229002ab73e245";
+  const CATALYST_PASSWORD_RAW_KEY_HEX: &str =
+    "287d83e3481ab2ec197cb8ff0ae64debb217771a2ede486910ed4ff9fb532f4e638ef287d002cdb319059db276d35ceda13e35faf322e7470536e17118bdd2dd";
   const CATALYST_RAW_KEY_PUBLIC_HEX: &str =
     "26a0a7144417696537eafe6e942715a6a06e4257531023dba17b33f5a283f5cd";
   const RFC8032_PRIVATE_KEY: &str =
@@ -68,8 +70,14 @@ mod tests {
 
   #[test]
   fn derives_public_key_and_signs_exact_message_bytes() {
-    assert_eq!(public_key_hex_from_private_key_hex(RFC8032_PRIVATE_KEY).unwrap(), RFC8032_PUBLIC_KEY);
-    assert_eq!(sign_ed25519_message_hex(RFC8032_PRIVATE_KEY, "").unwrap(), RFC8032_EMPTY_MESSAGE_SIGNATURE);
+    assert_eq!(
+      public_key_hex_from_private_key_hex(RFC8032_PRIVATE_KEY).unwrap(),
+      RFC8032_PUBLIC_KEY
+    );
+    assert_eq!(
+      sign_ed25519_message_hex(RFC8032_PRIVATE_KEY, "").unwrap(),
+      RFC8032_EMPTY_MESSAGE_SIGNATURE
+    );
     let public_key = public_key_hex_from_private_key_hex(EXTENDED_PRIVATE_KEY).unwrap();
     assert_eq!(public_key.len(), 64);
     let signature = sign_ed25519_message_hex(EXTENDED_PRIVATE_KEY, "010203").unwrap();
@@ -107,9 +115,22 @@ mod tests {
       serde_json::json!({"entropyHex":"000102030405060708090a0b0c0d0e0f","passwordHex":"01"})
         .to_string();
     let password_key = catalyst_private_key_hex_from_entropy(&password_args).unwrap();
+    assert_eq!(password_key, CATALYST_PASSWORD_RAW_KEY_HEX);
     assert_ne!(
       hex::encode(Sha256::digest(&hex::decode(password_key).unwrap())),
       CATALYST_RAW_KEY_SHA256
     );
+    let invalid_entropy = serde_json::json!({"entropyHex":"0001","passwordHex":""}).to_string();
+    assert!(catalyst_private_key_hex_from_entropy(&invalid_entropy)
+      .unwrap_err()
+      .contains("BIP39 entropy"));
+    let invalid_password = serde_json::json!({
+      "entropyHex":"000102030405060708090a0b0c0d0e0f",
+      "passwordHex":"gg"
+    })
+    .to_string();
+    assert!(catalyst_private_key_hex_from_entropy(&invalid_password)
+      .unwrap_err()
+      .contains("password hex"));
   }
 }

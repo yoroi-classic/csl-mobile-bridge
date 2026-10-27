@@ -1,7 +1,10 @@
-use cml_chain::{assets::Value, serialization::{Deserialize, Serialize}};
-use cml_crypto::RawBytesEncoding;
-use crate::panic::handle_exception_result;
 use crate::cml_assets::multiasset_from_hex_amounts;
+use crate::panic::handle_exception_result;
+use cml_chain::{
+  assets::Value,
+  serialization::{Deserialize, Serialize},
+};
+use cml_crypto::RawBytesEncoding;
 use serde::Deserialize as SerdeDeserialize;
 
 #[derive(SerdeDeserialize)]
@@ -28,11 +31,9 @@ fn parse_decimal_u64(value: &str, name: &str) -> Result<u64, String> {
 
 fn value_from_amounts(args: ValueAmounts) -> Result<Value, String> {
   let coin = parse_decimal_u64(&args.coin, "coin")?;
-  let assets = multiasset_from_hex_amounts(
-    args.assets.iter().map(|asset| {
-      (asset.policy_id_hex.as_str(), asset.asset_name_hex.as_str(), asset.quantity.as_str())
-    }),
-  )?;
+  let assets = multiasset_from_hex_amounts(args.assets.iter().map(|asset| {
+    (asset.policy_id_hex.as_str(), asset.asset_name_hex.as_str(), asset.quantity.as_str())
+  }))?;
   // Preserve the value API's unsigned-decimal validation and error wording.
   for asset in &args.assets {
     parse_decimal_u64(&asset.quantity, "asset quantity")?;
@@ -131,7 +132,8 @@ mod tests {
     let duplicate = serde_json::json!({"coin":"1", "assets":[
       {"policyIdHex": POLICY_HEX, "assetNameHex":"01", "quantity":"1"},
       {"policyIdHex": POLICY_HEX.to_uppercase(), "assetNameHex":"01", "quantity":"2"}
-    ]}).to_string();
-    assert!(value_from_amounts_hex(&duplicate).unwrap_err().contains("duplicate asset"));
+    ]})
+    .to_string();
+    assert!(value_from_amounts_hex(&duplicate).unwrap_err().contains("duplicate asset identifier"));
   }
 }

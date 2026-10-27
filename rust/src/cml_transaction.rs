@@ -1,3 +1,4 @@
+use crate::cml_address::parse_payment_address;
 use cml_chain::crypto::Vkeywitness;
 use cml_chain::plutus::PlutusData;
 use cml_chain::serialization::{Deserialize, Serialize};
@@ -8,7 +9,6 @@ use cml_chain::{
   crypto::ScriptHash,
 };
 use cml_crypto::{DatumHash, PrivateKey, RawBytesEncoding};
-use crate::cml_address::parse_payment_address;
 use std::convert::TryFrom;
 
 #[derive(serde::Deserialize)]
@@ -740,7 +740,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
     fields[index].parse::<u64>().map_err(|err| format!("invalid {name}: {err}"))
   };
-  let change_address = parse_payment_address(fields[2])?;
+  let change_address =
+    parse_payment_address(&decode_percent_encoded_text(fields[2], "change address")?)?;
   let ttl = if fields[3] == "-" { None } else { Some(parse_u64(3, "ttl")?) };
   let fee_coefficient = parse_u64(4, "fee coefficient")?;
   let fee_constant = parse_u64(5, "fee constant")?;
@@ -772,11 +773,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     .build()
     .map_err(|err| err.to_string())?;
   let mut builder = TransactionBuilder::new(config);
-  let inputs = if fields[0].is_empty() {
-    Vec::new()
-  } else {
-    fields[0].split(';').collect::<Vec<_>>()
-  };
+  let inputs =
+    if fields[0].is_empty() { Vec::new() } else { fields[0].split(';').collect::<Vec<_>>() };
   let has_withdrawals = fields.len() >= 14 && fields[13] != "-";
   if inputs.is_empty() && !has_withdrawals {
     return Err("at least one input is required".to_owned());
@@ -793,7 +791,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
     let index =
       input_fields[1].parse::<u64>().map_err(|err| format!("invalid input index: {err}"))?;
-    let address = parse_payment_address(input_fields[2])?;
+    let address =
+      parse_payment_address(&decode_percent_encoded_text(input_fields[2], "input address")?)?;
     if input_fields.len() >= 8 && input_fields[7] != "-" {
       let address_hex =
         hex::decode(input_fields[7]).map_err(|err| format!("invalid input address hex: {err}"))?;
@@ -849,7 +848,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     if output_fields.len() != 4 {
       return Err("each output must contain address,lovelace,assets,datum".to_owned());
     }
-    let address = parse_payment_address(output_fields[0])?;
+    let address =
+      parse_payment_address(&decode_percent_encoded_text(output_fields[0], "output address")?)?;
     let coin =
       output_fields[1].parse::<u64>().map_err(|err| format!("invalid output coin: {err}"))?;
     let mut output_builder = TransactionOutputBuilder::new().with_address(address);
@@ -970,7 +970,10 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
       let index = input_fields[1]
         .parse::<u64>()
         .map_err(|err| format!("invalid reference input index: {err}"))?;
-      let address = parse_payment_address(input_fields[2])?;
+      let address = parse_payment_address(&decode_percent_encoded_text(
+        input_fields[2],
+        "reference input address",
+      )?)?;
       let coin = input_fields[3]
         .parse::<u64>()
         .map_err(|err| format!("invalid reference input coin: {err}"))?;
@@ -3195,13 +3198,16 @@ fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
   if raw.is_empty() || raw == "-" {
     return Ok(MultiAsset::default());
   }
-  let entries = raw.split('^').map(|packed| {
-    let fields = packed.split('~').collect::<Vec<_>>();
-    if fields.len() != 3 {
-      return Err("each asset must contain policyHex~assetNameHex~quantity".to_owned());
-    }
-    Ok((fields[0], fields[1], fields[2]))
-  }).collect::<Result<Vec<_>, _>>()?;
+  let entries = raw
+    .split('^')
+    .map(|packed| {
+      let fields = packed.split('~').collect::<Vec<_>>();
+      if fields.len() != 3 {
+        return Err("each asset must contain policyHex~assetNameHex~quantity".to_owned());
+      }
+      Ok((fields[0], fields[1], fields[2]))
+    })
+    .collect::<Result<Vec<_>, _>>()?;
   crate::cml_assets::multiasset_from_hex_amounts(entries)
 }
 
@@ -3251,7 +3257,7 @@ fn decode_percent_encoded(value: &str) -> Result<Vec<u8>, String> {
   while index < bytes.len() {
     if bytes[index] == b'%' {
       if index + 2 >= bytes.len() {
-        return Err("invalid percent-encoded JSON".to_owned());
+        return Err("invalid percent-encoded input".to_owned());
       }
       let hex = std::str::from_utf8(&bytes[index + 1..index + 3]).map_err(|err| err.to_string())?;
       decoded
@@ -3263,6 +3269,11 @@ fn decode_percent_encoded(value: &str) -> Result<Vec<u8>, String> {
     }
   }
   Ok(decoded)
+}
+
+fn decode_percent_encoded_text(value: &str, name: &str) -> Result<String, String> {
+  String::from_utf8(decode_percent_encoded(value)?)
+    .map_err(|err| format!("{name} is not valid UTF-8: {err}"))
 }
 
 fn percent_encode(bytes: &[u8]) -> String {
@@ -3679,9 +3690,7 @@ pub fn transaction_signing_requirements_json(transaction_hex: &str) -> Result<St
     .body
     .certs
     .as_ref()
-    .map(|certificates| {
-      certificates.iter().any(certificate_requires_staking_witness)
-    })
+    .map(|certificates| has_staking_certificate(certificates))
     .unwrap_or(false);
   let mut seen_hashes = HashSet::new();
   let mut native_script_key_hashes = Vec::new();
@@ -3720,6 +3729,10 @@ fn certificate_requires_staking_witness(certificate: &cml_chain::certs::Certific
       | Certificate::VoteDelegCert(_)
       | Certificate::VoteRegDelegCert(_)
   )
+}
+
+fn has_staking_certificate(certificates: &[cml_chain::certs::Certificate]) -> bool {
+  certificates.iter().any(certificate_requires_staking_witness)
 }
 
 fn review_auxiliary_data_json(
@@ -3882,7 +3895,7 @@ mod tests {
     add_reference_fee_and_rebalance, build_escrow_redeem_transaction_hex,
     build_simple_payment_transaction_hex, build_transaction_recipe_cml_hex,
     calculate_reference_script_fee, certificate_requires_staking_witness,
-    derive_account_public_key_hex, empty_witness_transaction_hex,
+    derive_account_public_key_hex, empty_witness_transaction_hex, has_staking_certificate,
     minimum_coin_for_assets, review_output_json, sign_transaction_hex, sign_wallet_data,
     sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
     transaction_review_info_json, transaction_validation_info_json, transaction_witness_set_hex,
@@ -3900,10 +3913,27 @@ mod tests {
       credential.clone(),
       0,
     )));
-    assert!(certificate_requires_staking_witness(&Certificate::new_unreg_cert(
-      credential,
-      0,
-    )));
+    assert!(certificate_requires_staking_witness(&Certificate::new_unreg_cert(credential, 0,)));
+  }
+
+  #[test]
+  fn staking_witness_detection_uses_any_staking_certificate() {
+    use cml_chain::certs::{Certificate, Credential, DRep};
+    use cml_crypto::{Ed25519KeyHash, RawBytesEncoding};
+
+    let credential = Credential::new_pub_key(Ed25519KeyHash::from_raw_bytes(&[0; 28]).unwrap());
+    let non_staking =
+      Certificate::new_pool_retirement(Ed25519KeyHash::from_raw_bytes(&[1; 28]).unwrap(), 42);
+    let staking =
+      Certificate::new_vote_deleg_cert(credential.clone(), DRep::new_always_abstain());
+    let deregistration = Certificate::new_stake_deregistration(credential.clone());
+    let registration = Certificate::new_reg_cert(credential, 2_000_000);
+
+    assert!(has_staking_certificate(&[non_staking.clone(), staking]));
+    assert!(has_staking_certificate(&[deregistration]));
+    assert!(has_staking_certificate(&[registration]));
+    assert!(!has_staking_certificate(&[non_staking]));
+    assert!(!has_staking_certificate(&[]));
   }
 
   #[test]
@@ -4134,8 +4164,7 @@ mod tests {
       .as_object_mut()
       .unwrap()
       .remove("inlineDatumCborHex");
-    let no_datum_tx_hex =
-      build_transaction_recipe_cml_hex(&no_datum_recipe.to_string()).unwrap();
+    let no_datum_tx_hex = build_transaction_recipe_cml_hex(&no_datum_recipe.to_string()).unwrap();
     let no_datum_tx = cml_chain::transaction::Transaction::from_cbor_bytes(
       &hex::decode(no_datum_tx_hex.split('|').next().unwrap()).unwrap(),
     )
@@ -4913,7 +4942,8 @@ mod tests {
 
     let key_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let script_bytes = vec![1, 0, 0];
-    let script = Script::new_plutus_v3(cml_chain::plutus::PlutusV3Script::new(script_bytes.clone()));
+    let script =
+      Script::new_plutus_v3(cml_chain::plutus::PlutusV3Script::new(script_bytes.clone()));
     let script_address = cml_chain::address::EnterpriseAddress::new(
       0,
       cml_chain::certs::Credential::new_script(script.hash()),
@@ -4945,10 +4975,9 @@ mod tests {
     let tx = Transaction::from_cbor_bytes(&hex::decode(tx_hex).unwrap()).unwrap();
     let review: serde_json::Value =
       serde_json::from_str(&transaction_review_info_json(tx_hex).unwrap()).unwrap();
-    let oracle_body = cml_chain::transaction::TransactionBody::from_cbor_bytes(
-      &hex::decode(CSL_BODY_HEX).unwrap(),
-    )
-    .unwrap();
+    let oracle_body =
+      cml_chain::transaction::TransactionBody::from_cbor_bytes(&hex::decode(CSL_BODY_HEX).unwrap())
+        .unwrap();
     assert_eq!(tx.body.inputs.to_cbor_bytes(), oracle_body.inputs.to_cbor_bytes());
     assert_eq!(tx.body.outputs[0].to_cbor_bytes(), oracle_body.outputs[0].to_cbor_bytes());
     assert_eq!(
@@ -5617,13 +5646,13 @@ mod tests {
     // Without a change address, the builder may use an existing recipe address
     // internally, but exact manual conservation must prevent an extra output.
     let mut exact_fee = base.clone();
-    exact_fee["outputs"] = serde_json::json!([{"address":address,"lovelace":"9800000","assets":[]}]);
+    exact_fee["outputs"] =
+      serde_json::json!([{"address":address,"lovelace":"9800000","assets":[]}]);
     exact_fee["options"]["manualFee"] = serde_json::json!("200000");
     let exact_hex = build_transaction_recipe_cml_hex(&exact_fee.to_string()).unwrap();
-    let exact_tx = Transaction::from_cbor_bytes(
-      &hex::decode(exact_hex.split('|').next().unwrap()).unwrap(),
-    )
-    .unwrap();
+    let exact_tx =
+      Transaction::from_cbor_bytes(&hex::decode(exact_hex.split('|').next().unwrap()).unwrap())
+        .unwrap();
     assert_eq!(exact_tx.body.outputs.len(), 1);
     assert_eq!(exact_tx.body.fee, 200_000);
     assert_eq!(exact_tx.body.outputs[0].amount().coin + exact_tx.body.fee, 10_000_000);
@@ -5642,10 +5671,7 @@ mod tests {
     )
     .unwrap();
     assert_eq!(recipient_tx.body.outputs.len(), 2);
-    assert_eq!(
-      recipient_tx.body.outputs[0].address().to_bech32(None).unwrap(),
-      recipient,
-    );
+    assert_eq!(recipient_tx.body.outputs[0].address().to_bech32(None).unwrap(), recipient,);
     assert_eq!(recipient_tx.body.outputs[0].amount().coin, 2_000_000);
     assert_eq!(recipient_tx.body.outputs[1].address().to_bech32(None).unwrap(), address);
 
@@ -5653,8 +5679,10 @@ mod tests {
     // ordinary UTxOs. The remaining withdrawal value is emitted as change.
     let mut withdrawal_only = base.clone();
     withdrawal_only["inputs"] = serde_json::json!([]);
-    withdrawal_only["outputs"] = serde_json::json!([{"address":address,"lovelace":"2000000","assets":[]}]);
-    withdrawal_only["withdrawals"] = serde_json::json!([{"rewardAddress":reward_address,"amount":"3500000"}]);
+    withdrawal_only["outputs"] =
+      serde_json::json!([{"address":address,"lovelace":"2000000","assets":[]}]);
+    withdrawal_only["withdrawals"] =
+      serde_json::json!([{"rewardAddress":reward_address,"amount":"3500000"}]);
     withdrawal_only["options"]["changeAddress"] = serde_json::json!(address);
     let withdrawal_hex = build_transaction_recipe_cml_hex(&withdrawal_only.to_string()).unwrap();
     let withdrawal_tx = Transaction::from_cbor_bytes(
@@ -5676,10 +5704,9 @@ mod tests {
     let mut change_only = base;
     change_only["options"]["changeAddress"] = serde_json::json!(address);
     let change_hex = build_transaction_recipe_cml_hex(&change_only.to_string()).unwrap();
-    let change_tx = Transaction::from_cbor_bytes(
-      &hex::decode(change_hex.split('|').next().unwrap()).unwrap(),
-    )
-    .unwrap();
+    let change_tx =
+      Transaction::from_cbor_bytes(&hex::decode(change_hex.split('|').next().unwrap()).unwrap())
+        .unwrap();
     assert_eq!(change_tx.body.inputs.len(), 1);
     assert_eq!(change_tx.body.outputs.len(), 1);
     assert_eq!(change_tx.body.outputs[0].amount().coin + change_tx.body.fee, 10_000_000);

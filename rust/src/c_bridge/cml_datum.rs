@@ -92,3 +92,26 @@ pub unsafe extern "C" fn cml_bridge_datum_info_from_output_cbor_hex(
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::cml_bridge_datum_info_from_output_cbor_hex;
+  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use std::ffi::CString;
+
+  #[test]
+  fn malformed_inline_datum_returns_false_at_the_c_abi() {
+    let output = CString::new(
+      "a3005839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf011a001e8480028201d81846d8799f01e0ff",
+    )
+    .unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+
+    assert!(!unsafe {
+      cml_bridge_datum_info_from_output_cbor_hex(output.as_ptr(), &mut result, &mut error)
+    });
+    assert!(result.is_null());
+    unsafe { cml_bridge_charptr_free(&mut error) };
+  }
+}

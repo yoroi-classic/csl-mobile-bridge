@@ -582,6 +582,8 @@ mod tests {
     let mut invalid_change: serde_json::Value = serde_json::from_str(&args).unwrap();
     invalid_change["changeAddresses"][0]["address"] = serde_json::json!("not-an-address");
     assert!(ledger_signing_request_info_json(&invalid_change.to_string())
-      .unwrap_err().to_lowercase().contains("address"));
+      .unwrap_err()
+      .to_lowercase()
+      .contains("address"));
   }
 }

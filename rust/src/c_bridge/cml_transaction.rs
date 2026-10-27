@@ -459,29 +459,163 @@ unsafe fn cml_bridge_minimum_coin_for_assets_impl(
   }
 }
 
-macro_rules! guarded_export {
-  ($name:ident($($arg:ident: $ty:ty),+), $implementation:ident) => {
-    #[no_mangle]
-    pub unsafe extern "C" fn $name($($arg: $ty),+) -> bool {
-      catch_ffi_panic(|| unsafe { $implementation($($arg),+) })
-    }
-  };
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_wallet_root_key_hex_from_entropy(
+  entropy_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_wallet_root_key_hex_from_entropy_impl(entropy_hex, result, error)
+  })
 }
 
-guarded_export!(cml_bridge_wallet_root_key_hex_from_entropy(entropy_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_wallet_root_key_hex_from_entropy_impl);
-guarded_export!(cml_bridge_derive_account_public_key_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_derive_account_public_key_hex_impl);
-guarded_export!(cml_bridge_sign_wallet_transaction_paths_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_sign_wallet_transaction_paths_hex_impl);
-guarded_export!(cml_bridge_sign_wallet_data(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_sign_wallet_data_impl);
-guarded_export!(cml_bridge_derive_wallet_public_key_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_derive_wallet_public_key_hex_impl);
-guarded_export!(cml_bridge_transaction_id_hex(transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_transaction_id_hex_impl);
-guarded_export!(cml_bridge_transaction_validation_info_json(transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_transaction_validation_info_json_impl);
-guarded_export!(cml_bridge_transaction_review_info_json(transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_transaction_review_info_json_impl);
-guarded_export!(cml_bridge_transaction_signing_requirements_json(transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_transaction_signing_requirements_json_impl);
-guarded_export!(cml_bridge_transaction_witness_set_hex(transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_transaction_witness_set_hex_impl);
-guarded_export!(cml_bridge_empty_witness_transaction_hex(transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_empty_witness_transaction_hex_impl);
-guarded_export!(cml_bridge_sign_transaction_hex(transaction_hex: CharPtr, private_key_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_sign_transaction_hex_impl);
-guarded_export!(cml_bridge_sign_wallet_transaction_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_sign_wallet_transaction_hex_impl);
-guarded_export!(cml_bridge_build_simple_payment_transaction_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_build_simple_payment_transaction_hex_impl);
-guarded_export!(cml_bridge_build_transaction_recipe_cml_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_build_transaction_recipe_cml_hex_impl);
-guarded_export!(cml_bridge_build_escrow_redeem_transaction_hex(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_build_escrow_redeem_transaction_hex_impl);
-guarded_export!(cml_bridge_minimum_coin_for_assets(args: CharPtr, result: &mut CharPtr, error: &mut CharPtr), cml_bridge_minimum_coin_for_assets_impl);
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_derive_account_public_key_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe { cml_bridge_derive_account_public_key_hex_impl(args, result, error) })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_sign_wallet_transaction_paths_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_sign_wallet_transaction_paths_hex_impl(args, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_sign_wallet_data(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe { cml_bridge_sign_wallet_data_impl(args, result, error) })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_derive_wallet_public_key_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe { cml_bridge_derive_wallet_public_key_hex_impl(args, result, error) })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_id_hex(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe { cml_bridge_transaction_id_hex_impl(transaction_hex, result, error) })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_validation_info_json(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_transaction_validation_info_json_impl(transaction_hex, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_review_info_json(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_transaction_review_info_json_impl(transaction_hex, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_signing_requirements_json(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_transaction_signing_requirements_json_impl(transaction_hex, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_transaction_witness_set_hex(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_transaction_witness_set_hex_impl(transaction_hex, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_empty_witness_transaction_hex(
+  transaction_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_empty_witness_transaction_hex_impl(transaction_hex, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_sign_transaction_hex(
+  transaction_hex: CharPtr, private_key_hex: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_sign_transaction_hex_impl(transaction_hex, private_key_hex, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_sign_wallet_transaction_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe { cml_bridge_sign_wallet_transaction_hex_impl(args, result, error) })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_build_simple_payment_transaction_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_build_simple_payment_transaction_hex_impl(args, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_build_transaction_recipe_cml_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_build_transaction_recipe_cml_hex_impl(args, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_build_escrow_redeem_transaction_hex(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe {
+    cml_bridge_build_escrow_redeem_transaction_hex_impl(args, result, error)
+  })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cml_bridge_minimum_coin_for_assets(
+  args: CharPtr, result: &mut CharPtr, error: &mut CharPtr,
+) -> bool {
+  catch_ffi_panic(|| unsafe { cml_bridge_minimum_coin_for_assets_impl(args, result, error) })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::cml_bridge_transaction_review_info_json;
+  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use std::ffi::CString;
+
+  #[test]
+  fn malformed_witness_datum_returns_false_instead_of_unwinding_across_ffi() {
+    let transaction = CString::new("84a300d90102800180021a000f4240a10481d8799f01e0fff5f6").unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+
+    assert!(!unsafe {
+      cml_bridge_transaction_review_info_json(transaction.as_ptr(), &mut result, &mut error)
+    });
+    assert!(result.is_null());
+    unsafe { cml_bridge_charptr_free(&mut error) };
+  }
+}

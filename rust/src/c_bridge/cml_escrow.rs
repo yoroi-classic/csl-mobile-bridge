@@ -79,3 +79,22 @@ pub unsafe extern "C" fn cml_bridge_derive_escrow_address(
     derive_escrow_address(&args.eligible_address, &args.script_hash_hex, args.network_id)
   })
 }
+
+#[cfg(test)]
+mod tests {
+  use super::{cml_bridge_escrow_datum_info_json, cml_bridge_updated_escrow_datum_cbor_hex};
+  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use std::ffi::CString;
+
+  #[test]
+  fn malformed_escrow_datum_returns_false_at_the_c_abi() {
+    let input = CString::new("d8799f01e0ff").unwrap();
+    for export in [cml_bridge_escrow_datum_info_json, cml_bridge_updated_escrow_datum_cbor_hex] {
+      let mut result = std::ptr::null();
+      let mut error = std::ptr::null();
+      assert!(!unsafe { export(input.as_ptr(), &mut result, &mut error) });
+      assert!(result.is_null());
+      unsafe { cml_bridge_charptr_free(&mut error) };
+    }
+  }
+}

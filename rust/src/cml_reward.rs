@@ -331,9 +331,7 @@ mod tests {
       "82d818582183581c5b4689cfcfe43d8a89e2c9197dbc0913a5828c742168709039260ed2a0001a71b1c85a"
     );
     assert_eq!(info["networkId"], 1);
-    assert_eq!(
-      info["bech32"], serde_json::Value::Null
-    );
+    assert_eq!(info["bech32"], serde_json::Value::Null);
     assert_eq!(info["isValid"], true);
     assert!(address_info_from_address(
       "Ae2tdPwUPEZ5uzkzh1o2DHECiUi3iugvnnKHRisPgRRP3CTF4KCMvy54Xd4"
@@ -362,7 +360,10 @@ mod tests {
   fn reward_address_details_json_matches_the_native_bridge_contract() {
     let details: serde_json::Value =
       serde_json::from_str(&reward_address_details_json(REWARD_ADDRESS_HEX).unwrap()).unwrap();
-    assert_eq!(details["bech32"], "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk");
+    assert_eq!(
+      details["bech32"],
+      "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk"
+    );
     assert_eq!(details["keyHashHex"], "42d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40");
   }
 
@@ -437,7 +438,10 @@ mod tests {
     assert!(succeeded, "{}", unsafe { CStr::from_ptr(error) }.to_string_lossy());
     let details: serde_json::Value =
       serde_json::from_str(unsafe { CStr::from_ptr(result) }.to_str().unwrap()).unwrap();
-    assert_eq!(details["bech32"], "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk");
+    assert_eq!(
+      details["bech32"],
+      "stake_test1uppdvs5uwtqdc8y88y37rtlywkkkzn8k6whvv8wmemh0usqdl9tqk"
+    );
     assert_eq!(details["keyHashHex"], "42d6429c72c0dc1c873923e1afe475ad614cf6d3aec61ddbceeefe40");
     unsafe {
       crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free(&mut result);

@@ -699,7 +699,7 @@ export const buildSimplePaymentTransaction = (
     [
       args.inputs
         .map(({transactionHashHex, index, address, addressHex, isBootstrap, lovelace, assets, nativeScriptCborHex, nativeScriptWitnessCount}) =>
-          [transactionHashHex, index, address, lovelace,
+          [transactionHashHex, index, encodeURIComponent(address), lovelace,
             (assets ?? [])
               .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
             nativeScriptCborHex ?? '-',
@@ -712,13 +712,13 @@ export const buildSimplePaymentTransaction = (
         .join(';'),
       [...args.outputs, ...(args.manualChangeOutput ? [args.manualChangeOutput] : [])]
         .map(({address, lovelace, assets, datum}) => [
-          address,
+          encodeURIComponent(address),
           lovelace,
           (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
           datum ? `${datum.kind}~${datum.hex}` : '-',
         ].join(','))
         .join(';'),
-      args.changeAddress,
+      encodeURIComponent(args.changeAddress),
       args.ttl ?? '-',
       args.feeCoefficient,
       args.feeConstant,
@@ -739,7 +739,7 @@ export const buildSimplePaymentTransaction = (
       args.referenceInputs?.map(({transactionHashHex, index, address, lovelace, assets}) => [
         transactionHashHex,
         index,
-        address,
+        encodeURIComponent(address),
         lovelace,
         (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
           [policyIdHex, assetNameHex, quantity].join('~'),

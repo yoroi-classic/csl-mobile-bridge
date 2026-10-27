@@ -605,6 +605,27 @@ describe('CML mobile bridge source entrypoint', () => {
     expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(packed);
   });
 
+  it('percent-encodes address delimiters in the simple-payment wire format', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const address = 'R,50000000,-,-;R';
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+    moduleExports.buildSimplePaymentTransaction({
+      inputs: [],
+      outputs: [{address, lovelace: '2000000', assets: []}],
+      changeAddress: 'addr_test_change',
+      feeCoefficient: '44',
+      feeConstant: '155381',
+      coinsPerUtxoByte: '4310',
+      keyDeposit: '2000000',
+      poolDeposit: '500000000',
+      maxValueSize: '5000',
+    });
+
+    expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(
+      expect.stringContaining(`${encodeURIComponent(address)},2000000,-,-`),
+    );
+  });
+
   it('serializes normalized transaction recipes losslessly through CML', () => {
     const {bridge, moduleExports} = loadBridge();
     const args = {

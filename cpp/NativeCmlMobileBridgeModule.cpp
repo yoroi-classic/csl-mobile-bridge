@@ -7,7 +7,6 @@
 
 extern "C" {
 #include "react_native_haskell_shelley.h"
-#include "cml_mobile_bridge_ffi.h"
 }
 
 namespace cmlmobilebridge {

@@ -17,12 +17,12 @@ pub fn multiasset_from_hex_amounts<'a>(
       .map_err(|err| format!("invalid asset policy ID: {err}"))?;
     let name_bytes =
       hex::decode(name_hex).map_err(|err| format!("invalid asset name hex: {err}"))?;
-    let name = AssetName::new(name_bytes.clone()).map_err(|err| format!("invalid asset name: {err}"))?;
-    let quantity = quantity
-      .parse::<u64>()
-      .map_err(|err| format!("invalid asset quantity: {err}"))?;
+    let name =
+      AssetName::new(name_bytes.clone()).map_err(|err| format!("invalid asset name: {err}"))?;
+    let quantity =
+      quantity.parse::<u64>().map_err(|err| format!("invalid asset quantity: {err}"))?;
     if !seen.insert((policy.to_raw_bytes().to_vec(), name_bytes)) {
-      return Err("duplicate asset in value arguments".to_owned());
+      return Err("duplicate asset identifier".to_owned());
     }
     result.set(policy, name, quantity);
   }

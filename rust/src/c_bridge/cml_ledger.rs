@@ -55,3 +55,26 @@ pub unsafe extern "C" fn cml_bridge_apply_ledger_witnesses_to_transaction_hex(
 ) -> bool {
   text_result(args, result, error, apply_ledger_witnesses_to_transaction_hex, "Ledger witness")
 }
+
+#[cfg(test)]
+mod tests {
+  use super::cml_bridge_ledger_signing_request_info_json;
+  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use std::ffi::CString;
+
+  #[test]
+  fn malformed_witness_datum_returns_false_at_the_c_abi() {
+    let args = CString::new(
+      r#"{"transactionHex":"84a300d90102800180021a000f4240a10481d8799f01e0fff5f6","networkId":0,"protocolMagic":764824073,"senderUtxos":[],"changeAddresses":[]}"#,
+    )
+    .unwrap();
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+
+    assert!(!unsafe {
+      cml_bridge_ledger_signing_request_info_json(args.as_ptr(), &mut result, &mut error)
+    });
+    assert!(result.is_null());
+    unsafe { cml_bridge_charptr_free(&mut error) };
+  }
+}

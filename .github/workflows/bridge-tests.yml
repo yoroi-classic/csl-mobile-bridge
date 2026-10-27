@@ -60,3 +60,6 @@ jobs:
 
       - name: Run bridge verification
         run: node .yarn/releases/yarn-3.6.1.cjs verify
+
+      - name: Check generated C FFI declarations
+        run: g++ -std=c++17 -fsyntax-only -Irust/include cpp/cml_mobile_bridge_ffi_contract.cpp
