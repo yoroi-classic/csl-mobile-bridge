@@ -75,9 +75,27 @@ impl IntoOptionalCString for Option<&str> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn cml_bridge_charptr_free(ptr: &mut CharPtr) {
-  if !ptr.is_null() && !(*ptr).is_null() {
+pub unsafe extern "C" fn cml_bridge_charptr_free(ptr: *mut CharPtr) {
+  if ptr.is_null() {
+    return;
+  }
+  if !(*ptr).is_null() {
     let _ = CString::from_raw(*ptr as *mut c_char);
     *ptr = std::ptr::null();
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{cml_bridge_charptr_free, CharPtr};
+
+  #[test]
+  fn char_pointer_free_accepts_null_argument_and_value() {
+    let mut value: CharPtr = std::ptr::null();
+    unsafe {
+      cml_bridge_charptr_free(std::ptr::null_mut());
+      cml_bridge_charptr_free(&mut value);
+    }
+    assert!(value.is_null());
   }
 }

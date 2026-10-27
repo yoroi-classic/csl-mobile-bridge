@@ -94,6 +94,7 @@ mod tests {
       let mut error = std::ptr::null();
       assert!(!unsafe { export(input.as_ptr(), &mut result, &mut error) });
       assert!(result.is_null());
+      assert!(!error.is_null());
       unsafe { cml_bridge_charptr_free(&mut error) };
     }
   }

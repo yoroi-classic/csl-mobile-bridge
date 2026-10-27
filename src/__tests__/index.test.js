@@ -608,22 +608,34 @@ describe('CML mobile bridge source entrypoint', () => {
   it('percent-encodes address delimiters in the simple-payment wire format', () => {
     const {bridge, moduleExports} = loadBridge();
     const address = 'R,50000000,-,-;R';
+    const encodedAddress = encodeURIComponent(address);
     bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
     moduleExports.buildSimplePaymentTransaction({
-      inputs: [],
+      inputs: [{
+        transactionHashHex: '01'.repeat(32),
+        index: '0',
+        address,
+        lovelace: '10000000',
+      }],
       outputs: [{address, lovelace: '2000000', assets: []}],
-      changeAddress: 'addr_test_change',
+      changeAddress: address,
       feeCoefficient: '44',
       feeConstant: '155381',
       coinsPerUtxoByte: '4310',
       keyDeposit: '2000000',
       poolDeposit: '500000000',
       maxValueSize: '5000',
+      referenceInputs: [{
+        transactionHashHex: '02'.repeat(32),
+        index: '1',
+        address,
+        lovelace: '1000000',
+      }],
     });
 
-    expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(
-      expect.stringContaining(`${encodeURIComponent(address)},2000000,-,-`),
-    );
+    const packed = bridge.build_simple_payment_transaction_hex.mock.calls[0][0];
+    expect(packed.match(new RegExp(encodedAddress, 'g'))).toHaveLength(4);
+    expect(packed).toContain(`${encodedAddress},2000000,-,-`);
   });
 
   it('serializes normalized transaction recipes losslessly through CML', () => {

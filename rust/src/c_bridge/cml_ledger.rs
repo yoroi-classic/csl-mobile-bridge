@@ -75,6 +75,7 @@ mod tests {
       cml_bridge_ledger_signing_request_info_json(args.as_ptr(), &mut result, &mut error)
     });
     assert!(result.is_null());
+    assert!(!error.is_null());
     unsafe { cml_bridge_charptr_free(&mut error) };
   }
 }
