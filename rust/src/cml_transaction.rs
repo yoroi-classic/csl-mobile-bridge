@@ -4017,6 +4017,23 @@ mod tests {
   }
 
   #[test]
+  fn signing_requirements_report_no_staking_certificate_when_absent() {
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let args = format!(
+      "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000",
+      "01".repeat(32), address, address, address,
+    );
+    let transaction_hex =
+      build_simple_payment_transaction_hex(&args).unwrap().split('|').next().unwrap().to_owned();
+    let requirements: serde_json::Value = serde_json::from_str(
+      &super::transaction_signing_requirements_json(&transaction_hex).unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(requirements["hasStakingCertificate"], false);
+  }
+
+  #[test]
   fn normalized_transaction_recipe_matches_payment_builder_and_rejects_unhandled_script_fields() {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let input = format!("{},0,{},10000000,-,-,-", "01".repeat(32), address);
