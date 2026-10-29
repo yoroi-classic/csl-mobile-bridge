@@ -738,7 +738,9 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     return Err(format!("expected 10 to 19 payment fields, received {}", fields.len()));
   }
   let parse_u64 = |index: usize, name: &str| -> Result<u64, String> {
-    fields[index].parse::<u64>().map_err(|err| format!("invalid {name}: {err}"))
+    decode_percent_encoded_text(fields[index], name)?
+      .parse::<u64>()
+      .map_err(|err| format!("invalid {name}: {err}"))
   };
   let change_address =
     parse_payment_address(&decode_percent_encoded_text(fields[2], "change address")?)?;
@@ -787,15 +789,18 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
           .to_owned(),
       );
     }
-    let hash = hex::decode(input_fields[0]).map_err(|err| format!("invalid input hash: {err}"))?;
+    let hash_text = decode_percent_encoded_text(input_fields[0], "input hash")?;
+    let hash = hex::decode(hash_text).map_err(|err| format!("invalid input hash: {err}"))?;
     let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
-    let index =
-      input_fields[1].parse::<u64>().map_err(|err| format!("invalid input index: {err}"))?;
+    let index = decode_percent_encoded_text(input_fields[1], "input index")?
+      .parse::<u64>()
+      .map_err(|err| format!("invalid input index: {err}"))?;
     let address =
       parse_payment_address(&decode_percent_encoded_text(input_fields[2], "input address")?)?;
     if input_fields.len() >= 8 && input_fields[7] != "-" {
+      let address_hex_text = decode_percent_encoded_text(input_fields[7], "input address hex")?;
       let address_hex =
-        hex::decode(input_fields[7]).map_err(|err| format!("invalid input address hex: {err}"))?;
+        hex::decode(address_hex_text).map_err(|err| format!("invalid input address hex: {err}"))?;
       let parsed_address = cml_chain::address::Address::from_raw_bytes(&address_hex)
         .map_err(|err| format!("invalid input address hex CBOR: {err}"))?;
       if parsed_address.to_raw_bytes() != address.to_raw_bytes() {
@@ -803,7 +808,8 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
       }
     }
     if input_fields.len() >= 9 && input_fields[8] != "-" {
-      let declared_bootstrap = match input_fields[8] {
+      let bootstrap_text = decode_percent_encoded_text(input_fields[8], "isBootstrap")?;
+      let declared_bootstrap = match bootstrap_text.as_str() {
         "true" => true,
         "false" => false,
         other => return Err(format!("invalid isBootstrap value: {other}")),
@@ -812,25 +818,26 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
         return Err("isBootstrap does not match the parsed input address".to_owned());
       }
     }
-    let coin =
-      input_fields[3].parse::<u64>().map_err(|err| format!("invalid input coin: {err}"))?;
+    let coin = decode_percent_encoded_text(input_fields[3], "input coin")?
+      .parse::<u64>()
+      .map_err(|err| format!("invalid input coin: {err}"))?;
+    let assets = decode_percent_encoded_text(input_fields[4], "input assets")?;
     let input = TransactionInput::new(hash, index);
-    let utxo = TransactionOutput::new(
-      address,
-      Value::new(coin, parse_multiasset(input_fields[4])?),
-      None,
-      None,
-    );
+    let utxo =
+      TransactionOutput::new(address, Value::new(coin, parse_multiasset(&assets)?), None, None);
     let input_builder = SingleInputBuilder::new(input, utxo);
     let input_result = if input_fields.len() >= 7 && input_fields[5] != "-" {
+      let script_text = decode_percent_encoded_text(input_fields[5], "native script")?;
       let script_bytes =
-        hex::decode(input_fields[5]).map_err(|err| format!("invalid native script: {err}"))?;
+        hex::decode(script_text).map_err(|err| format!("invalid native script: {err}"))?;
       let script = cml_chain::transaction::NativeScript::from_cbor_bytes(&script_bytes)
         .map_err(|err| format!("invalid native script CBOR: {err}"))?;
-      let witness_info = if input_fields[6] == "-" {
+      let witness_count =
+        decode_percent_encoded_text(input_fields[6], "native script witness count")?;
+      let witness_info = if witness_count == "-" {
         NativeScriptWitnessInfo::assume_signature_count()
       } else {
-        let count = input_fields[6]
+        let count = witness_count
           .parse::<usize>()
           .map_err(|err| format!("invalid native script witness count: {err}"))?;
         NativeScriptWitnessInfo::num_signatures(count)
@@ -850,11 +857,13 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
     }
     let address =
       parse_payment_address(&decode_percent_encoded_text(output_fields[0], "output address")?)?;
-    let coin =
-      output_fields[1].parse::<u64>().map_err(|err| format!("invalid output coin: {err}"))?;
+    let coin = decode_percent_encoded_text(output_fields[1], "output coin")?
+      .parse::<u64>()
+      .map_err(|err| format!("invalid output coin: {err}"))?;
     let mut output_builder = TransactionOutputBuilder::new().with_address(address);
     if output_fields[3] != "-" {
-      let datum = output_fields[3].splitn(2, '~').collect::<Vec<_>>();
+      let datum_text = decode_percent_encoded_text(output_fields[3], "output datum")?;
+      let datum = datum_text.splitn(2, '~').collect::<Vec<_>>();
       if datum.len() != 2 {
         return Err("output datum must contain kind~hex".to_owned());
       }
@@ -874,10 +883,11 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
       };
       output_builder = output_builder.with_data(datum_option);
     }
+    let assets = decode_percent_encoded_text(output_fields[2], "output assets")?;
     let output_builder = output_builder
       .next()
       .map_err(|err| err.to_string())?
-      .with_value(Value::new(coin, parse_multiasset(output_fields[2])?));
+      .with_value(Value::new(coin, parse_multiasset(&assets)?));
     builder
       .add_output(output_builder.build().map_err(|err| err.to_string())?)
       .map_err(|err| err.to_string())?;
@@ -895,27 +905,31 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
           "each supported mint must contain policyHex,native,scriptCborHex,assets".to_owned(),
         );
       }
+      let script_text = decode_percent_encoded_text(mint_fields[2], "mint native script")?;
       let script_bytes =
-        hex::decode(mint_fields[2]).map_err(|err| format!("invalid mint native script: {err}"))?;
+        hex::decode(script_text).map_err(|err| format!("invalid mint native script: {err}"))?;
       let script = cml_chain::transaction::NativeScript::from_cbor_bytes(&script_bytes)
         .map_err(|err| format!("invalid mint native script CBOR: {err}"))?;
-      let policy =
-        hex::decode(mint_fields[0]).map_err(|err| format!("invalid mint policy: {err}"))?;
+      let policy_text = decode_percent_encoded_text(mint_fields[0], "mint policy")?;
+      let policy = hex::decode(policy_text).map_err(|err| format!("invalid mint policy: {err}"))?;
       let policy = ScriptHash::from_raw_bytes(&policy).map_err(|err| err.to_string())?;
       if policy != script.hash() {
         return Err("native mint policy ID does not match script hash".to_owned());
       }
       let mut mint_assets = cml_chain::OrderedHashMap::new();
-      for packed_asset in mint_fields[3].split('^') {
+      let mint_assets_text = decode_percent_encoded_text(mint_fields[3], "mint assets")?;
+      for packed_asset in mint_assets_text.split('^') {
         let asset_fields = packed_asset.split('~').collect::<Vec<_>>();
         if asset_fields.len() != 2 {
           return Err("each minted asset must contain assetNameHex~quantity".to_owned());
         }
-        let name_bytes = hex::decode(asset_fields[0])
-          .map_err(|err| format!("invalid minted asset name: {err}"))?;
+        let asset_name = decode_percent_encoded_text(asset_fields[0], "mint asset name")?;
+        let quantity_text = decode_percent_encoded_text(asset_fields[1], "mint quantity")?;
+        let name_bytes =
+          hex::decode(asset_name).map_err(|err| format!("invalid minted asset name: {err}"))?;
         let name = AssetName::new(name_bytes).map_err(|err| err.to_string())?;
         let quantity =
-          asset_fields[1].parse::<i64>().map_err(|err| format!("invalid mint quantity: {err}"))?;
+          quantity_text.parse::<i64>().map_err(|err| format!("invalid mint quantity: {err}"))?;
         mint_assets.insert(name, quantity);
       }
       builder
@@ -964,25 +978,23 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
           "each reference input must contain hash,index,address,lovelace,assets".to_owned(),
         );
       }
-      let hash = hex::decode(input_fields[0])
-        .map_err(|err| format!("invalid reference input hash: {err}"))?;
+      let hash_text = decode_percent_encoded_text(input_fields[0], "reference input hash")?;
+      let hash =
+        hex::decode(hash_text).map_err(|err| format!("invalid reference input hash: {err}"))?;
       let hash = TransactionHash::from_raw_bytes(&hash).map_err(|err| err.to_string())?;
-      let index = input_fields[1]
+      let index = decode_percent_encoded_text(input_fields[1], "reference input index")?
         .parse::<u64>()
         .map_err(|err| format!("invalid reference input index: {err}"))?;
       let address = parse_payment_address(&decode_percent_encoded_text(
         input_fields[2],
         "reference input address",
       )?)?;
-      let coin = input_fields[3]
+      let coin = decode_percent_encoded_text(input_fields[3], "reference input coin")?
         .parse::<u64>()
         .map_err(|err| format!("invalid reference input coin: {err}"))?;
-      let output = TransactionOutput::new(
-        address,
-        Value::new(coin, parse_multiasset(input_fields[4])?),
-        None,
-        None,
-      );
+      let assets = decode_percent_encoded_text(input_fields[4], "reference input assets")?;
+      let output =
+        TransactionOutput::new(address, Value::new(coin, parse_multiasset(&assets)?), None, None);
       builder.add_reference_input(TransactionUnspentOutput::new(
         cml_chain::transaction::TransactionInput::new(hash, index),
         output,
@@ -997,8 +1009,13 @@ pub fn build_simple_payment_transaction_hex(args: &str) -> Result<String, String
   }
   let manual_fee =
     if fields.len() >= 17 && fields[16] != "-" { Some(parse_u64(16, "manual fee")?) } else { None };
-  let has_manual_change = fields.len() >= 18 && fields[17] == "true";
-  if fields.len() >= 18 && fields[17] != "true" && fields[17] != "false" {
+  let manual_change = if fields.len() >= 18 {
+    decode_percent_encoded_text(fields[17], "manual change flag")?
+  } else {
+    "false".to_owned()
+  };
+  let has_manual_change = fields.len() >= 18 && manual_change == "true";
+  if fields.len() >= 18 && manual_change != "true" && manual_change != "false" {
     return Err("manual change flag must be true or false".to_owned());
   }
   let selected_fee = if has_manual_change && manual_fee.is_none() {
@@ -3288,10 +3305,12 @@ pub fn minimum_coin_for_assets(args: &str) -> Result<String, String> {
   if fields.len() != 3 {
     return Err(format!("expected 3 minimum-coin fields, received {}", fields.len()));
   }
-  let address = parse_payment_address(fields[0])?;
-  let assets = parse_multiasset(fields[1])?;
+  let address = parse_payment_address(&decode_percent_encoded_text(fields[0], "address")?)?;
+  let assets_text = decode_percent_encoded_text(fields[1], "assets")?;
+  let assets = parse_multiasset(&assets_text)?;
+  let coins_per_byte = decode_percent_encoded_text(fields[2], "coins per UTXO byte")?;
   let coins_per_byte =
-    fields[2].parse::<u64>().map_err(|err| format!("invalid coins per UTXO byte: {err}"))?;
+    coins_per_byte.parse::<u64>().map_err(|err| format!("invalid coins per UTXO byte: {err}"))?;
   let output = TransactionOutputBuilder::new()
     .with_address(address)
     .next()
@@ -3924,8 +3943,7 @@ mod tests {
     let credential = Credential::new_pub_key(Ed25519KeyHash::from_raw_bytes(&[0; 28]).unwrap());
     let non_staking =
       Certificate::new_pool_retirement(Ed25519KeyHash::from_raw_bytes(&[1; 28]).unwrap(), 42);
-    let staking =
-      Certificate::new_vote_deleg_cert(credential.clone(), DRep::new_always_abstain());
+    let staking = Certificate::new_vote_deleg_cert(credential.clone(), DRep::new_always_abstain());
     let deregistration = Certificate::new_stake_deregistration(credential.clone());
     let registration = Certificate::new_reg_cert(credential, 2_000_000);
 
@@ -4021,7 +4039,10 @@ mod tests {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let args = format!(
       "{},0,{},10000000,-|{},2000000,-,-|{}|123456|44|155381|4310|2000000|500000000|5000",
-      "01".repeat(32), address, address, address,
+      "01".repeat(32),
+      address,
+      address,
+      address,
     );
     let transaction_hex =
       build_simple_payment_transaction_hex(&args).unwrap().split('|').next().unwrap().to_owned();
@@ -5214,6 +5235,34 @@ mod tests {
     assert_eq!(
       build_simple_payment_transaction_hex(&args).unwrap(),
       "84a400d90102818258200101010101010101010101010101010101010101010101010101010101010101000182825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a001e8480825839000000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf0000b03c3aa052f51c086c54bd4059ead2d2e426ac89fa4b3ce41cbf1a00777f7b021a00029285031a0001e240a0f5f6|168581"
+    );
+  }
+
+  #[test]
+  fn simple_payment_decodes_percent_encoded_asset_separators() {
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let policy = "ab".repeat(28);
+    let assets = format!("{policy}~00ff~1");
+    let input = format!("{},0,{address},10000000,{assets}", "01".repeat(32));
+    let output = format!("{address},2000000,{assets},-");
+    let fields = [
+      input,
+      output,
+      address.to_owned(),
+      "123456".to_owned(),
+      "44".to_owned(),
+      "155381".to_owned(),
+      "4310".to_owned(),
+      "2000000".to_owned(),
+      "500000000".to_owned(),
+      "5000".to_owned(),
+    ];
+    let raw_args = fields.join("|");
+    let encoded_args = raw_args.replace('~', "%7E");
+
+    assert_eq!(
+      build_simple_payment_transaction_hex(&encoded_args).unwrap(),
+      build_simple_payment_transaction_hex(&raw_args).unwrap(),
     );
   }
 

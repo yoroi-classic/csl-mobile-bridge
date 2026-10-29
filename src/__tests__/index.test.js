@@ -587,7 +587,7 @@ describe('CML mobile bridge source entrypoint', () => {
       }],
     };
     const packed = [
-      '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '~00ff~9007199254740993,-,-',
+      '01'.repeat(32) + ',0,addr_test_input,10000000,' + 'ab'.repeat(28) + '%7E00ff%7E9007199254740993,-,-',
       'addr_test_output,2000000,-,-',
       'addr_test_change',
       '123456', '44', '155381', '4310', '2000000', '500000000', '5000', '-', '-',
@@ -636,6 +636,37 @@ describe('CML mobile bridge source entrypoint', () => {
     const packed = bridge.build_simple_payment_transaction_hex.mock.calls[0][0];
     expect(packed.match(new RegExp(encodedAddress, 'g'))).toHaveLength(4);
     expect(packed).toContain(`${encodedAddress},2000000,-,-`);
+  });
+
+  it('encodes every output value before joining simple-payment delimiters', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const attackerOutput = 'addr_test_attacker,50000000,-,-';
+    const lovelace = `2000000,-,-;${attackerOutput}`;
+    const quantity = `1;${attackerOutput}`;
+    const datumHex = `d87980;${attackerOutput}`;
+    const encodeField = value => encodeURIComponent(value).replace(/~/g, '%7E');
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+
+    moduleExports.buildSimplePaymentTransaction({
+      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
+      outputs: [{
+        address: 'addr_test_output',
+        lovelace,
+        assets: [{policyIdHex: 'ab'.repeat(28), assetNameHex: '00', quantity}],
+        datum: {kind: 'inline', hex: datumHex},
+      }],
+      changeAddress: 'addr_test_change',
+      feeCoefficient: '44', feeConstant: '155381', coinsPerUtxoByte: '4310',
+      keyDeposit: '2000000', poolDeposit: '500000000', maxValueSize: '5000',
+    });
+
+    const packed = bridge.build_simple_payment_transaction_hex.mock.calls[0][0];
+    const outputFields = packed.split('|')[1].split(';');
+    expect(outputFields).toHaveLength(1);
+    expect(outputFields[0].split(',')).toHaveLength(4);
+    expect(outputFields[0]).toContain(encodeField(lovelace));
+    expect(outputFields[0]).toContain(encodeField(`${'ab'.repeat(28)}~00~${quantity}`));
+    expect(outputFields[0]).toContain(encodeField(`inline~${datumHex}`));
   });
 
   it('serializes normalized transaction recipes losslessly through CML', () => {
@@ -736,7 +767,7 @@ describe('CML mobile bridge source entrypoint', () => {
     bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
     moduleExports.buildSimplePaymentTransaction(args);
     expect(bridge.build_simple_payment_transaction_hex).toHaveBeenCalledWith(
-      expect.stringContaining('cd'.repeat(28) + ',native,8200581c' + 'ab'.repeat(28) + ',00ff~-9007199254740993'),
+      expect.stringContaining('cd'.repeat(28) + ',native,8200581c' + 'ab'.repeat(28) + ',00ff%7E-9007199254740993'),
     );
   });
 
@@ -756,7 +787,7 @@ describe('CML mobile bridge source entrypoint', () => {
 
   it('routes minimum-coin-for-assets calculation through CML with exact quantities', () => {
     const { bridge, moduleExports } = loadBridge();
-    const packed = `addr_test_change|${'ab'.repeat(28)}~00ff~9007199254740993|4310`;
+    const packed = `addr_test_change|${'ab'.repeat(28)}%7E00ff%7E9007199254740993|4310`;
     bridge.minimum_coin_for_assets.mockReturnValue('1500000');
     expect(moduleExports.minimumCoinForAssets(
       'addr_test_change',
