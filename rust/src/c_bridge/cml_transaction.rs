@@ -602,20 +602,116 @@ pub unsafe extern "C" fn cml_bridge_minimum_coin_for_assets(
 
 #[cfg(test)]
 mod tests {
-  use super::cml_bridge_transaction_review_info_json;
-  use crate::c_bridge::bridge_tools::string::cml_bridge_charptr_free;
+  use super::{
+    cml_bridge_build_simple_payment_transaction_hex, cml_bridge_build_transaction_recipe_cml_hex,
+    cml_bridge_empty_witness_transaction_hex, cml_bridge_sign_transaction_hex,
+    cml_bridge_sign_wallet_transaction_hex, cml_bridge_sign_wallet_transaction_paths_hex,
+    cml_bridge_transaction_id_hex, cml_bridge_transaction_review_info_json,
+    cml_bridge_transaction_signing_requirements_json, cml_bridge_transaction_validation_info_json,
+    cml_bridge_transaction_witness_set_hex,
+  };
+  use crate::c_bridge::bridge_tools::string::{cml_bridge_charptr_free, CharPtr};
+  use crate::cml_transaction::wallet_root_key_hex_from_entropy;
   use std::ffi::CString;
 
+  type StringExport = unsafe extern "C" fn(CharPtr, &mut CharPtr, &mut CharPtr) -> bool;
+
+  unsafe fn assert_export_returns_false(export: StringExport, input: CharPtr) {
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+    assert!(!export(input, &mut result, &mut error));
+    unsafe {
+      cml_bridge_charptr_free(&mut result);
+      cml_bridge_charptr_free(&mut error);
+    }
+  }
+
   #[test]
-  fn malformed_witness_datum_returns_false_instead_of_unwinding_across_ffi() {
+  fn transaction_exports_return_false_instead_of_unwinding_across_ffi() {
     let transaction = CString::new("84a300d90102800180021a000f4240a10481d8799f01e0fff5f6").unwrap();
+    for export in [
+      cml_bridge_transaction_id_hex,
+      cml_bridge_transaction_review_info_json,
+      cml_bridge_transaction_signing_requirements_json,
+      cml_bridge_transaction_validation_info_json,
+      cml_bridge_transaction_witness_set_hex,
+      cml_bridge_empty_witness_transaction_hex,
+    ] {
+      unsafe { assert_export_returns_false(export, transaction.as_ptr()) };
+    }
+  }
+
+  #[test]
+  fn signing_exports_return_false_instead_of_unwinding_across_ffi() {
+    let transaction = CString::new("84a300d90102800180021a000f4240a10481d8799f01e0fff5f6").unwrap();
+    let private_key = CString::new("11".repeat(32)).unwrap();
     let mut result = std::ptr::null();
     let mut error = std::ptr::null();
 
     assert!(!unsafe {
-      cml_bridge_transaction_review_info_json(transaction.as_ptr(), &mut result, &mut error)
+      cml_bridge_sign_transaction_hex(
+        transaction.as_ptr(),
+        private_key.as_ptr(),
+        &mut result,
+        &mut error,
+      )
     });
-    assert!(result.is_null());
-    unsafe { cml_bridge_charptr_free(&mut error) };
+    unsafe {
+      cml_bridge_charptr_free(&mut result);
+      cml_bridge_charptr_free(&mut error);
+    }
+
+    let master_key_hex = wallet_root_key_hex_from_entropy(&"11".repeat(16)).unwrap();
+    for (export, args) in [
+      (
+        cml_bridge_sign_wallet_transaction_hex as StringExport,
+        serde_json::json!({
+          "transactionHex": transaction.to_str().unwrap(),
+          "masterKeyHex": master_key_hex.clone(),
+          "purpose": "1852",
+          "coinType": "1815",
+          "accountIndex": "0"
+        }),
+      ),
+      (
+        cml_bridge_sign_wallet_transaction_paths_hex as StringExport,
+        serde_json::json!({
+          "transactionHex": transaction.to_str().unwrap(),
+          "masterKeyHex": master_key_hex,
+          "signerPaths": []
+        }),
+      ),
+    ] {
+      let args = CString::new(args.to_string()).unwrap();
+      unsafe { assert_export_returns_false(export, args.as_ptr()) };
+    }
+  }
+
+  #[test]
+  fn payment_exports_return_false_instead_of_unwinding_across_ffi() {
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let tx_hash = "01".repeat(32);
+    let args = format!(
+      "{tx_hash},0,{address},10000000,-|{address},2000000,-,inline~d8799f01e0ff|{address}|123456|44|155381|4310|2000000|500000000|5000"
+    );
+    let args = CString::new(args).unwrap();
+    unsafe {
+      assert_export_returns_false(cml_bridge_build_simple_payment_transaction_hex, args.as_ptr())
+    };
+
+    let recipe = serde_json::json!({
+      "protocolParams": {
+        "linearFee": {"coefficient": "44", "constant": "155381"},
+        "coinsPerUtxoByte": "4310", "keyDeposit": "2000000",
+        "poolDeposit": "500000000", "maxValueSize": "5000"
+      },
+      "inputs": [{"txHashHex": tx_hash, "index": "0", "address": address, "lovelace": "10000000", "assets": []}],
+      "outputs": [{"address": address, "lovelace": "2000000", "assets": [], "datum": {"kind": "inline", "hex": "d8799f01e0ff"}}],
+      "options": {"changeAddress": address, "ttl": "123456"}
+    });
+    let recipe = CString::new(recipe.to_string()).unwrap();
+    unsafe {
+      assert_export_returns_false(cml_bridge_build_transaction_recipe_cml_hex, recipe.as_ptr())
+    };
   }
 }

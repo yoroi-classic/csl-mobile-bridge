@@ -1115,7 +1115,14 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
     }
     assets
       .iter()
-      .map(|asset| format!("{}~{}~{}", asset.policy_id_hex, asset.asset_name_hex, asset.quantity))
+      .map(|asset| {
+        format!(
+          "{}~{}~{}",
+          encode_wire_field(&asset.policy_id_hex),
+          encode_wire_field(&asset.asset_name_hex),
+          encode_wire_field(&asset.quantity)
+        )
+      })
       .collect::<Vec<_>>()
       .join("^")
   };
@@ -1124,19 +1131,19 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
     .iter()
     .map(|input| {
       let mut fields = vec![
-        input.tx_hash_hex.clone(),
-        input.index.clone(),
-        input.address.clone(),
-        input.lovelace.clone(),
-        pack_assets(&input.assets),
-        input.native_script_cbor_hex.clone().unwrap_or_else(|| "-".to_owned()),
-        input.native_script_witness_count.clone().unwrap_or_else(|| "-".to_owned()),
+        encode_wire_field(&input.tx_hash_hex),
+        encode_wire_field(&input.index),
+        encode_wire_field(&input.address),
+        encode_wire_field(&input.lovelace),
+        encode_wire_field(&pack_assets(&input.assets)),
+        encode_wire_field(input.native_script_cbor_hex.as_deref().unwrap_or("-")),
+        encode_wire_field(input.native_script_witness_count.as_deref().unwrap_or("-")),
       ];
       if input.address_hex.is_some() || input.is_bootstrap.is_some() {
-        fields.push(input.address_hex.clone().unwrap_or_else(|| "-".to_owned()));
-        fields.push(
-          input.is_bootstrap.map(|value| value.to_string()).unwrap_or_else(|| "-".to_owned()),
-        );
+        fields.push(encode_wire_field(input.address_hex.as_deref().unwrap_or("-")));
+        fields.push(encode_wire_field(
+          &input.is_bootstrap.map(|value| value.to_string()).unwrap_or_else(|| "-".to_owned()),
+        ));
       }
       fields.join(",")
     })
@@ -1145,12 +1152,18 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
   let pack_output = |output: &RecipeOutputArgs| -> Result<String, String> {
     let datum = match &output.datum {
       Some(datum) if datum.kind == "hash" || datum.kind == "inline" => {
-        format!("{}~{}", datum.kind, datum.hex)
+        format!("{}~{}", encode_wire_field(&datum.kind), encode_wire_field(&datum.hex))
       }
       Some(_) => return Err("output datum kind must be hash or inline".to_owned()),
       None => "-".to_owned(),
     };
-    Ok(format!("{},{},{},{}", output.address, output.lovelace, pack_assets(&output.assets), datum))
+    Ok(format!(
+      "{},{},{},{}",
+      encode_wire_field(&output.address),
+      encode_wire_field(&output.lovelace),
+      encode_wire_field(&pack_assets(&output.assets)),
+      encode_wire_field(&datum)
+    ))
   };
   let mut outputs = args.outputs.iter().map(pack_output).collect::<Result<Vec<_>, _>>()?;
   if let Some(change) = &args.options.manual_change_output {
@@ -1170,13 +1183,19 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
       .map(|mint| {
         format!(
           "{},{},{},{}",
-          mint.policy_id_hex,
-          mint.script_type,
-          mint.script_cbor_hex,
+          encode_wire_field(&mint.policy_id_hex),
+          encode_wire_field(&mint.script_type),
+          encode_wire_field(&mint.script_cbor_hex),
           mint
             .assets
             .iter()
-            .map(|asset| format!("{}~{}", asset.asset_name_hex, asset.quantity))
+            .map(|asset| {
+              format!(
+                "{}~{}",
+                encode_wire_field(&asset.asset_name_hex),
+                encode_wire_field(&asset.quantity)
+              )
+            })
             .collect::<Vec<_>>()
             .join("^")
         )
@@ -1203,11 +1222,11 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
       .map(|input| {
         format!(
           "{},{},{},{},{}",
-          input.tx_hash_hex,
-          input.index,
-          input.address,
-          input.lovelace,
-          pack_assets(&input.assets)
+          encode_wire_field(&input.tx_hash_hex),
+          encode_wire_field(&input.index),
+          encode_wire_field(&input.address),
+          encode_wire_field(&input.lovelace),
+          encode_wire_field(&pack_assets(&input.assets))
         )
       })
       .collect::<Vec<_>>()
@@ -1238,23 +1257,23 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
     "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
     packed_inputs,
     outputs.join(";"),
-    change_address,
-    ttl,
-    args.protocol_params.linear_fee.coefficient,
-    args.protocol_params.linear_fee.constant,
-    args.protocol_params.coins_per_utxo_byte,
-    args.protocol_params.key_deposit,
-    args.protocol_params.pool_deposit,
-    args.protocol_params.max_value_size,
+    encode_wire_field(change_address),
+    encode_wire_field(ttl),
+    encode_wire_field(&args.protocol_params.linear_fee.coefficient),
+    encode_wire_field(&args.protocol_params.linear_fee.constant),
+    encode_wire_field(&args.protocol_params.coins_per_utxo_byte),
+    encode_wire_field(&args.protocol_params.key_deposit),
+    encode_wire_field(&args.protocol_params.pool_deposit),
+    encode_wire_field(&args.protocol_params.max_value_size),
     metadata,
     mints,
     certificates,
     withdrawals,
-    validity_start,
+    encode_wire_field(validity_start),
     references,
-    manual_fee,
-    manual_change,
-    args.protocol_params.max_tx_size.as_deref().unwrap_or("16384"),
+    encode_wire_field(manual_fee),
+    encode_wire_field(&manual_change.to_string()),
+    encode_wire_field(args.protocol_params.max_tx_size.as_deref().unwrap_or("16384")),
   );
   build_simple_payment_transaction_hex(&packed)
 }
@@ -3305,6 +3324,18 @@ fn percent_encode(bytes: &[u8]) -> String {
   bytes.iter().map(|byte| format!("%{byte:02X}")).collect()
 }
 
+fn encode_wire_field(value: &str) -> String {
+  let mut encoded = String::with_capacity(value.len());
+  for character in value.chars() {
+    if character.is_ascii() && matches!(character, '%' | '|' | ';' | ',' | '~' | '^') {
+      encoded.push_str(&format!("%{:02X}", character as u8));
+    } else {
+      encoded.push(character);
+    }
+  }
+  encoded
+}
+
 /// Calculate the minimum coin for an output with assets using CML's current
 /// coins-per-UTxO-byte rule. Args are addressBech32|packedAssets|coinsPerByte.
 pub fn minimum_coin_for_assets(args: &str) -> Result<String, String> {
@@ -4089,6 +4120,25 @@ mod tests {
       super::build_transaction_recipe_cml_hex(&recipe).unwrap(),
       super::build_simple_payment_transaction_hex(&legacy).unwrap(),
     );
+
+    let mut injection_base: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    injection_base["inputs"][0]["lovelace"] = serde_json::json!("100000000");
+    let mut address_injection = injection_base.clone();
+    address_injection["outputs"][0]["address"] =
+      serde_json::json!(format!("{address},50000000,-,-;{address}"));
+    assert!(super::build_transaction_recipe_cml_hex(&address_injection.to_string()).is_err());
+
+    let mut lovelace_injection = injection_base.clone();
+    lovelace_injection["outputs"][0]["lovelace"] =
+      serde_json::json!(format!("2000000,-,-;{address},50000000"));
+    assert!(super::build_transaction_recipe_cml_hex(&lovelace_injection.to_string()).is_err());
+
+    let mut datum_injection = injection_base;
+    datum_injection["outputs"][0]["datum"] = serde_json::json!({
+      "kind": "inline",
+      "hex": format!("d87980;{address},50000000,-,-")
+    });
+    assert!(super::build_transaction_recipe_cml_hex(&datum_injection.to_string()).is_err());
 
     let malformed_script_recipe = recipe.replace("\"scriptInputs\":[]", "\"scriptInputs\":[{}]");
     assert!(super::build_transaction_recipe_cml_hex(&malformed_script_recipe)
