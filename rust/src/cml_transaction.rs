@@ -4143,6 +4143,10 @@ mod tests {
 
     let mut asset_injection: serde_json::Value = serde_json::from_str(&recipe).unwrap();
     asset_injection["inputs"][0]["lovelace"] = serde_json::json!("100000000");
+    asset_injection["inputs"][0]["assets"] = serde_json::json!([
+      {"policyIdHex": "ab".repeat(28), "assetNameHex": "00ff", "quantity": "1"},
+      {"policyIdHex": "cd".repeat(28), "assetNameHex": "00ff", "quantity": "1000"}
+    ]);
     asset_injection["outputs"][0]["assets"] = serde_json::json!([{
       "policyIdHex": "ab".repeat(28),
       "assetNameHex": "00ff",
