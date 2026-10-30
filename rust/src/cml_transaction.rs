@@ -4230,6 +4230,143 @@ mod tests {
   }
 
   #[test]
+  fn normalized_recipe_rejects_wire_delimiter_injections_in_packed_fields() {
+    use cml_chain::serialization::Deserialize;
+    use cml_crypto::RawBytesEncoding;
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let make_native_script = |key_byte: &str| {
+      let script_hex = format!("8200581c{}", key_byte.repeat(28));
+      let script_bytes = hex::decode(&script_hex).unwrap();
+      let script = cml_chain::transaction::NativeScript::from_cbor_bytes(&script_bytes).unwrap();
+      (script_hex, hex::encode(script.hash().to_raw_bytes()))
+    };
+    let (script_hex, policy_hex) = make_native_script("aa");
+    let (second_script_hex, second_policy_hex) = make_native_script("bb");
+    let base_recipe = serde_json::json!({
+      "protocolParams": {
+        "linearFee":{"coefficient":"44","constant":"155381"},
+        "coinsPerUtxoByte":"4310","keyDeposit":"2000000","poolDeposit":"500000000","maxValueSize":"5000"
+      },
+      "inputs":[{"txHashHex":"01".repeat(32),"index":"0","address":address,"lovelace":"10000000","assets":[]}],
+      "outputs":[{"address":address,"lovelace":"2000000","assets":[]}],
+      "certificates":[],"withdrawals":[],"referenceInputs":[],"scriptInputs":[],
+      "collateralInputs":[],"mints":[{"policyIdHex":policy_hex,"scriptType":"native","scriptCborHex":script_hex,"assets":[{"assetNameHex":"00ff","quantity":"5"}]}],"metadata":[],
+      "options":{"changeAddress":address,"ttl":"123456"}
+    });
+    let second_input = format!("{}", "02".repeat(32));
+
+    let mut tx_hash = base_recipe.clone();
+    tx_hash["inputs"][0]["txHashHex"] =
+      serde_json::json!(format!("{},0,{address},10000000,-,-,-;{second_input}", "01".repeat(32)));
+    assert!(build_transaction_recipe_cml_hex(&tx_hash.to_string()).is_err(), "input txHashHex");
+
+    let mut index = base_recipe.clone();
+    index["inputs"][0]["index"] =
+      serde_json::json!(format!("0,{address},10000000,-,-,-;{second_input},0"));
+    assert!(build_transaction_recipe_cml_hex(&index.to_string()).is_err(), "input index");
+
+    let mut lovelace = base_recipe.clone();
+    lovelace["inputs"][0]["lovelace"] =
+      serde_json::json!(format!("10000000,-,-,-;{second_input},0,{address},5000000"));
+    assert!(build_transaction_recipe_cml_hex(&lovelace.to_string()).is_err(), "input lovelace");
+
+    let mut assets = base_recipe.clone();
+    assets["inputs"][0]["assets"] = serde_json::json!([{
+      "policyIdHex": policy_hex,
+      "assetNameHex": "00ff",
+      "quantity": format!("1^{}~01ff~1000", "cd".repeat(28))
+    }]);
+    assert!(build_transaction_recipe_cml_hex(&assets.to_string()).is_err(), "input assets");
+
+    let native_input = |script_value: String, witness_count: String| {
+      let mut recipe = base_recipe.clone();
+      recipe["inputs"][0]["kind"] = serde_json::json!("nativeScript");
+      recipe["inputs"][0]["nativeScriptCborHex"] = serde_json::json!(script_value);
+      recipe["inputs"][0]["nativeScriptWitnessCount"] = serde_json::json!(witness_count);
+      recipe
+    };
+    let script_injection = native_input(
+      format!("{script_hex},1;{second_input},0,{address},5000000,-,-"),
+      "1".to_owned(),
+    );
+    assert!(
+      build_transaction_recipe_cml_hex(&script_injection.to_string()).is_err(),
+      "input nativeScriptCborHex"
+    );
+
+    let witness_count =
+      native_input(script_hex.clone(), format!("1;{second_input},0,{address},5000000,-,-,-"));
+    assert!(
+      build_transaction_recipe_cml_hex(&witness_count.to_string()).is_err(),
+      "input nativeScriptWitnessCount"
+    );
+
+    let address_hex = hex::encode(super::parse_payment_address(address).unwrap().to_raw_bytes());
+    let mut input_address_hex = native_input(script_hex.clone(), "1".to_owned());
+    input_address_hex["inputs"][0]["addressHex"] =
+      serde_json::json!(format!("{address_hex};{second_input},0,{address},5000000,-,-,-,-"));
+    input_address_hex["inputs"][0]["isBootstrap"] = serde_json::json!(false);
+    assert!(
+      build_transaction_recipe_cml_hex(&input_address_hex.to_string()).is_err(),
+      "input addressHex"
+    );
+
+    let mut mint_policy = base_recipe.clone();
+    mint_policy["mints"][0]["policyIdHex"] = serde_json::json!(format!(
+      "{second_policy_hex},native,{second_script_hex},01ff~9;{policy_hex}"
+    ));
+    assert!(
+      build_transaction_recipe_cml_hex(&mint_policy.to_string()).is_err(),
+      "mint policyIdHex"
+    );
+
+    let mut mint_script = base_recipe.clone();
+    mint_script["mints"][0]["scriptCborHex"] = serde_json::json!(format!(
+      "{script_hex},01ff~9;{second_policy_hex},native,{second_script_hex}"
+    ));
+    assert!(
+      build_transaction_recipe_cml_hex(&mint_script.to_string()).is_err(),
+      "mint scriptCborHex"
+    );
+
+    let mut mint_quantity = base_recipe.clone();
+    mint_quantity["mints"][0]["assets"][0]["quantity"] = serde_json::json!("5^01ff~7");
+    assert!(
+      build_transaction_recipe_cml_hex(&mint_quantity.to_string()).is_err(),
+      "mint asset quantity"
+    );
+
+    let mut reference_hash = base_recipe.clone();
+    reference_hash["referenceInputs"] = serde_json::json!([{
+      "txHashHex":format!("{},0,{address},2000000,-;{}", "03".repeat(32), second_input),
+      "index":"0","address":address,"lovelace":"2000000","assets":[]
+    }]);
+    assert!(
+      build_transaction_recipe_cml_hex(&reference_hash.to_string()).is_err(),
+      "reference input txHashHex"
+    );
+
+    let mut reference_index = base_recipe.clone();
+    reference_index["referenceInputs"] = serde_json::json!([{
+      "txHashHex":"03".repeat(32),"index":format!("0,{address},2000000,-;{second_input},0"),"address":address,"lovelace":"2000000","assets":[]
+    }]);
+    assert!(
+      build_transaction_recipe_cml_hex(&reference_index.to_string()).is_err(),
+      "reference input index"
+    );
+
+    let mut reference_lovelace = base_recipe;
+    reference_lovelace["referenceInputs"] = serde_json::json!([{
+      "txHashHex":"03".repeat(32),"index":"0","address":address,
+      "lovelace":format!("2000000,-;{second_input},0,{address},5000000"),"assets":[]
+    }]);
+    assert!(
+      build_transaction_recipe_cml_hex(&reference_lovelace.to_string()).is_err(),
+      "reference input lovelace"
+    );
+  }
+
+  #[test]
   fn normalized_recipe_routes_plutus_reference_and_collateral_fields_into_cml_builder() {
     use cml_chain::{
       crypto::Vkeywitness,
