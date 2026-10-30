@@ -5352,6 +5352,70 @@ mod tests {
   }
 
   #[test]
+  fn simple_payment_decodes_encoded_mint_and_reference_assets() {
+    let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let input_hash = "01".repeat(32);
+    let input_policy = "ab".repeat(28);
+    let mint_policy = "ed67591f9f6bb0860f89d300936e8ceed1b71cac3f4633e993a3b8ad";
+    let mint_script = "8200581cabababababababababababababababababababababababababababab";
+    let reference_policy = "cd".repeat(28);
+    let input_assets = format!("{input_policy}~00ff~1");
+    let output_assets = format!("{input_policy}~00ff~1^{mint_policy}~00ff~1");
+    let reference_assets = format!("{reference_policy}~00ff~2");
+    let raw_input = format!("{input_hash},0,{address},100000000,{input_assets},-,-");
+    let raw_output = format!("{address},5000000,{output_assets},inline~d87980");
+    let raw_mint = format!("{mint_policy},native,{mint_script},00ff~1");
+    let raw_reference = format!("{input_hash},0,{address},3000000,{reference_assets}");
+    let raw_args = [
+      raw_input.as_str(), raw_output.as_str(), address, "123456", "44", "155381",
+      "4310", "2000000", "500000000", "5000", "-", raw_mint.as_str(), "-", "-",
+      "-", raw_reference.as_str(), "-", "false",
+    ].join("|");
+
+    let encode = |value: &str| percent_encode(value.as_bytes());
+    let encoded_input = [
+      encode(&input_hash), encode("0"), encode(address), encode("100000000"),
+      encode(&input_assets), "-".to_owned(), "-".to_owned(),
+    ].join(",");
+    let encoded_output = [
+      encode(address), encode("5000000"), encode(&output_assets), encode("inline~d87980"),
+    ].join(",");
+    let encoded_mint = format!(
+      "{},native,{},{}",
+      encode(mint_policy), encode(mint_script), encode("00ff~1"),
+    );
+    let encoded_reference = [
+      encode(&input_hash), encode("0"), encode(address), encode("3000000"),
+      encode(&reference_assets),
+    ].join(",");
+    let encoded_args = [
+      encoded_input,
+      encoded_output,
+      encode(address),
+      encode("123456"),
+      encode("44"),
+      encode("155381"),
+      encode("4310"),
+      encode("2000000"),
+      encode("500000000"),
+      encode("5000"),
+      "-".to_owned(),
+      encoded_mint,
+      "-".to_owned(),
+      "-".to_owned(),
+      "-".to_owned(),
+      encoded_reference,
+      "-".to_owned(),
+      "false".to_owned(),
+    ].join("|");
+
+    assert_eq!(
+      build_simple_payment_transaction_hex(&encoded_args).unwrap(),
+      build_simple_payment_transaction_hex(&raw_args).unwrap(),
+    );
+  }
+
+  #[test]
   fn asset_component_delimiters_are_decoded_after_asset_packing() {
     let policy = "ab".repeat(28);
     let encoded_name = format!("%30%30%66%66%5E{}%7E01%7E1000", "cd".repeat(28));

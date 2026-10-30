@@ -751,21 +751,42 @@ describe('CML mobile bridge source entrypoint', () => {
     bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
 
     moduleExports.buildSimplePaymentTransaction({
-      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
-      outputs: [{address: 'addr_test_output', lovelace: '2000000', assets: [{policyIdHex, assetNameHex, quantity}]}],
+      inputs: [{
+        transactionHashHex: '01'.repeat(32),
+        index: '0',
+        address: 'addr_test_input',
+        lovelace: '10000000',
+        assets: [{policyIdHex, assetNameHex, quantity}],
+      }],
+      outputs: [{
+        address: 'addr_test_output',
+        lovelace: '2000000',
+        assets: [{policyIdHex, assetNameHex, quantity}],
+      }],
       changeAddress: 'addr_test_change', feeCoefficient: '44', feeConstant: '155381',
-      coinsPerUtxoByte: '4310', keyDeposit: '2000000', poolDeposit: '500000000', maxValueSize: '5000',
+      coinsPerUtxoByte: '4310', keyDeposit: '2000000', poolDeposit: '500000000',
+      maxValueSize: '5000',
+      referenceInputs: [{
+        transactionHashHex: '02'.repeat(32),
+        index: '1',
+        address: 'addr_test_reference',
+        lovelace: '3000000',
+        assets: [{policyIdHex, assetNameHex, quantity}],
+      }],
     });
 
     const packed = bridge.build_simple_payment_transaction_hex.mock.calls[0][0];
+    const packedFields = packed.split('|');
     const nestedAsset = [
       encodeField(policyIdHex),
       encodeField(assetNameHex),
       encodeField(quantity),
     ].join('~');
-    expect(packed).toContain(encodeField(nestedAsset));
-    expect(packed.split('|')[1].split(';')).toHaveLength(1);
-    expect(packed.split('|')[1].split(',')).toHaveLength(4);
+    expect(packedFields[0]).toContain(encodeField(nestedAsset));
+    expect(packedFields[1]).toContain(encodeField(nestedAsset));
+    expect(packedFields[15]).toContain(encodeField(nestedAsset));
+    expect(packedFields[1].split(';')).toHaveLength(1);
+    expect(packedFields[1].split(',')).toHaveLength(4);
   });
 
   it('serializes normalized transaction recipes losslessly through CML', () => {
