@@ -616,7 +616,7 @@ mod tests {
 
   type StringExport = unsafe extern "C" fn(CharPtr, &mut CharPtr, &mut CharPtr) -> bool;
 
-  unsafe fn assert_export_returns_false(export: StringExport, input: CharPtr) {
+  unsafe fn assert_export_catches_panic(export: StringExport, input: CharPtr) {
     let mut result = std::ptr::null();
     let mut error = std::ptr::null();
     assert!(!export(input, &mut result, &mut error));
@@ -624,6 +624,23 @@ mod tests {
       cml_bridge_charptr_free(&mut result);
       cml_bridge_charptr_free(&mut error);
     }
+  }
+
+  unsafe fn assert_export_returns_error(export: StringExport, input: CharPtr) {
+    let mut result = std::ptr::null();
+    let mut error = std::ptr::null();
+    assert!(!export(input, &mut result, &mut error));
+    assert!(!error.is_null());
+    unsafe {
+      cml_bridge_charptr_free(&mut result);
+      cml_bridge_charptr_free(&mut error);
+    }
+  }
+
+  #[test]
+  fn transaction_id_export_returns_error_for_invalid_cbor() {
+    let transaction = CString::new("not-cbor").unwrap();
+    unsafe { assert_export_returns_error(cml_bridge_transaction_id_hex, transaction.as_ptr()) };
   }
 
   #[test]
@@ -637,7 +654,7 @@ mod tests {
       cml_bridge_transaction_witness_set_hex,
       cml_bridge_empty_witness_transaction_hex,
     ] {
-      unsafe { assert_export_returns_false(export, transaction.as_ptr()) };
+      unsafe { assert_export_catches_panic(export, transaction.as_ptr()) };
     }
   }
 
@@ -683,7 +700,7 @@ mod tests {
       ),
     ] {
       let args = CString::new(args.to_string()).unwrap();
-      unsafe { assert_export_returns_false(export, args.as_ptr()) };
+      unsafe { assert_export_catches_panic(export, args.as_ptr()) };
     }
   }
 
@@ -696,7 +713,7 @@ mod tests {
     );
     let args = CString::new(args).unwrap();
     unsafe {
-      assert_export_returns_false(cml_bridge_build_simple_payment_transaction_hex, args.as_ptr())
+      assert_export_catches_panic(cml_bridge_build_simple_payment_transaction_hex, args.as_ptr())
     };
 
     let recipe = serde_json::json!({
@@ -711,7 +728,7 @@ mod tests {
     });
     let recipe = CString::new(recipe.to_string()).unwrap();
     unsafe {
-      assert_export_returns_false(cml_bridge_build_transaction_recipe_cml_hex, recipe.as_ptr())
+      assert_export_catches_panic(cml_bridge_build_transaction_recipe_cml_hex, recipe.as_ptr())
     };
   }
 }

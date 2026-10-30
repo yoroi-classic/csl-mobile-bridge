@@ -6,6 +6,16 @@ const bridgeTypes = {} as CmlBridgeExports;
 // encodeURIComponent leaves `~` untouched, but it is also used as a separator.
 const encodeBridgeField = (value: string | number): string =>
   encodeURIComponent(String(value)).replace(/~/g, '%7E');
+const encodeBridgeAssets = (
+  assets: Array<{policyIdHex?: string; assetNameHex: string; quantity: string}>,
+): string =>
+  assets
+    .map(({policyIdHex, assetNameHex, quantity}) =>
+      [...(policyIdHex === undefined ? [] : [policyIdHex]), assetNameHex, quantity]
+        .map(encodeBridgeField)
+        .join('~'),
+    )
+    .join('^');
 const nativeCmlBridge: CmlBridgeExports = CmlMobileBridge.install() as CmlBridgeExports;
 
 /** Extract the canonical serialized stake credential from a base address using CML. */
@@ -682,11 +692,7 @@ export const minimumCoinForAssets = (
   const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
     minimum_coin_for_assets: (args: string) => string;
   };
-  const packedAssets = assets
-    .map(({policyIdHex, assetNameHex, quantity}) =>
-      [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
-    )
-    .join('^') || '-';
+  const packedAssets = encodeBridgeAssets(assets) || '-';
   return cmlBridge.minimum_coin_for_assets(
     [address, packedAssets, coinsPerUtxoByte].map(encodeBridgeField).join('|'),
   );
@@ -708,10 +714,7 @@ export const buildSimplePaymentTransaction = (
       args.inputs
         .map(({transactionHashHex, index, address, addressHex, isBootstrap, lovelace, assets, nativeScriptCborHex, nativeScriptWitnessCount}) =>
           [encodeBridgeField(transactionHashHex), encodeBridgeField(index), encodeBridgeField(address), encodeBridgeField(lovelace),
-            encodeBridgeField((assets ?? [])
-              .map(({policyIdHex, assetNameHex, quantity}) =>
-                [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
-              ).join('^') || '-'),
+            encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
             encodeBridgeField(nativeScriptCborHex ?? '-'),
             encodeBridgeField(nativeScriptWitnessCount ?? '-'),
             ...(addressHex !== undefined || isBootstrap !== undefined
@@ -724,9 +727,7 @@ export const buildSimplePaymentTransaction = (
         .map(({address, lovelace, assets, datum}) => [
           encodeBridgeField(address),
           encodeBridgeField(lovelace),
-          encodeBridgeField((assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
-            [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
-          ).join('^') || '-'),
+          encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
           encodeBridgeField(datum ? `${datum.kind}~${datum.hex}` : '-'),
         ].join(','))
         .join(';'),
@@ -743,9 +744,7 @@ export const buildSimplePaymentTransaction = (
         encodeBridgeField(policyIdHex),
         'native',
         encodeBridgeField(scriptCborHex),
-        encodeBridgeField(assets.map(({assetNameHex, quantity}) =>
-          [assetNameHex, quantity].map(encodeBridgeField).join('~'),
-        ).join('^')),
+        encodeBridgeField(encodeBridgeAssets(assets)),
       ].join(',')).join(';') || '-',
       args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
       args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
@@ -755,9 +754,7 @@ export const buildSimplePaymentTransaction = (
         encodeBridgeField(index),
         encodeBridgeField(address),
         encodeBridgeField(lovelace),
-        encodeBridgeField((assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
-          [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
-        ).join('^') || '-'),
+        encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
       ].join(',')).join(';') || '-',
       ...(args.manualFee !== undefined || args.manualChangeOutput !== undefined
         ? [encodeBridgeField(args.manualFee ?? '-'), encodeBridgeField(String(Boolean(args.manualChangeOutput)))]
