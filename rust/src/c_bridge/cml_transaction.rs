@@ -620,6 +620,7 @@ mod tests {
     let mut result = std::ptr::null();
     let mut error = std::ptr::null();
     assert!(!export(input, &mut result, &mut error));
+    assert!(error.is_null(), "expected the input to exercise the panic guard");
     unsafe {
       cml_bridge_charptr_free(&mut result);
       cml_bridge_charptr_free(&mut error);
