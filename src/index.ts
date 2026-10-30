@@ -8,10 +8,11 @@ const encodeBridgeField = (value: string | number): string =>
   encodeURIComponent(String(value)).replace(/~/g, '%7E');
 const encodeBridgeAssets = (
   assets: Array<{policyIdHex?: string; assetNameHex: string; quantity: string}>,
+  includePolicyId: boolean = true,
 ): string =>
   assets
     .map(({policyIdHex, assetNameHex, quantity}) =>
-      [...(policyIdHex === undefined ? [] : [policyIdHex]), assetNameHex, quantity]
+      [...(includePolicyId && policyIdHex !== undefined ? [policyIdHex] : []), assetNameHex, quantity]
         .map(encodeBridgeField)
         .join('~'),
     )
@@ -744,7 +745,7 @@ export const buildSimplePaymentTransaction = (
         encodeBridgeField(policyIdHex),
         'native',
         encodeBridgeField(scriptCborHex),
-        encodeBridgeField(encodeBridgeAssets(assets)),
+        encodeBridgeField(encodeBridgeAssets(assets, false)),
       ].join(',')).join(';') || '-',
       args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
       args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',

@@ -860,7 +860,7 @@ describe('CML mobile bridge source entrypoint', () => {
       poolDeposit: '500000000', maxValueSize: '5000',
       nativeMints: [{
         policyIdHex: 'cd'.repeat(28), scriptCborHex: '8200581c' + 'ab'.repeat(28),
-        assets: [{assetNameHex: '00ff', quantity: '-9007199254740993'}],
+        assets: [{policyIdHex: 'ef'.repeat(28), assetNameHex: '00ff', quantity: '-9007199254740993'}],
       }],
     };
     bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
