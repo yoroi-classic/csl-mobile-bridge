@@ -15,7 +15,9 @@ on:
       - 'android/**'
       - 'babel.config.js'
       - 'cpp/**'
+      - '.eslintrc.js'
       - 'example/package.json'
+      - 'example/**'
       - 'ios/**'
       - 'package.json'
       - 'README.md'
@@ -58,8 +60,14 @@ jobs:
       - name: Install JavaScript dependencies
         run: node .yarn/releases/yarn-3.6.1.cjs install --immutable
 
+      - name: Lint JavaScript and TypeScript
+        run: node .yarn/releases/yarn-3.6.1.cjs lint
+
       - name: Run bridge verification
         run: node .yarn/releases/yarn-3.6.1.cjs verify
+
+      - name: Check generated package output
+        run: git diff --exit-code -- lib/
 
       - name: Check generated C FFI declarations
         run: g++ -std=c++17 -fsyntax-only -Irust/include cpp/cml_mobile_bridge_ffi_contract.cpp

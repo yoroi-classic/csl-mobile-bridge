@@ -381,6 +381,21 @@ mod tests {
 
   const UNSIGNED: &str = "84a300d90102800180021a000f4240a0f5f6";
 
+  #[test]
+  fn ledger_path_rejects_every_invalid_hardened_boundary() {
+    let hardened = 0x8000_0000;
+    for path in [
+      vec![1, hardened, hardened, 0, 0],
+      vec![hardened, 1, hardened, 0, 0],
+      vec![hardened, hardened, 1, 0, 0],
+      vec![hardened, hardened, hardened, hardened, 0],
+      vec![hardened, hardened, hardened, 0, hardened],
+      vec![hardened, hardened, hardened, 0],
+    ] {
+      assert!(super::validate_ledger_path(&path).is_err(), "path {:?}", path);
+    }
+  }
+
   fn make_args(expected_id: &str) -> String {
     let root = Bip32PrivateKey::from_bip39_entropy(&[0x11; 16], b"");
     let account = root.derive(0x8000_073c).derive(0x8000_0717).derive(0x8000_0007);

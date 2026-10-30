@@ -1181,23 +1181,24 @@ pub fn build_transaction_recipe_cml_hex(args: &str) -> Result<String, String> {
       .mints
       .iter()
       .map(|mint| {
+        let packed_assets = mint
+          .assets
+          .iter()
+          .map(|asset| {
+            format!(
+              "{}~{}",
+              encode_wire_field(&asset.asset_name_hex),
+              encode_wire_field(&asset.quantity)
+            )
+          })
+          .collect::<Vec<_>>()
+          .join("^");
         format!(
           "{},{},{},{}",
           encode_wire_field(&mint.policy_id_hex),
           encode_wire_field(&mint.script_type),
           encode_wire_field(&mint.script_cbor_hex),
-          mint
-            .assets
-            .iter()
-            .map(|asset| {
-              format!(
-                "{}~{}",
-                encode_wire_field(&asset.asset_name_hex),
-                encode_wire_field(&asset.quantity)
-              )
-            })
-            .collect::<Vec<_>>()
-            .join("^")
+          encode_wire_field(&packed_assets)
         )
       })
       .collect::<Vec<_>>()
@@ -3953,7 +3954,7 @@ mod tests {
     add_reference_fee_and_rebalance, build_escrow_redeem_transaction_hex,
     build_simple_payment_transaction_hex, build_transaction_recipe_cml_hex,
     calculate_reference_script_fee, certificate_requires_staking_witness,
-    derive_account_public_key_hex, empty_witness_transaction_hex, has_staking_certificate,
+    derive_account_public_key_hex, derive_wallet_public_key_hex, empty_witness_transaction_hex, has_staking_certificate,
     minimum_coin_for_assets, parse_multiasset, percent_encode, review_output_json,
     sign_transaction_hex, sign_wallet_data, sign_wallet_transaction_hex,
     sign_wallet_transaction_paths_hex, transaction_id_hex, transaction_review_info_json,
@@ -4153,6 +4154,60 @@ mod tests {
       "quantity": format!("1^{}~00ff~1000", "cd".repeat(28))
     }]);
     assert!(super::build_transaction_recipe_cml_hex(&asset_injection.to_string()).is_err());
+
+    let mut input_address_injection: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    input_address_injection["inputs"][0]["address"] = serde_json::json!(format!(
+      "{address},5000000,-,-,-;{},0,{address}",
+      "02".repeat(32)
+    ));
+    assert!(
+      super::build_transaction_recipe_cml_hex(&input_address_injection.to_string()).is_err()
+    );
+
+    let mut reference_address_injection: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    reference_address_injection["referenceInputs"] = serde_json::json!([{
+      "txHashHex": "03".repeat(32), "index": "0", "address": format!(
+        "{address},5000000,-;{},0,{address}", "04".repeat(32)
+      ), "lovelace": "2000000", "assets": []
+    }]);
+    assert!(
+      super::build_transaction_recipe_cml_hex(&reference_address_injection.to_string()).is_err()
+    );
+
+    let first_policy = "ab".repeat(28);
+    let second_policy = "cd".repeat(28);
+    let mut asset_policy_injection: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    asset_policy_injection["inputs"][0]["lovelace"] = serde_json::json!("100000000");
+    asset_policy_injection["inputs"][0]["assets"] = serde_json::json!([
+      {"policyIdHex":first_policy,"assetNameHex":"00ff","quantity":"1"},
+      {"policyIdHex":second_policy,"assetNameHex":"00ff","quantity":"1000"}
+    ]);
+    asset_policy_injection["outputs"][0]["assets"] = serde_json::json!([{
+      "policyIdHex": format!("{first_policy}~00ff~1^{second_policy}"),
+      "assetNameHex": "00ff", "quantity": "1"
+    }]);
+    assert!(
+      super::build_transaction_recipe_cml_hex(&asset_policy_injection.to_string()).is_err()
+    );
+
+    let mut asset_name_injection: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    asset_name_injection["inputs"][0]["lovelace"] = serde_json::json!("100000000");
+    asset_name_injection["inputs"][0]["assets"] = serde_json::json!([
+      {"policyIdHex":first_policy,"assetNameHex":"00ff","quantity":"1"},
+      {"policyIdHex":second_policy,"assetNameHex":"00ff","quantity":"1000"}
+    ]);
+    asset_name_injection["outputs"][0]["assets"] = serde_json::json!([{
+      "policyIdHex": first_policy,
+      "assetNameHex": format!("00ff~1^{second_policy}~00ff"), "quantity": "1"
+    }]);
+    assert!(
+      super::build_transaction_recipe_cml_hex(&asset_name_injection.to_string()).is_err()
+    );
+
+    let invalid_change_flag = format!("{}|invalid", legacy.rsplit_once('|').unwrap().0);
+    assert!(build_simple_payment_transaction_hex(&invalid_change_flag)
+      .unwrap_err()
+      .contains("manual change flag must be true or false"));
 
     let malformed_script_recipe = recipe.replace("\"scriptInputs\":[]", "\"scriptInputs\":[{}]");
     assert!(super::build_transaction_recipe_cml_hex(&malformed_script_recipe)
@@ -4685,6 +4740,17 @@ mod tests {
       })
     };
 
+    let mut mint_injection = recipe(serde_json::json!([]), "1", "5");
+    mint_injection["mints"][0]["assets"][0]["assetNameHex"] =
+      serde_json::json!("00ff~1^01ff");
+    assert!(build_transaction_recipe_cml_hex(&mint_injection.to_string()).is_err());
+
+    let mut mismatched_policy = recipe(serde_json::json!([]), "1", "5");
+    mismatched_policy["mints"][0]["policyIdHex"] = serde_json::json!("cd".repeat(28));
+    assert!(build_transaction_recipe_cml_hex(&mismatched_policy.to_string())
+      .unwrap_err()
+      .contains("policy ID does not match script hash"));
+
     let positive =
       build_transaction_recipe_cml_hex(&recipe(serde_json::json!([]), "1", "3").to_string())
         .unwrap();
@@ -4866,6 +4932,51 @@ mod tests {
       result["publicKeyHex"],
       "e521dbb738431b454f5967e47f11c689ba0e3ad70bbdc2d5042ab078ebac3366"
     );
+  }
+
+  #[test]
+  fn wallet_signing_and_public_key_helpers_reject_invalid_paths_and_transactions() {
+    use cml_crypto::{Bip32PrivateKey, RawBytesEncoding};
+    let root = Bip32PrivateKey::from_bip39_entropy(&[0x11_u8; 16], b"");
+    let master_key_hex = hex::encode(root.to_raw_bytes());
+    let invalid_path = vec![0, 0, 0, 0];
+
+    let path_signing = serde_json::json!({
+      "transactionHex": UNSIGNED_TRANSACTION_HEX,
+      "masterKeyHex": master_key_hex,
+      "signerPaths": [invalid_path],
+    })
+    .to_string();
+    assert!(sign_wallet_transaction_paths_hex(&path_signing)
+      .unwrap_err()
+      .contains("must contain five derivation indices"));
+
+    let empty_signers = serde_json::json!({
+      "transactionHex": "zz",
+      "masterKeyHex": hex::encode(root.to_raw_bytes()),
+      "signerPaths": [],
+    })
+    .to_string();
+    assert!(sign_wallet_transaction_paths_hex(&empty_signers).is_err());
+
+    let wallet_data = serde_json::json!({
+      "messageHex": "00",
+      "masterKeyHex": hex::encode(root.to_raw_bytes()),
+      "signerPath": [0, 0, 0, 0],
+    })
+    .to_string();
+    assert!(sign_wallet_data(&wallet_data)
+      .unwrap_err()
+      .contains("must contain five derivation indices"));
+
+    let public_key = serde_json::json!({
+      "masterKeyHex": hex::encode(root.to_raw_bytes()),
+      "signerPath": [0, 0, 0, 0],
+    })
+    .to_string();
+    assert!(derive_wallet_public_key_hex(&public_key)
+      .unwrap_err()
+      .contains("must contain five derivation indices"));
   }
 
   #[test]
@@ -5353,6 +5464,13 @@ mod tests {
 
   #[test]
   fn simple_payment_decodes_encoded_mint_and_reference_assets() {
+    use cml_chain::{
+      assets::AssetName,
+      crypto::ScriptHash,
+      serialization::Deserialize,
+      transaction::Transaction,
+    };
+
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
     let input_hash = "01".repeat(32);
     let input_policy = "ab".repeat(28);
@@ -5409,10 +5527,18 @@ mod tests {
       "false".to_owned(),
     ].join("|");
 
-    assert_eq!(
-      build_simple_payment_transaction_hex(&encoded_args).unwrap(),
-      build_simple_payment_transaction_hex(&raw_args).unwrap(),
-    );
+    let encoded_result = build_simple_payment_transaction_hex(&encoded_args).unwrap();
+    let raw_result = build_simple_payment_transaction_hex(&raw_args).unwrap();
+    assert_eq!(encoded_result, raw_result);
+
+    let transaction = Transaction::from_cbor_bytes(
+      &hex::decode(encoded_result.split('|').next().unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(transaction.body.reference_inputs.as_ref().unwrap().len(), 1);
+    let policy = ScriptHash::from_hex(mint_policy).unwrap();
+    let asset_name = AssetName::new(hex::decode("00ff").unwrap()).unwrap();
+    assert_eq!(transaction.body.mint.as_ref().unwrap().get(&policy, &asset_name), Some(1));
   }
 
   #[test]

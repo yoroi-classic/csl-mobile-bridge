@@ -2,6 +2,21 @@ import CmlMobileBridge from './NativeCmlMobileBridge';
 
 type CmlBridgeExports = Record<string, (...args: never[]) => unknown>;
 const bridgeTypes = {} as CmlBridgeExports;
+// Encode values before joining the delimiter-based native bridge format.
+// encodeURIComponent leaves `~` untouched, but it is also used as a separator.
+const encodeBridgeField = (value: string | number): string =>
+  encodeURIComponent(String(value)).replace(/~/g, '%7E');
+const encodeBridgeAssets = (
+  assets: Array<{policyIdHex?: string; assetNameHex: string; quantity: string}>,
+  includePolicyId: boolean = true,
+): string =>
+  assets
+    .map(({policyIdHex, assetNameHex, quantity}) =>
+      [...(includePolicyId && policyIdHex !== undefined ? [policyIdHex] : []), assetNameHex, quantity]
+        .map(encodeBridgeField)
+        .join('~'),
+    )
+    .join('^');
 const nativeCmlBridge: CmlBridgeExports = CmlMobileBridge.install() as CmlBridgeExports;
 
 /** Extract the canonical serialized stake credential from a base address using CML. */
@@ -678,10 +693,10 @@ export const minimumCoinForAssets = (
   const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
     minimum_coin_for_assets: (args: string) => string;
   };
-  const packedAssets = assets
-    .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~'))
-    .join('^') || '-';
-  return cmlBridge.minimum_coin_for_assets([address, packedAssets, coinsPerUtxoByte].join('|'));
+  const packedAssets = encodeBridgeAssets(assets) || '-';
+  return cmlBridge.minimum_coin_for_assets(
+    [address, packedAssets, coinsPerUtxoByte].map(encodeBridgeField).join('|'),
+  );
 };
 
 /** Build a transaction with CML using ADA and multiasset value bundles. */
@@ -699,54 +714,51 @@ export const buildSimplePaymentTransaction = (
     [
       args.inputs
         .map(({transactionHashHex, index, address, addressHex, isBootstrap, lovelace, assets, nativeScriptCborHex, nativeScriptWitnessCount}) =>
-          [transactionHashHex, index, address, lovelace,
-            (assets ?? [])
-              .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
-            nativeScriptCborHex ?? '-',
-            nativeScriptWitnessCount ?? '-',
+          [encodeBridgeField(transactionHashHex), encodeBridgeField(index), encodeBridgeField(address), encodeBridgeField(lovelace),
+            encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
+            encodeBridgeField(nativeScriptCborHex ?? '-'),
+            encodeBridgeField(nativeScriptWitnessCount ?? '-'),
             ...(addressHex !== undefined || isBootstrap !== undefined
-              ? [addressHex ?? '-', isBootstrap === undefined ? '-' : String(isBootstrap)]
+              ? [encodeBridgeField(addressHex ?? '-'), encodeBridgeField(isBootstrap === undefined ? '-' : String(isBootstrap))]
               : []),
           ].join(','),
         )
         .join(';'),
       [...args.outputs, ...(args.manualChangeOutput ? [args.manualChangeOutput] : [])]
         .map(({address, lovelace, assets, datum}) => [
-          address,
-          lovelace,
-          (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-',
-          datum ? `${datum.kind}~${datum.hex}` : '-',
+          encodeBridgeField(address),
+          encodeBridgeField(lovelace),
+          encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
+          encodeBridgeField(datum ? `${datum.kind}~${datum.hex}` : '-'),
         ].join(','))
         .join(';'),
-      args.changeAddress,
-      args.ttl ?? '-',
-      args.feeCoefficient,
-      args.feeConstant,
-      args.coinsPerUtxoByte,
-      args.keyDeposit,
-      args.poolDeposit,
-      args.maxValueSize,
+      encodeBridgeField(args.changeAddress),
+      encodeBridgeField(args.ttl ?? '-'),
+      encodeBridgeField(args.feeCoefficient),
+      encodeBridgeField(args.feeConstant),
+      encodeBridgeField(args.coinsPerUtxoByte),
+      encodeBridgeField(args.keyDeposit),
+      encodeBridgeField(args.poolDeposit),
+      encodeBridgeField(args.maxValueSize),
       args.metadata ? encodeURIComponent(JSON.stringify(args.metadata)) : '-',
       args.nativeMints?.map(({policyIdHex, scriptCborHex, assets}) => [
-        policyIdHex,
+        encodeBridgeField(policyIdHex),
         'native',
-        scriptCborHex,
-        assets.map(({assetNameHex, quantity}) => [assetNameHex, quantity].join('~')).join('^'),
+        encodeBridgeField(scriptCborHex),
+        encodeBridgeField(encodeBridgeAssets(assets, false)),
       ].join(',')).join(';') || '-',
       args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
       args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
-      args.validityStart ?? '-',
+      encodeBridgeField(args.validityStart ?? '-'),
       args.referenceInputs?.map(({transactionHashHex, index, address, lovelace, assets}) => [
-        transactionHashHex,
-        index,
-        address,
-        lovelace,
-        (assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
-          [policyIdHex, assetNameHex, quantity].join('~'),
-        ).join('^') || '-',
+        encodeBridgeField(transactionHashHex),
+        encodeBridgeField(index),
+        encodeBridgeField(address),
+        encodeBridgeField(lovelace),
+        encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
       ].join(',')).join(';') || '-',
       ...(args.manualFee !== undefined || args.manualChangeOutput !== undefined
-        ? [args.manualFee ?? '-', String(Boolean(args.manualChangeOutput))]
+        ? [encodeBridgeField(args.manualFee ?? '-'), encodeBridgeField(String(Boolean(args.manualChangeOutput)))]
         : []),
     ].join('|'),
   );

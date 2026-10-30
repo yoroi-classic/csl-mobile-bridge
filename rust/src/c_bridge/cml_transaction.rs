@@ -604,6 +604,7 @@ pub unsafe extern "C" fn cml_bridge_minimum_coin_for_assets(
 mod tests {
   use super::{
     cml_bridge_build_simple_payment_transaction_hex, cml_bridge_build_transaction_recipe_cml_hex,
+    cml_bridge_build_escrow_redeem_transaction_hex,
     cml_bridge_empty_witness_transaction_hex, cml_bridge_sign_transaction_hex,
     cml_bridge_sign_wallet_transaction_hex, cml_bridge_sign_wallet_transaction_paths_hex,
     cml_bridge_transaction_id_hex, cml_bridge_transaction_review_info_json,
@@ -730,6 +731,65 @@ mod tests {
     let recipe = CString::new(recipe.to_string()).unwrap();
     unsafe {
       assert_export_catches_panic(cml_bridge_build_transaction_recipe_cml_hex, recipe.as_ptr())
+    };
+  }
+
+  #[test]
+  fn escrow_redeem_export_returns_false_instead_of_unwinding_across_ffi() {
+    use cml_chain::{
+      address::EnterpriseAddress,
+      certs::Credential,
+      crypto::ScriptHash,
+      plutus::PlutusV3Script,
+      Script,
+    };
+    use cml_crypto::RawBytesEncoding;
+
+    let script_bytes = vec![1, 0, 0];
+    let script = Script::new_plutus_v3(PlutusV3Script::new(script_bytes.clone()));
+    let script_hash_hex = hex::encode(script.hash().to_raw_bytes());
+    let script_address = EnterpriseAddress::new(
+      0,
+      Credential::new_script(ScriptHash::from_raw_bytes(&hex::decode(&script_hash_hex).unwrap()).unwrap()),
+    )
+    .to_address()
+    .to_bech32(None)
+    .unwrap();
+    let key_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let args = serde_json::json!({
+      "scriptInput": {
+        "txHashHex": "01".repeat(32), "index": "0", "address": script_address,
+        "lovelace": "5000000", "assets": [], "inlineDatumCborHex": "d8799f01e0ff"
+      },
+      "referenceScriptInput": {
+        "txHashHex": "02".repeat(32), "index": "0", "address": key_address,
+        "lovelace": "2000000", "assets": []
+      },
+      "referenceScriptCborHex": hex::encode(&script_bytes), "referenceScriptSize": "3",
+      "fundingInputs": [{
+        "txHashHex": "03".repeat(32), "index": "0", "address": key_address,
+        "lovelace": "10000000", "assets": []
+      }],
+      "collateralInput": {
+        "txHashHex": "04".repeat(32), "index": "0", "address": key_address,
+        "lovelace": "5000000", "assets": []
+      },
+      "collateralReturn": {"address": key_address, "lovelace": "4000000", "assets": []},
+      "outputs": [{"address": key_address, "lovelace": "2000000", "assets": []}],
+      "changeAddress": key_address, "scriptHashHex": script_hash_hex,
+      "redeemerCborHex": "d87980", "redeemerMem": "900000", "redeemerSteps": "250000000",
+      "validityStart": "100", "ttl": "1000", "feeCoefficient": "44", "feeConstant": "155381",
+      "coinsPerUtxoByte": "4310", "keyDeposit": "2000000", "poolDeposit": "500000000",
+      "maxValueSize": "5000", "maxTxSize": "16384", "collateralPercentage": "150",
+      "refScriptCoinsPerByte": {"numerator": "15", "denominator": "1"},
+      "refScriptTierStepBytes": "25600", "refScriptMultiplier": "1.2",
+      "exUnitPricesMemory": {"numerator": "577", "denominator": "10000"},
+      "exUnitPricesSteps": {"numerator": "721", "denominator": "10000000"},
+      "plutusV3CostModel": [0]
+    });
+    let args = CString::new(args.to_string()).unwrap();
+    unsafe {
+      assert_export_catches_panic(cml_bridge_build_escrow_redeem_transaction_hex, args.as_ptr())
     };
   }
 }

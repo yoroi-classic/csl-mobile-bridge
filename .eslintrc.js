@@ -38,8 +38,7 @@ module.exports = {
       ],
       'rules': {
         'quotes': ['error', 'single', {avoidEscape: true}],
-        'semi': 'off', // base rule must be disabled
-        '@typescript-eslint/semi': ['error', 'always'],
+        'semi': ['error', 'always'],
         'indent': ['error', 2],
         'no-unused-vars': ['off']
       },
