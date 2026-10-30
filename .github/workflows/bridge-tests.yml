@@ -19,6 +19,7 @@ on:
       - 'example/package.json'
       - 'example/**'
       - 'ios/**'
+      - 'lib/**'
       - 'package.json'
       - 'README.md'
       - 'react-native.config.js'
@@ -67,7 +68,9 @@ jobs:
         run: node .yarn/releases/yarn-3.6.1.cjs verify
 
       - name: Check generated package output
-        run: git diff --exit-code -- lib/
+        run: |
+          git diff --exit-code -- lib/
+          test -z "$(git ls-files --others -- lib/)"
 
       - name: Check generated C FFI declarations
         run: g++ -std=c++17 -fsyntax-only -Irust/include cpp/cml_mobile_bridge_ffi_contract.cpp

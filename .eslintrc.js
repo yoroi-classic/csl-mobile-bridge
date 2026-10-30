@@ -2,6 +2,7 @@ module.exports = {
   'parser': '@babel/eslint-parser',
   'plugins': [
     '@typescript-eslint',
+    '@stylistic',
   ],
   'env': {
     'es2021': true
@@ -21,7 +22,8 @@ module.exports = {
         ignoreTemplateLiterals: false,
       },
     ],
-    'semi': ['error', 'always'],
+    'semi': 'off',
+    '@stylistic/semi': ['error', 'always'],
     'indent': ['error', 2]
   },
   'overrides': [
@@ -38,7 +40,6 @@ module.exports = {
       ],
       'rules': {
         'quotes': ['error', 'single', {avoidEscape: true}],
-        'semi': ['error', 'always'],
         'indent': ['error', 2],
         'no-unused-vars': ['off']
       },
