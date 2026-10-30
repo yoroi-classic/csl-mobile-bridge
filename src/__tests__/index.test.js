@@ -665,8 +665,36 @@ describe('CML mobile bridge source entrypoint', () => {
     expect(outputFields).toHaveLength(1);
     expect(outputFields[0].split(',')).toHaveLength(4);
     expect(outputFields[0]).toContain(encodeField(lovelace));
-    expect(outputFields[0]).toContain(encodeField(`${'ab'.repeat(28)}~00~${quantity}`));
+    expect(outputFields[0]).toContain(
+      encodeField(`${'ab'.repeat(28)}~00~${encodeField(quantity)}`),
+    );
     expect(outputFields[0]).toContain(encodeField(`inline~${datumHex}`));
+  });
+
+  it('encodes asset components before joining their nested delimiters', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const policyIdHex = 'ab'.repeat(28);
+    const assetNameHex = '00~01^cd';
+    const quantity = '1;addr_test_attacker,50000000,-,-';
+    const encodeField = value => encodeURIComponent(value).replace(/~/g, '%7E');
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+
+    moduleExports.buildSimplePaymentTransaction({
+      inputs: [{transactionHashHex: '01'.repeat(32), index: '0', address: 'addr_test_input', lovelace: '10000000'}],
+      outputs: [{address: 'addr_test_output', lovelace: '2000000', assets: [{policyIdHex, assetNameHex, quantity}]}],
+      changeAddress: 'addr_test_change', feeCoefficient: '44', feeConstant: '155381',
+      coinsPerUtxoByte: '4310', keyDeposit: '2000000', poolDeposit: '500000000', maxValueSize: '5000',
+    });
+
+    const packed = bridge.build_simple_payment_transaction_hex.mock.calls[0][0];
+    const nestedAsset = [
+      encodeField(policyIdHex),
+      encodeField(assetNameHex),
+      encodeField(quantity),
+    ].join('~');
+    expect(packed).toContain(encodeField(nestedAsset));
+    expect(packed.split('|')[1].split(';')).toHaveLength(1);
+    expect(packed.split('|')[1].split(',')).toHaveLength(4);
   });
 
   it('serializes normalized transaction recipes losslessly through CML', () => {

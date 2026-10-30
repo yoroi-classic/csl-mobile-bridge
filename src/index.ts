@@ -683,7 +683,9 @@ export const minimumCoinForAssets = (
     minimum_coin_for_assets: (args: string) => string;
   };
   const packedAssets = assets
-    .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~'))
+    .map(({policyIdHex, assetNameHex, quantity}) =>
+      [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
+    )
     .join('^') || '-';
   return cmlBridge.minimum_coin_for_assets(
     [address, packedAssets, coinsPerUtxoByte].map(encodeBridgeField).join('|'),
@@ -707,7 +709,9 @@ export const buildSimplePaymentTransaction = (
         .map(({transactionHashHex, index, address, addressHex, isBootstrap, lovelace, assets, nativeScriptCborHex, nativeScriptWitnessCount}) =>
           [encodeBridgeField(transactionHashHex), encodeBridgeField(index), encodeBridgeField(address), encodeBridgeField(lovelace),
             encodeBridgeField((assets ?? [])
-              .map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-'),
+              .map(({policyIdHex, assetNameHex, quantity}) =>
+                [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
+              ).join('^') || '-'),
             encodeBridgeField(nativeScriptCborHex ?? '-'),
             encodeBridgeField(nativeScriptWitnessCount ?? '-'),
             ...(addressHex !== undefined || isBootstrap !== undefined
@@ -720,7 +724,9 @@ export const buildSimplePaymentTransaction = (
         .map(({address, lovelace, assets, datum}) => [
           encodeBridgeField(address),
           encodeBridgeField(lovelace),
-          encodeBridgeField((assets ?? []).map(({policyIdHex, assetNameHex, quantity}) => [policyIdHex, assetNameHex, quantity].join('~')).join('^') || '-'),
+          encodeBridgeField((assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
+            [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
+          ).join('^') || '-'),
           encodeBridgeField(datum ? `${datum.kind}~${datum.hex}` : '-'),
         ].join(','))
         .join(';'),
@@ -737,7 +743,9 @@ export const buildSimplePaymentTransaction = (
         encodeBridgeField(policyIdHex),
         'native',
         encodeBridgeField(scriptCborHex),
-        encodeBridgeField(assets.map(({assetNameHex, quantity}) => [assetNameHex, quantity].join('~')).join('^')),
+        encodeBridgeField(assets.map(({assetNameHex, quantity}) =>
+          [assetNameHex, quantity].map(encodeBridgeField).join('~'),
+        ).join('^')),
       ].join(',')).join(';') || '-',
       args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
       args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
@@ -748,7 +756,7 @@ export const buildSimplePaymentTransaction = (
         encodeBridgeField(address),
         encodeBridgeField(lovelace),
         encodeBridgeField((assets ?? []).map(({policyIdHex, assetNameHex, quantity}) =>
-          [policyIdHex, assetNameHex, quantity].join('~'),
+          [policyIdHex, assetNameHex, quantity].map(encodeBridgeField).join('~'),
         ).join('^') || '-'),
       ].join(',')).join(';') || '-',
       ...(args.manualFee !== undefined || args.manualChangeOutput !== undefined

@@ -3217,15 +3217,23 @@ fn parse_multiasset(raw: &str) -> Result<MultiAsset, String> {
   }
   let entries = raw
     .split('^')
-    .map(|packed| {
+    .map(|packed| -> Result<(String, String, String), String> {
       let fields = packed.split('~').collect::<Vec<_>>();
       if fields.len() != 3 {
         return Err("each asset must contain policyHex~assetNameHex~quantity".to_owned());
       }
-      Ok((fields[0], fields[1], fields[2]))
+      Ok((
+        decode_percent_encoded_text(fields[0], "asset policy")?,
+        decode_percent_encoded_text(fields[1], "asset name")?,
+        decode_percent_encoded_text(fields[2], "asset quantity")?,
+      ))
     })
     .collect::<Result<Vec<_>, _>>()?;
-  crate::cml_assets::multiasset_from_hex_amounts(entries)
+  crate::cml_assets::multiasset_from_hex_amounts(
+    entries
+      .iter()
+      .map(|(policy, name, quantity)| (policy.as_str(), name.as_str(), quantity.as_str())),
+  )
 }
 
 fn parse_assets(assets: &[ScriptAssetArgs]) -> Result<MultiAsset, String> {
@@ -3915,10 +3923,10 @@ mod tests {
     build_simple_payment_transaction_hex, build_transaction_recipe_cml_hex,
     calculate_reference_script_fee, certificate_requires_staking_witness,
     derive_account_public_key_hex, empty_witness_transaction_hex, has_staking_certificate,
-    minimum_coin_for_assets, review_output_json, sign_transaction_hex, sign_wallet_data,
-    sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
-    transaction_review_info_json, transaction_validation_info_json, transaction_witness_set_hex,
-    wallet_root_key_hex_from_entropy,
+    minimum_coin_for_assets, parse_multiasset, review_output_json, sign_transaction_hex,
+    sign_wallet_data, sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex,
+    transaction_id_hex, transaction_review_info_json, transaction_validation_info_json,
+    transaction_witness_set_hex, wallet_root_key_hex_from_entropy,
   };
 
   #[test]
@@ -5264,6 +5272,17 @@ mod tests {
       build_simple_payment_transaction_hex(&encoded_args).unwrap(),
       build_simple_payment_transaction_hex(&raw_args).unwrap(),
     );
+  }
+
+  #[test]
+  fn asset_component_delimiters_are_decoded_after_asset_packing() {
+    let policy = "ab".repeat(28);
+    let encoded_name = format!("%30%30%66%66%5E{}%7E01%7E1000", "cd".repeat(28));
+    let encoded_assets = format!("{policy}~{encoded_name}~1");
+
+    assert!(parse_multiasset(&encoded_assets).unwrap_err().contains("invalid asset name hex"));
+    assert!(parse_multiasset(&format!("{policy}~%30%30%66%66~%31")).is_ok());
+    assert!(parse_multiasset(&format!("{policy}~00ff~1")).is_ok());
   }
 
   #[test]
