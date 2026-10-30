@@ -671,6 +671,77 @@ describe('CML mobile bridge source entrypoint', () => {
     expect(outputFields[0]).toContain(encodeField(`inline~${datumHex}`));
   });
 
+  it('encodes all scalar fields before joining the native bridge format', () => {
+    const {bridge, moduleExports} = loadBridge();
+    const encodeField = value => encodeURIComponent(value).replace(/~/g, '%7E');
+    const scalarValues = [
+      '01'.repeat(32) + '|input-hash',
+      '0|input-index',
+      'addr_test_input|input-address',
+      '10000000|input-coin',
+      'script|cbor',
+      '2|witness-count',
+      'addr_test_output|output-address',
+      '2000000|output-coin',
+      'd87980|datum',
+      'addr_test_change|change-address',
+      '123456|ttl',
+      '44|fee-coefficient',
+      '155381|fee-constant',
+      '4310|coins-per-byte',
+      '2000000|key-deposit',
+      '500000000|pool-deposit',
+      '5000|max-value-size',
+      'ab'.repeat(28) + '|mint-policy',
+      '82|mint-script',
+      'cd'.repeat(32) + '|reference-hash',
+      '0|reference-index',
+      'addr_test_reference|reference-address',
+      '3000000|reference-coin',
+      '50000|manual-fee',
+    ];
+    const mintAssetName = '01|mint-asset-name';
+    const mintQuantity = '1|mint-quantity';
+    bridge.build_simple_payment_transaction_hex.mockReturnValue('cbor|fee');
+
+    moduleExports.buildSimplePaymentTransaction({
+      inputs: [{
+        transactionHashHex: scalarValues[0], index: scalarValues[1], address: scalarValues[2],
+        lovelace: scalarValues[3], nativeScriptCborHex: scalarValues[4],
+        nativeScriptWitnessCount: scalarValues[5],
+      }],
+      outputs: [{
+        address: scalarValues[6], lovelace: scalarValues[7],
+        datum: {kind: 'inline', hex: scalarValues[8]},
+      }],
+      changeAddress: scalarValues[9], ttl: scalarValues[10],
+      feeCoefficient: scalarValues[11], feeConstant: scalarValues[12],
+      coinsPerUtxoByte: scalarValues[13], keyDeposit: scalarValues[14],
+      poolDeposit: scalarValues[15], maxValueSize: scalarValues[16],
+      nativeMints: [{
+        policyIdHex: scalarValues[17], scriptCborHex: scalarValues[18],
+        assets: [{assetNameHex: mintAssetName, quantity: mintQuantity}],
+      }],
+      referenceInputs: [{
+        transactionHashHex: scalarValues[19], index: scalarValues[20],
+        address: scalarValues[21], lovelace: scalarValues[22],
+      }],
+      manualFee: scalarValues[23],
+    });
+
+    const packed = bridge.build_simple_payment_transaction_hex.mock.calls[0][0];
+    const fields = packed.split('|');
+    expect(fields).toHaveLength(18);
+    expect(fields[0].split(';')).toHaveLength(1);
+    expect(fields[0].split(',')).toHaveLength(7);
+    expect(fields[1].split(';')).toHaveLength(1);
+    expect(fields[1].split(',')).toHaveLength(4);
+    for (const value of scalarValues) expect(packed).toContain(encodeField(value));
+    expect(fields[11]).toContain(
+      encodeField(`${encodeField(mintAssetName)}~${encodeField(mintQuantity)}`),
+    );
+  });
+
   it('encodes asset components before joining their nested delimiters', () => {
     const {bridge, moduleExports} = loadBridge();
     const policyIdHex = 'ab'.repeat(28);

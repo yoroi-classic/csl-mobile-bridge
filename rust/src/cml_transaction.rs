@@ -3954,10 +3954,11 @@ mod tests {
     build_simple_payment_transaction_hex, build_transaction_recipe_cml_hex,
     calculate_reference_script_fee, certificate_requires_staking_witness,
     derive_account_public_key_hex, empty_witness_transaction_hex, has_staking_certificate,
-    minimum_coin_for_assets, parse_multiasset, review_output_json, sign_transaction_hex,
-    sign_wallet_data, sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex,
-    transaction_id_hex, transaction_review_info_json, transaction_validation_info_json,
-    transaction_witness_set_hex, wallet_root_key_hex_from_entropy,
+    minimum_coin_for_assets, parse_multiasset, percent_encode, review_output_json,
+    sign_transaction_hex, sign_wallet_data, sign_wallet_transaction_hex,
+    sign_wallet_transaction_paths_hex, transaction_id_hex, transaction_review_info_json,
+    transaction_validation_info_json, transaction_witness_set_hex,
+    wallet_root_key_hex_from_entropy,
   };
 
   #[test]
@@ -4139,6 +4140,15 @@ mod tests {
       "hex": format!("d87980;{address},50000000,-,-")
     });
     assert!(super::build_transaction_recipe_cml_hex(&datum_injection.to_string()).is_err());
+
+    let mut asset_injection: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    asset_injection["inputs"][0]["lovelace"] = serde_json::json!("100000000");
+    asset_injection["outputs"][0]["assets"] = serde_json::json!([{
+      "policyIdHex": "ab".repeat(28),
+      "assetNameHex": "00ff",
+      "quantity": format!("1^{}~00ff~1000", "cd".repeat(28))
+    }]);
+    assert!(super::build_transaction_recipe_cml_hex(&asset_injection.to_string()).is_err());
 
     let malformed_script_recipe = recipe.replace("\"scriptInputs\":[]", "\"scriptInputs\":[{}]");
     assert!(super::build_transaction_recipe_cml_hex(&malformed_script_recipe)
@@ -5299,24 +5309,37 @@ mod tests {
   #[test]
   fn simple_payment_decodes_percent_encoded_asset_separators() {
     let address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let transaction_hash = "01".repeat(32);
     let policy = "ab".repeat(28);
     let assets = format!("{policy}~00ff~1");
-    let input = format!("{},0,{address},10000000,{assets}", "01".repeat(32));
-    let output = format!("{address},2000000,{assets},-");
+    let raw_input = format!("{transaction_hash},0,{address},100000000,{assets}");
+    let raw_output = format!("{address},5000000,{assets},inline~d87980");
+    let raw_args =
+      format!("{raw_input}|{raw_output}|{address}|123456|44|155381|4310|2000000|500000000|5000");
+    let encode = |value: &str| percent_encode(value.as_bytes());
+    let encoded_input = [
+      encode(&transaction_hash),
+      encode("0"),
+      encode(address),
+      encode("100000000"),
+      encode(&assets),
+    ]
+    .join(",");
+    let encoded_output =
+      [encode(address), encode("5000000"), encode(&assets), encode("inline~d87980")].join(",");
     let fields = [
-      input,
-      output,
-      address.to_owned(),
-      "123456".to_owned(),
-      "44".to_owned(),
-      "155381".to_owned(),
-      "4310".to_owned(),
-      "2000000".to_owned(),
-      "500000000".to_owned(),
-      "5000".to_owned(),
+      encoded_input,
+      encoded_output,
+      encode(address),
+      encode("123456"),
+      encode("44"),
+      encode("155381"),
+      encode("4310"),
+      encode("2000000"),
+      encode("500000000"),
+      encode("5000"),
     ];
-    let raw_args = fields.join("|");
-    let encoded_args = raw_args.replace('~', "%7E");
+    let encoded_args = fields.join("|");
 
     assert_eq!(
       build_simple_payment_transaction_hex(&encoded_args).unwrap(),
@@ -6025,6 +6048,16 @@ mod tests {
       .unwrap()
       .parse::<u64>()
       .unwrap();
+    let encoded_minimum = minimum_coin_for_assets(&format!(
+      "{}|{}%7E00ff%7E1|{}",
+      percent_encode(address.as_bytes()),
+      policy,
+      percent_encode("4310".as_bytes()),
+    ))
+    .unwrap()
+    .parse::<u64>()
+    .unwrap();
+    assert_eq!(encoded_minimum, minimum);
     assert!(minimum > 1_000_000);
     let args = format!(
       "{},0,{},10000000,{}~00ff~2|{},1000000,{}~00ff~1|{}|123456|44|155381|4310|2000000|500000000|5000",
