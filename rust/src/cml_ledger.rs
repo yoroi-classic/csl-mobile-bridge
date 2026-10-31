@@ -421,6 +421,95 @@ mod tests {
     .to_string()
   }
 
+  fn ledger_request_info_args(
+    change_path: Vec<u32>,
+    staking_path: Vec<u32>,
+    sender_path: Vec<u32>
+  ) -> String {
+    let sender_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let recipient_address = "addr_test1wzzfgjazt5ts34cstrhzaac4xav8x7z2m3vg76s8qmaztzglsw8k5";
+    let tx_hash = "05".repeat(32);
+    let recipe = format!(
+      "{tx_hash},0,{sender_address},10000000,-|{recipient_address},2000000,-,-|{sender_address}|-|44|155381|4310|2000000|500000000|5000"
+    );
+    let built = build_simple_payment_transaction_hex(&recipe).unwrap();
+    let transaction_hex = built.rsplit_once('|').unwrap().0;
+    serde_json::json!({
+      "transactionHex": transaction_hex,
+      "networkId": 0,
+      "protocolMagic": 764824073_u64,
+      "senderUtxos": [{
+        "txHashHex": tx_hash,
+        "outputIndex": 0,
+        "address": sender_address,
+        "path": sender_path
+      }],
+      "changeAddresses": [{"address": sender_address, "path": change_path}],
+      "stakingPath": staking_path
+    })
+    .to_string()
+  }
+
+  #[test]
+  fn ledger_request_info_rejects_an_invalid_change_path_at_the_boundary() {
+    let purpose = 0x8000_073c_u32;
+    let coin_type = 0x8000_0717_u32;
+    let account = 0x8000_0000_u32;
+    let args = ledger_request_info_args(
+      vec![purpose, coin_type, 0, 1, 0],
+      vec![purpose, coin_type, account, 2, 0],
+      vec![purpose, coin_type, account, 0, 0],
+    );
+
+    assert!(
+      matches!(
+        ledger_signing_request_info_json(&args),
+        Err(error) if error == "Ledger addressing path must be a full BIP44 path from purpose through address index"
+      ),
+      "invalid change-address path was accepted"
+    );
+  }
+
+  #[test]
+  fn ledger_request_info_rejects_an_invalid_staking_path_at_the_boundary() {
+    let purpose = 0x8000_073c_u32;
+    let coin_type = 0x8000_0717_u32;
+    let account = 0x8000_0000_u32;
+    let args = ledger_request_info_args(
+      vec![purpose, coin_type, account, 1, 0],
+      vec![purpose, coin_type, 0, 2, 0],
+      vec![purpose, coin_type, account, 0, 0],
+    );
+
+    assert!(
+      matches!(
+        ledger_signing_request_info_json(&args),
+        Err(error) if error == "Ledger addressing path must be a full BIP44 path from purpose through address index"
+      ),
+      "invalid staking path was accepted"
+    );
+  }
+
+  #[test]
+  fn ledger_request_info_rejects_an_invalid_sender_path_at_the_boundary() {
+    let purpose = 0x8000_073c_u32;
+    let coin_type = 0x8000_0717_u32;
+    let account = 0x8000_0000_u32;
+    let args = ledger_request_info_args(
+      vec![purpose, coin_type, account, 1, 0],
+      vec![purpose, coin_type, account, 2, 0],
+      vec![purpose, coin_type, 0, 0, 0],
+    );
+
+    assert!(
+      matches!(
+        ledger_signing_request_info_json(&args),
+        Err(error) if error == "Ledger addressing path must be a full BIP44 path from purpose through address index"
+      ),
+      "invalid sender-input path was accepted"
+    );
+  }
+
   #[test]
   fn accepts_account_zero_for_ledger_witness_application() {
     let transaction = Transaction::from_cbor_bytes(&hex::decode(UNSIGNED).unwrap()).unwrap();
