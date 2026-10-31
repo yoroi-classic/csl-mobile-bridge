@@ -4293,8 +4293,7 @@ mod tests {
       native_certificate_review["body"]["certificates"]
         .to_string()
         .contains("https://example.test/a%20b.json"),
-      "native-path DRep registration anchors must preserve percent-escaped bytes: {}",
-      native_certificate_review["body"]["certificates"]
+      "native-path DRep registration anchors must preserve percent-escaped bytes"
     );
     let assert_rejected = |field: &str, expected_error: &str, recipe: &serde_json::Value| {
       let error = build_transaction_recipe_cml_hex(&recipe.to_string()).unwrap_err();
