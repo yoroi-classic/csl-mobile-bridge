@@ -4250,13 +4250,23 @@ mod tests {
       "inputs":[{"txHashHex":"01".repeat(32),"index":"0","address":address,"lovelace":"10000000","assets":[]}],
       "outputs":[{"address":address,"lovelace":"2000000","assets":[]}],
       "certificates":[],"withdrawals":[],"referenceInputs":[],"scriptInputs":[],
-      "collateralInputs":[],"mints":[{"policyIdHex":policy_hex,"scriptType":"native","scriptCborHex":script_hex,"assets":[{"assetNameHex":"00ff","quantity":"5"}]}],"metadata":[],
+      "collateralInputs":[],"mints":[{"policyIdHex":policy_hex,"scriptType":"native","scriptCborHex":script_hex,"assets":[{"assetNameHex":"00ff","quantity":"5"}]}],"metadata":[{"label":"674","data":{"url":"https://example.test/a%20b.png"}}],
       "options":{"changeAddress":address,"ttl":"123456"}
     });
     let second_input = format!("{}", "02".repeat(32));
     assert!(
       build_transaction_recipe_cml_hex(&base_recipe.to_string()).is_ok(),
       "base recipe must be valid before testing field escaping"
+    );
+    let base_tx = build_transaction_recipe_cml_hex(&base_recipe.to_string()).unwrap();
+    let base_review: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(base_tx.split('|').next().unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+      base_review["auxiliaryData"]["metadata"][0]["json"]["url"],
+      "https://example.test/a%20b.png",
+      "native recipe metadata must preserve percent-escaped URL bytes",
     );
     let assert_rejected = |field: &str, expected_error: &str, recipe: &serde_json::Value| {
       let error = build_transaction_recipe_cml_hex(&recipe.to_string()).unwrap_err();
@@ -4431,6 +4441,21 @@ mod tests {
     assert!(review["body"]["scriptDataHashHex"].is_string());
     assert_eq!(review["body"]["ttl"], "1000");
     assert_eq!(review["auxiliaryData"]["metadata"][0]["label"], "674");
+    let mut script_metadata_recipe: serde_json::Value = serde_json::from_str(&recipe).unwrap();
+    script_metadata_recipe["metadata"] = serde_json::json!([{
+      "label":"674","data":{"url":"https://example.test/a%20b.png"}
+    }]);
+    let script_metadata_tx =
+      build_transaction_recipe_cml_hex(&script_metadata_recipe.to_string()).unwrap();
+    let script_metadata_review: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(script_metadata_tx.split('|').next().unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+      script_metadata_review["auxiliaryData"]["metadata"][0]["json"]["url"],
+      "https://example.test/a%20b.png",
+      "script-input recipe metadata must preserve percent-escaped URL bytes",
+    );
     assert_eq!(review["body"]["certificates"].as_array().unwrap().len(), 1);
     assert_eq!(review["body"]["withdrawals"][0]["amount"], "3500000");
     assert_eq!(review["body"]["outputs"][0]["datum"]["kind"], "hash");
@@ -4562,6 +4587,9 @@ mod tests {
     assert!(reference_mint_tx.witness_set.redeemers.is_some());
     let mut mint_only_recipe = mint_recipe.clone();
     mint_only_recipe["scriptInputs"] = serde_json::json!([]);
+    mint_only_recipe["metadata"] = serde_json::json!([{
+      "label":"674","data":{"url":"https://example.test/a%20b.png"}
+    }]);
     let mint_only_hex = build_transaction_recipe_cml_hex(&mint_only_recipe.to_string()).unwrap();
     let mint_only_tx = cml_chain::transaction::Transaction::from_cbor_bytes(
       &hex::decode(mint_only_hex.split('|').next().unwrap()).unwrap(),
@@ -4573,6 +4601,15 @@ mod tests {
     assert!(mint_only_tx.body.script_data_hash.is_some());
     assert!(mint_only_tx.witness_set.redeemers.is_some());
     assert!(mint_only_tx.witness_set.plutus_v2_scripts.is_some());
+    let mint_only_review: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(mint_only_hex.split('|').next().unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+      mint_only_review["auxiliaryData"]["metadata"][0]["json"]["url"],
+      "https://example.test/a%20b.png",
+      "Plutus-mint-only recipe metadata must preserve percent-escaped URL bytes",
+    );
     assert!(mint_only_tx.body.outputs.iter().any(|output| {
       output.amount().multiasset.get(
         &cml_chain::crypto::ScriptHash::from_raw_bytes(&hex::decode(&mint_policy_id).unwrap())
@@ -4825,7 +4862,7 @@ mod tests {
       {"kind":"PoolRetirement","poolKeyHash":"bb".repeat(28),"epoch":"42"},
       {"kind":"CommitteeHotAuth","coldCredential":{"kind":"key","hashHex":"cc".repeat(28)},"hotCredential":{"kind":"script","hashHex":"dd".repeat(28)}},
       {"kind":"CommitteeColdResign","coldCredential":{"kind":"key","hashHex":"ee".repeat(28)},"anchor":{"url":"https://example.test/constitution.json","dataHashHex":"ff".repeat(32)}},
-      {"kind":"DRepRegistration","credential":{"kind":"key","hashHex":"11".repeat(28)},"deposit":"500000000","anchor":{"url":"https://example.test/drep.json","dataHashHex":"22".repeat(32)}},
+      {"kind":"DRepRegistration","credential":{"kind":"key","hashHex":"11".repeat(28)},"deposit":"500000000","anchor":{"url":"https://example.test/drep%20anchor.json","dataHashHex":"22".repeat(32)}},
       {"kind":"DRepDeregistration","credential":{"kind":"key","hashHex":"33".repeat(28)},"deposit":"500000000"},
       {"kind":"DRepUpdate","credential":{"kind":"key","hashHex":"44".repeat(28)}}
     ]);
@@ -4835,6 +4872,11 @@ mod tests {
     )
     .unwrap();
     assert_eq!(governance_review["body"]["certificates"].as_array().unwrap().len(), 7);
+    assert!(
+      governance_review["body"]["certificates"].to_string().contains("https://example.test/drep%20anchor.json"),
+      "certificate anchor URLs must preserve percent-escaped bytes: {}",
+      governance_review["body"]["certificates"]
+    );
 
     let mut invalid_collateral: serde_json::Value = serde_json::from_str(&recipe).unwrap();
     invalid_collateral["totalCollateral"] = serde_json::json!("1000001");
