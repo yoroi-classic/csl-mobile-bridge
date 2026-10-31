@@ -3,8 +3,7 @@ use std::ffi::{CStr, CString};
 use super::bridge_tools::string::CharPtr;
 use crate::cml_transaction::{
   build_escrow_redeem_transaction_hex, build_simple_payment_transaction_hex,
-  build_transaction_recipe_cml_hex, derive_account_public_key_hex,
-  derive_wallet_public_key_hex,
+  build_transaction_recipe_cml_hex, derive_account_public_key_hex, derive_wallet_public_key_hex,
   empty_witness_transaction_hex, minimum_coin_for_assets, sign_transaction_hex, sign_wallet_data,
   sign_wallet_transaction_hex, sign_wallet_transaction_paths_hex, transaction_id_hex,
   transaction_review_info_json, transaction_signing_requirements_json,

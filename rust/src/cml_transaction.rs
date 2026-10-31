@@ -4254,21 +4254,34 @@ mod tests {
       "options":{"changeAddress":address,"ttl":"123456"}
     });
     let second_input = format!("{}", "02".repeat(32));
+    assert!(
+      build_transaction_recipe_cml_hex(&base_recipe.to_string()).is_ok(),
+      "base recipe must be valid before testing field escaping"
+    );
+    let assert_rejected = |field: &str, expected_error: &str, recipe: &serde_json::Value| {
+      let error = build_transaction_recipe_cml_hex(&recipe.to_string()).unwrap_err();
+      assert!(
+        error.contains(expected_error),
+        "{}: unexpected error: {}",
+        field,
+        error
+      );
+    };
 
     let mut tx_hash = base_recipe.clone();
     tx_hash["inputs"][0]["txHashHex"] =
       serde_json::json!(format!("{},0,{address},10000000,-,-,-;{second_input}", "01".repeat(32)));
-    assert!(build_transaction_recipe_cml_hex(&tx_hash.to_string()).is_err(), "input txHashHex");
+    assert_rejected("input txHashHex", "invalid input hash", &tx_hash);
 
     let mut index = base_recipe.clone();
     index["inputs"][0]["index"] =
       serde_json::json!(format!("0,{address},10000000,-,-,-;{second_input},0"));
-    assert!(build_transaction_recipe_cml_hex(&index.to_string()).is_err(), "input index");
+    assert_rejected("input index", "invalid input index", &index);
 
     let mut lovelace = base_recipe.clone();
     lovelace["inputs"][0]["lovelace"] =
       serde_json::json!(format!("10000000,-,-,-;{second_input},0,{address},5000000"));
-    assert!(build_transaction_recipe_cml_hex(&lovelace.to_string()).is_err(), "input lovelace");
+    assert_rejected("input lovelace", "invalid input coin", &lovelace);
 
     let mut assets = base_recipe.clone();
     assets["inputs"][0]["assets"] = serde_json::json!([{
@@ -4276,7 +4289,7 @@ mod tests {
       "assetNameHex": "00ff",
       "quantity": format!("1^{}~01ff~1000", "cd".repeat(28))
     }]);
-    assert!(build_transaction_recipe_cml_hex(&assets.to_string()).is_err(), "input assets");
+    assert_rejected("input assets", "invalid asset quantity", &assets);
 
     let native_input = |script_value: String, witness_count: String| {
       let mut recipe = base_recipe.clone();
@@ -4289,16 +4302,18 @@ mod tests {
       format!("{script_hex},1;{second_input},0,{address},5000000,-,-"),
       "1".to_owned(),
     );
-    assert!(
-      build_transaction_recipe_cml_hex(&script_injection.to_string()).is_err(),
-      "input nativeScriptCborHex"
+    assert_rejected(
+      "input nativeScriptCborHex",
+      "invalid native script",
+      &script_injection,
     );
 
     let witness_count =
       native_input(script_hex.clone(), format!("1;{second_input},0,{address},5000000,-,-,-"));
-    assert!(
-      build_transaction_recipe_cml_hex(&witness_count.to_string()).is_err(),
-      "input nativeScriptWitnessCount"
+    assert_rejected(
+      "input nativeScriptWitnessCount",
+      "invalid native script witness count",
+      &witness_count,
     );
 
     let address_hex = hex::encode(super::parse_payment_address(address).unwrap().to_raw_bytes());
@@ -4306,64 +4321,43 @@ mod tests {
     input_address_hex["inputs"][0]["addressHex"] =
       serde_json::json!(format!("{address_hex};{second_input},0,{address},5000000,-,-,-,-"));
     input_address_hex["inputs"][0]["isBootstrap"] = serde_json::json!(false);
-    assert!(
-      build_transaction_recipe_cml_hex(&input_address_hex.to_string()).is_err(),
-      "input addressHex"
-    );
+    assert_rejected("input addressHex", "invalid input address hex", &input_address_hex);
 
     let mut mint_policy = base_recipe.clone();
     mint_policy["mints"][0]["policyIdHex"] = serde_json::json!(format!(
       "{second_policy_hex},native,{second_script_hex},01ff~9;{policy_hex}"
     ));
-    assert!(
-      build_transaction_recipe_cml_hex(&mint_policy.to_string()).is_err(),
-      "mint policyIdHex"
-    );
+    assert_rejected("mint policyIdHex", "invalid mint policy", &mint_policy);
 
     let mut mint_script = base_recipe.clone();
     mint_script["mints"][0]["scriptCborHex"] = serde_json::json!(format!(
       "{script_hex},01ff~9;{second_policy_hex},native,{second_script_hex}"
     ));
-    assert!(
-      build_transaction_recipe_cml_hex(&mint_script.to_string()).is_err(),
-      "mint scriptCborHex"
-    );
+    assert_rejected("mint scriptCborHex", "invalid mint native script", &mint_script);
 
     let mut mint_quantity = base_recipe.clone();
     mint_quantity["mints"][0]["assets"][0]["quantity"] = serde_json::json!("5^01ff~7");
-    assert!(
-      build_transaction_recipe_cml_hex(&mint_quantity.to_string()).is_err(),
-      "mint asset quantity"
-    );
+    assert_rejected("mint asset quantity", "invalid mint quantity", &mint_quantity);
 
     let mut reference_hash = base_recipe.clone();
     reference_hash["referenceInputs"] = serde_json::json!([{
       "txHashHex":format!("{},0,{address},2000000,-;{}", "03".repeat(32), second_input),
       "index":"0","address":address,"lovelace":"2000000","assets":[]
     }]);
-    assert!(
-      build_transaction_recipe_cml_hex(&reference_hash.to_string()).is_err(),
-      "reference input txHashHex"
-    );
+    assert_rejected("reference input txHashHex", "invalid reference input hash", &reference_hash);
 
     let mut reference_index = base_recipe.clone();
     reference_index["referenceInputs"] = serde_json::json!([{
       "txHashHex":"03".repeat(32),"index":format!("0,{address},2000000,-;{second_input},0"),"address":address,"lovelace":"2000000","assets":[]
     }]);
-    assert!(
-      build_transaction_recipe_cml_hex(&reference_index.to_string()).is_err(),
-      "reference input index"
-    );
+    assert_rejected("reference input index", "invalid reference input index", &reference_index);
 
     let mut reference_lovelace = base_recipe;
     reference_lovelace["referenceInputs"] = serde_json::json!([{
       "txHashHex":"03".repeat(32),"index":"0","address":address,
       "lovelace":format!("2000000,-;{second_input},0,{address},5000000"),"assets":[]
     }]);
-    assert!(
-      build_transaction_recipe_cml_hex(&reference_lovelace.to_string()).is_err(),
-      "reference input lovelace"
-    );
+    assert_rejected("reference input lovelace", "invalid reference input coin", &reference_lovelace);
   }
 
   #[test]
