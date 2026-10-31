@@ -632,19 +632,21 @@ mod tests {
     let purpose = 0x8000_073c_u32;
     let coin_type = 0x8000_0717_u32;
     let account = 0x8000_0000_u32;
-    let path = vec![purpose, coin_type, account, 0, 0];
+    let payment_path = vec![purpose, coin_type, account, 0, 0];
+    let staking_path = vec![purpose, coin_type, account, 2, 0];
     let args = serde_json::json!({
       "transactionHex": transaction_hex,
       "networkId": 0,
       "protocolMagic": 764824073_u64,
-      "senderUtxos": [{"txHashHex": tx_hash, "outputIndex": 0, "address": sender_address, "path": path}],
+      "senderUtxos": [{"txHashHex": tx_hash, "outputIndex": 0, "address": sender_address, "path": payment_path}],
       "changeAddresses": [],
-      "stakingPath": path
+      "stakingPath": staking_path
     })
     .to_string();
 
     let info: serde_json::Value =
       serde_json::from_str(&ledger_signing_request_info_json(&args).unwrap()).unwrap();
-    assert_eq!(info["inputs"][0]["path"], serde_json::json!(path));
+    assert_eq!(info["inputs"][0]["path"], serde_json::json!(payment_path));
+    assert_eq!(info["stakingPath"], serde_json::json!(staking_path));
   }
 }
