@@ -4268,6 +4268,34 @@ mod tests {
       "https://example.test/a%20b.png",
       "native recipe metadata must preserve percent-escaped URL bytes",
     );
+    let mut native_certificate_recipe = base_recipe.clone();
+    native_certificate_recipe["inputs"][0]["lovelace"] = serde_json::json!("600000000");
+    native_certificate_recipe["mints"] = serde_json::json!([]);
+    native_certificate_recipe["metadata"] = serde_json::json!([]);
+    native_certificate_recipe["certificates"] = serde_json::json!([
+      {
+        "kind": "DRepRegistration",
+        "credential": { "kind": "key", "hashHex": "11".repeat(28) },
+        "deposit": "500000000",
+        "anchor": {
+          "url": "https://example.test/a%20b.json",
+          "dataHashHex": "22".repeat(32),
+        },
+      }
+    ]);
+    let native_certificate_tx =
+      build_transaction_recipe_cml_hex(&native_certificate_recipe.to_string()).unwrap();
+    let native_certificate_review: serde_json::Value = serde_json::from_str(
+      &transaction_review_info_json(native_certificate_tx.split('|').next().unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert!(
+      native_certificate_review["body"]["certificates"]
+        .to_string()
+        .contains("https://example.test/a%20b.json"),
+      "native-path DRep registration anchors must preserve percent-escaped bytes: {}",
+      native_certificate_review["body"]["certificates"]
+    );
     let assert_rejected = |field: &str, expected_error: &str, recipe: &serde_json::Value| {
       let error = build_transaction_recipe_cml_hex(&recipe.to_string()).unwrap_err();
       assert!(
