@@ -391,14 +391,19 @@ mod tests {
       vec![hardened, hardened, hardened, hardened, 0],
       vec![hardened, hardened, hardened, 0, hardened],
       vec![hardened, hardened, hardened, 0],
+      vec![hardened, hardened, hardened, 0, 0, 0],
     ] {
       assert!(super::validate_ledger_path(&path).is_err(), "path {:?}", path);
     }
   }
 
   fn make_args(expected_id: &str) -> String {
+    make_args_for_account(expected_id, 0x8000_0007)
+  }
+
+  fn make_args_for_account(expected_id: &str, account_index: u32) -> String {
     let root = Bip32PrivateKey::from_bip39_entropy(&[0x11; 16], b"");
-    let account = root.derive(0x8000_073c).derive(0x8000_0717).derive(0x8000_0007);
+    let account = root.derive(0x8000_073c).derive(0x8000_0717).derive(account_index);
     let account_xpub = account.to_public();
     let child = account.derive(2).derive(0);
     let unsigned = Transaction::from_cbor_bytes(&hex::decode(UNSIGNED).unwrap()).unwrap();
@@ -408,12 +413,24 @@ mod tests {
       "accountPublicKeyHex": hex::encode(account_xpub.to_raw_bytes()),
       "purpose":"2147485500",
       "coinType":"2147485463",
-      "accountIndex":"2147483655",
+      "accountIndex":account_index.to_string(),
       "witnesses": [{"path":[2,0],"signatureHex":hex::encode(signature.to_raw_bytes())}],
       "expectedTxIdHex": expected_id,
       "senderUtxos": []
     })
     .to_string()
+  }
+
+  #[test]
+  fn accepts_account_zero_for_ledger_witness_application() {
+    let transaction = Transaction::from_cbor_bytes(&hex::decode(UNSIGNED).unwrap()).unwrap();
+    let expected_id = hex::encode(transaction.body.hash().to_raw_bytes());
+    let args = make_args_for_account(&expected_id, 0x8000_0000);
+
+    let signed_hex = apply_ledger_witnesses_to_transaction_hex(&args).unwrap();
+    let signed = Transaction::from_cbor_bytes(&hex::decode(signed_hex).unwrap()).unwrap();
+
+    assert_eq!(signed.witness_set.vkeywitnesses.unwrap().len(), 1);
   }
 
   #[test]
@@ -600,5 +617,34 @@ mod tests {
       .unwrap_err()
       .to_lowercase()
       .contains("address"));
+  }
+
+  #[test]
+  fn ledger_request_info_accepts_account_zero_paths() {
+    let sender_address = "addr_test1qqqqpvpu82s99aguppk9f02qt84d95hyy6kgn7jt8njpe0cqqzcrcw4q2t63czrv2j75qk026tfwgf4v38ayk08yrjls8jdlam";
+    let recipient_address = "addr_test1wzzfgjazt5ts34cstrhzaac4xav8x7z2m3vg76s8qmaztzglsw8k5";
+    let tx_hash = "04".repeat(32);
+    let recipe = format!(
+      "{tx_hash},0,{sender_address},10000000,-|{recipient_address},2000000,-,-|{sender_address}|-|44|155381|4310|2000000|500000000|5000"
+    );
+    let built = build_simple_payment_transaction_hex(&recipe).unwrap();
+    let transaction_hex = built.rsplit_once('|').unwrap().0;
+    let purpose = 0x8000_073c_u32;
+    let coin_type = 0x8000_0717_u32;
+    let account = 0x8000_0000_u32;
+    let path = vec![purpose, coin_type, account, 0, 0];
+    let args = serde_json::json!({
+      "transactionHex": transaction_hex,
+      "networkId": 0,
+      "protocolMagic": 764824073_u64,
+      "senderUtxos": [{"txHashHex": tx_hash, "outputIndex": 0, "address": sender_address, "path": path}],
+      "changeAddresses": [],
+      "stakingPath": path
+    })
+    .to_string();
+
+    let info: serde_json::Value =
+      serde_json::from_str(&ledger_signing_request_info_json(&args).unwrap()).unwrap();
+    assert_eq!(info["inputs"][0]["path"], serde_json::json!(path));
   }
 }
