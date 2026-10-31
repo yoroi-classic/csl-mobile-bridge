@@ -3,7 +3,3 @@ export interface ExampleSection {
   results: string[];
   error?: string;
 }
-
-export interface ExampleComponentProps {
-  onResult: (section: ExampleSection) => void;
-}

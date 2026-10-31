@@ -1,8 +1,8 @@
-# CSL Mobile Bridge
+# Cardano Mobile Bridge
 
-React Native library providing JavaScript bindings for Cardano Serialization Library with native Rust components.
+React Native native bridge exposing CML-backed Cardano address, key, datum, transaction, and Ledger operations. The npm package is `@yoroi-classic/cml-mobile-bridge`; the existing GitHub repository URL remains unchanged.
 
-> Deprecated: this bridge is in maintenance mode for existing Yoroi Classic consumers. New mobile Cardano work should plan around dcSpark Cardano Multiplatform Lib (CML), using its WASM mobile strategy through Ionic + Capacitor or an equivalent mobile web runtime. There is no verified drop-in React Native CML package, so keep existing bridge integrations pinned until your app has a tested CML path.
+New mobile Cardano work should use CML-backed APIs. The bridge is private to Yoroi Classic and is not published to npmjs.
 
 ## 📦 Installation
 
@@ -36,10 +36,10 @@ npm install 'github:yoroi-classic/csl-mobile-bridge#<tag-or-commit>' --save
 ## Usage
 
 ```javascript
-import { BigNum } from '@yoroi-classic/csl-mobile-bridge';
+import { addressInfoFromAddress, transactionReviewInfoJson } from '@yoroi-classic/cml-mobile-bridge';
 ```
 
-See more examples in `example/app/examples`.
+The API returns serialized bytes and normalized plain data; it does not expose CSL class objects.
 
 ---
 
@@ -58,12 +58,15 @@ For contributors and library developers.
 # 2. Install dependencies and build package outputs
 node .yarn/releases/yarn-3.6.1.cjs install --immutable
 node .yarn/releases/yarn-3.6.1.cjs prepare
+npm install --prefix example
 
 # 3. Run example app
 node .yarn/releases/yarn-3.6.1.cjs example ios
 # or:
 node .yarn/releases/yarn-3.6.1.cjs example android
 ```
+
+The example app has no committed npm lockfile, so this install resolves semver ranges and is not reproducible. The bridge package itself uses the immutable root Yarn lockfile.
 
 ### Prerequisites
 
@@ -131,24 +134,16 @@ node .yarn/releases/yarn-3.6.1.cjs example android
 node .yarn/releases/yarn-3.6.1.cjs example start
 ```
 
-### CML Transition
+### CML APIs
 
-`@yoroi-classic/csl-mobile-bridge` is deprecated. It keeps the current CSL bridge API stable for existing Yoroi consumers while new mobile work moves toward dcSpark Cardano Multiplatform Lib.
-
-The verified dcSpark CML npm packages are:
+This package exposes CML-backed native APIs and normalized plain-data contracts. It does not expose CSL class objects. The related dcSpark CML npm packages are:
 
 - `@dcspark/cardano-multiplatform-lib-browser`
 - `@dcspark/cardano-multiplatform-lib-nodejs`
 
 Both packages expose `cardano_multiplatform_lib.js` with TypeScript declarations in `cardano_multiplatform_lib.d.ts`. The upstream CML mobile guidance is to run the WASM bindings through Ionic + Capacitor or an equivalent setup. Treat that as a mobile strategy, not a drop-in replacement for this React Native TurboModule bridge.
 
-Migration guidance:
-
-1. Keep existing `@yoroi-classic/csl-mobile-bridge` imports unchanged in maintenance branches.
-2. Build new mobile CML proofs of concept against the verified CML packages or an equivalent CML WASM runtime.
-3. Compare serialization, metadata, address, and signing fixtures before replacing bridge exports in production.
-
-Toolchain changes should continue running the bridge API fixture tests and package checks against the current exports until the replacement CML surface is defined. The package metadata is owned by `yoroi-classic`; do not publish this bridge to npmjs. Consumers should use GitHub refs until the CML replacement package is ready.
+The bridge is private to Yoroi Classic and is not published to npmjs. Consumers should use GitHub refs until package distribution is explicitly changed.
 
 ---
 
@@ -209,6 +204,7 @@ lsof -ti:8081 | xargs kill -9
 rm -rf node_modules example/node_modules
 node .yarn/releases/yarn-3.6.1.cjs install --immutable
 node .yarn/releases/yarn-3.6.1.cjs prepare
+npm install --prefix example
 ```
 
 ## Resources

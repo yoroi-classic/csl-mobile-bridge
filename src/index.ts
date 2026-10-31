@@ -1,443 +1,872 @@
-// Generated TypeScript index file for CSL JSI Native State Bridge
-// This file provides a convenient entry point for the bridge
-// DO NOT EDIT - Generated automatically
+import CmlMobileBridge from './NativeCmlMobileBridge';
 
-import CslMobileBridge from './NativeCslMobileBridge';
-import * as bridgeTypes from './BridgeTypes';
-export { AddressKind, BlockEra, ByronAddressType, CborContainerType, CborSetType, CertificateKind, CoinSelectionStrategyCIP2, CredKind, DRepKind, GovernanceActionKind, LanguageKind, MIRKind, MIRPot, MetadataJsonSchema, NativeScriptKind, NetworkIdKind, PlutusDataKind, PlutusDatumSchema, RedeemerTagKind, RelayKind, ScriptHashNamespace, ScriptSchema, TransactionMetadatumKind, TransactionSetsState, VoteKind, VoterKind } from './BridgeTypes';
+type CmlBridgeExports = Record<string, (...args: never[]) => unknown>;
+const bridgeTypes = {} as CmlBridgeExports;
+// Encode values before joining the delimiter-based native bridge format.
+// encodeURIComponent leaves `~` untouched, but it is also used as a separator.
+const encodeBridgeField = (value: string | number): string =>
+  encodeURIComponent(String(value)).replace(/~/g, '%7E');
+const encodeBridgeAssets = (
+  assets: Array<{policyIdHex?: string; assetNameHex: string; quantity: string}>,
+  includePolicyId: boolean = true,
+): string =>
+  assets
+    .map(({policyIdHex, assetNameHex, quantity}) =>
+      [...(includePolicyId && policyIdHex !== undefined ? [policyIdHex] : []), assetNameHex, quantity]
+        .map(encodeBridgeField)
+        .join('~'),
+    )
+    .join('^');
+const nativeCmlBridge: CmlBridgeExports = CmlMobileBridge.install() as CmlBridgeExports;
 
-let _cslBridge: typeof bridgeTypes | null = null;
-
-const getCslBridge = (): typeof bridgeTypes => {
-  if (_cslBridge === null) {
-    _cslBridge = CslMobileBridge.install() as typeof bridgeTypes;
-  }
-  return _cslBridge;
+/** Extract the canonical serialized stake credential from a base address using CML. */
+export const stakeCredentialHexFromAddress = (address: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    stake_credential_hex_from_address: (address: string) => string;
+  };
+  return cmlBridge.stake_credential_hex_from_address(address);
 };
 
-const cslBridge: typeof bridgeTypes = getCslBridge();
+export const rewardAddressDetailsFromAddress = (
+  address: string,
+): {bech32: string; keyHashHex: string} => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    reward_address_details_from_address: (address: string) => string;
+  };
+  return JSON.parse(cmlBridge.reward_address_details_from_address(address));
+};
 
-export default cslBridge;
+export type EscrowDatumInfo = {
+  paymentCredHash: string;
+  stakingCredHash: string | null;
+  nightPerThaw: string;
+  nextThawTime: string;
+  thawsRemaining: string;
+  interval: string;
+};
 
-// Type aliases for class types
-export type Address = bridgeTypes.Address;
-export type Anchor = bridgeTypes.Anchor;
-export type AnchorDataHash = bridgeTypes.AnchorDataHash;
-export type AssetName = bridgeTypes.AssetName;
-export type AssetNames = bridgeTypes.AssetNames;
-export type Assets = bridgeTypes.Assets;
-export type AuxiliaryData = bridgeTypes.AuxiliaryData;
-export type AuxiliaryDataHash = bridgeTypes.AuxiliaryDataHash;
-export type AuxiliaryDataSet = bridgeTypes.AuxiliaryDataSet;
-export type BaseAddress = bridgeTypes.BaseAddress;
-export type BigInt = bridgeTypes.BigInt;
-export type BigNum = bridgeTypes.BigNum;
-export type Bip32PrivateKey = bridgeTypes.Bip32PrivateKey;
-export type Bip32PublicKey = bridgeTypes.Bip32PublicKey;
-export type Block = bridgeTypes.Block;
-export type BlockHash = bridgeTypes.BlockHash;
-export type BootstrapWitness = bridgeTypes.BootstrapWitness;
-export type BootstrapWitnesses = bridgeTypes.BootstrapWitnesses;
-export type ByronAddress = bridgeTypes.ByronAddress;
-export type Certificate = bridgeTypes.Certificate;
-export type Certificates = bridgeTypes.Certificates;
-export type CertificatesBuilder = bridgeTypes.CertificatesBuilder;
-export type ChangeConfig = bridgeTypes.ChangeConfig;
-export type Committee = bridgeTypes.Committee;
-export type CommitteeColdResign = bridgeTypes.CommitteeColdResign;
-export type CommitteeHotAuth = bridgeTypes.CommitteeHotAuth;
-export type Constitution = bridgeTypes.Constitution;
-export type ConstrPlutusData = bridgeTypes.ConstrPlutusData;
-export type CostModel = bridgeTypes.CostModel;
-export type Costmdls = bridgeTypes.Costmdls;
-export type Credential = bridgeTypes.Credential;
-export type Credentials = bridgeTypes.Credentials;
-export type DNSRecordAorAAAA = bridgeTypes.DNSRecordAorAAAA;
-export type DNSRecordSRV = bridgeTypes.DNSRecordSRV;
-export type DRep = bridgeTypes.DRep;
-export type DRepDeregistration = bridgeTypes.DRepDeregistration;
-export type DRepRegistration = bridgeTypes.DRepRegistration;
-export type DRepUpdate = bridgeTypes.DRepUpdate;
-export type DRepVotingThresholds = bridgeTypes.DRepVotingThresholds;
-export type DataCost = bridgeTypes.DataCost;
-export type DataHash = bridgeTypes.DataHash;
-export type DatumSource = bridgeTypes.DatumSource;
-export type Ed25519KeyHash = bridgeTypes.Ed25519KeyHash;
-export type Ed25519KeyHashes = bridgeTypes.Ed25519KeyHashes;
-export type Ed25519Signature = bridgeTypes.Ed25519Signature;
-export type EnterpriseAddress = bridgeTypes.EnterpriseAddress;
-export type ExUnitPrices = bridgeTypes.ExUnitPrices;
-export type ExUnits = bridgeTypes.ExUnits;
-export type FixedBlock = bridgeTypes.FixedBlock;
-export type FixedTransaction = bridgeTypes.FixedTransaction;
-export type FixedTransactionBodies = bridgeTypes.FixedTransactionBodies;
-export type FixedTransactionBody = bridgeTypes.FixedTransactionBody;
-export type FixedTxWitnessesSet = bridgeTypes.FixedTxWitnessesSet;
-export type FixedVersionedBlock = bridgeTypes.FixedVersionedBlock;
-export type GeneralTransactionMetadata = bridgeTypes.GeneralTransactionMetadata;
-export type GenesisDelegateHash = bridgeTypes.GenesisDelegateHash;
-export type GenesisHash = bridgeTypes.GenesisHash;
-export type GenesisHashes = bridgeTypes.GenesisHashes;
-export type GenesisKeyDelegation = bridgeTypes.GenesisKeyDelegation;
-export type GovernanceAction = bridgeTypes.GovernanceAction;
-export type GovernanceActionId = bridgeTypes.GovernanceActionId;
-export type GovernanceActionIds = bridgeTypes.GovernanceActionIds;
-export type HardForkInitiationAction = bridgeTypes.HardForkInitiationAction;
-export type Header = bridgeTypes.Header;
-export type HeaderBody = bridgeTypes.HeaderBody;
-export type InfoAction = bridgeTypes.InfoAction;
-export type Int = bridgeTypes.Int;
-export type Ipv4 = bridgeTypes.Ipv4;
-export type Ipv6 = bridgeTypes.Ipv6;
-export type KESSignature = bridgeTypes.KESSignature;
-export type KESVKey = bridgeTypes.KESVKey;
-export type Language = bridgeTypes.Language;
-export type Languages = bridgeTypes.Languages;
-export type LegacyDaedalusPrivateKey = bridgeTypes.LegacyDaedalusPrivateKey;
-export type LinearFee = bridgeTypes.LinearFee;
-export type MIRToStakeCredentials = bridgeTypes.MIRToStakeCredentials;
-export type MalformedAddress = bridgeTypes.MalformedAddress;
-export type MetadataList = bridgeTypes.MetadataList;
-export type MetadataMap = bridgeTypes.MetadataMap;
-export type Mint = bridgeTypes.Mint;
-export type MintAssets = bridgeTypes.MintAssets;
-export type MintBuilder = bridgeTypes.MintBuilder;
-export type MintWitness = bridgeTypes.MintWitness;
-export type MintsAssets = bridgeTypes.MintsAssets;
-export type MoveInstantaneousReward = bridgeTypes.MoveInstantaneousReward;
-export type MoveInstantaneousRewardsCert = bridgeTypes.MoveInstantaneousRewardsCert;
-export type MultiAsset = bridgeTypes.MultiAsset;
-export type MultiHostName = bridgeTypes.MultiHostName;
-export type NativeScript = bridgeTypes.NativeScript;
-export type NativeScriptSource = bridgeTypes.NativeScriptSource;
-export type NativeScripts = bridgeTypes.NativeScripts;
-export type NetworkId = bridgeTypes.NetworkId;
-export type NetworkInfo = bridgeTypes.NetworkInfo;
-export type NewConstitutionAction = bridgeTypes.NewConstitutionAction;
-export type NoConfidenceAction = bridgeTypes.NoConfidenceAction;
-export type Nonce = bridgeTypes.Nonce;
-export type OperationalCert = bridgeTypes.OperationalCert;
-export type OutputDatum = bridgeTypes.OutputDatum;
-export type ParameterChangeAction = bridgeTypes.ParameterChangeAction;
-export type PlutusData = bridgeTypes.PlutusData;
-export type PlutusList = bridgeTypes.PlutusList;
-export type PlutusMap = bridgeTypes.PlutusMap;
-export type PlutusMapValues = bridgeTypes.PlutusMapValues;
-export type PlutusScript = bridgeTypes.PlutusScript;
-export type PlutusScriptSource = bridgeTypes.PlutusScriptSource;
-export type PlutusScripts = bridgeTypes.PlutusScripts;
-export type PlutusWitness = bridgeTypes.PlutusWitness;
-export type PlutusWitnesses = bridgeTypes.PlutusWitnesses;
-export type Pointer = bridgeTypes.Pointer;
-export type PointerAddress = bridgeTypes.PointerAddress;
-export type PoolMetadata = bridgeTypes.PoolMetadata;
-export type PoolMetadataHash = bridgeTypes.PoolMetadataHash;
-export type PoolParams = bridgeTypes.PoolParams;
-export type PoolRegistration = bridgeTypes.PoolRegistration;
-export type PoolRetirement = bridgeTypes.PoolRetirement;
-export type PoolVotingThresholds = bridgeTypes.PoolVotingThresholds;
-export type PrivateKey = bridgeTypes.PrivateKey;
-export type ProposedProtocolParameterUpdates = bridgeTypes.ProposedProtocolParameterUpdates;
-export type ProtocolParamUpdate = bridgeTypes.ProtocolParamUpdate;
-export type ProtocolVersion = bridgeTypes.ProtocolVersion;
-export type PublicKey = bridgeTypes.PublicKey;
-export type PublicKeys = bridgeTypes.PublicKeys;
-export type Redeemer = bridgeTypes.Redeemer;
-export type RedeemerTag = bridgeTypes.RedeemerTag;
-export type Redeemers = bridgeTypes.Redeemers;
-export type Relay = bridgeTypes.Relay;
-export type Relays = bridgeTypes.Relays;
-export type RewardAddress = bridgeTypes.RewardAddress;
-export type RewardAddresses = bridgeTypes.RewardAddresses;
-export type ScriptAll = bridgeTypes.ScriptAll;
-export type ScriptAny = bridgeTypes.ScriptAny;
-export type ScriptDataHash = bridgeTypes.ScriptDataHash;
-export type ScriptHash = bridgeTypes.ScriptHash;
-export type ScriptHashes = bridgeTypes.ScriptHashes;
-export type ScriptNOfK = bridgeTypes.ScriptNOfK;
-export type ScriptPubkey = bridgeTypes.ScriptPubkey;
-export type ScriptRef = bridgeTypes.ScriptRef;
-export type SingleHostAddr = bridgeTypes.SingleHostAddr;
-export type SingleHostName = bridgeTypes.SingleHostName;
-export type StakeAndVoteDelegation = bridgeTypes.StakeAndVoteDelegation;
-export type StakeDelegation = bridgeTypes.StakeDelegation;
-export type StakeDeregistration = bridgeTypes.StakeDeregistration;
-export type StakeRegistration = bridgeTypes.StakeRegistration;
-export type StakeRegistrationAndDelegation = bridgeTypes.StakeRegistrationAndDelegation;
-export type StakeVoteRegistrationAndDelegation = bridgeTypes.StakeVoteRegistrationAndDelegation;
-export type Strings = bridgeTypes.Strings;
-export type TimelockExpiry = bridgeTypes.TimelockExpiry;
-export type TimelockStart = bridgeTypes.TimelockStart;
-export type Transaction = bridgeTypes.Transaction;
-export type TransactionBatch = bridgeTypes.TransactionBatch;
-export type TransactionBatchList = bridgeTypes.TransactionBatchList;
-export type TransactionBodies = bridgeTypes.TransactionBodies;
-export type TransactionBody = bridgeTypes.TransactionBody;
-export type TransactionBuilder = bridgeTypes.TransactionBuilder;
-export type TransactionBuilderConfig = bridgeTypes.TransactionBuilderConfig;
-export type TransactionBuilderConfigBuilder = bridgeTypes.TransactionBuilderConfigBuilder;
-export type TransactionHash = bridgeTypes.TransactionHash;
-export type TransactionInput = bridgeTypes.TransactionInput;
-export type TransactionInputs = bridgeTypes.TransactionInputs;
-export type TransactionMetadatum = bridgeTypes.TransactionMetadatum;
-export type TransactionMetadatumLabels = bridgeTypes.TransactionMetadatumLabels;
-export type TransactionOutput = bridgeTypes.TransactionOutput;
-export type TransactionOutputAmountBuilder = bridgeTypes.TransactionOutputAmountBuilder;
-export type TransactionOutputBuilder = bridgeTypes.TransactionOutputBuilder;
-export type TransactionOutputs = bridgeTypes.TransactionOutputs;
-export type TransactionUnspentOutput = bridgeTypes.TransactionUnspentOutput;
-export type TransactionUnspentOutputs = bridgeTypes.TransactionUnspentOutputs;
-export type TransactionWitnessSet = bridgeTypes.TransactionWitnessSet;
-export type TransactionWitnessSets = bridgeTypes.TransactionWitnessSets;
-export type TreasuryWithdrawals = bridgeTypes.TreasuryWithdrawals;
-export type TreasuryWithdrawalsAction = bridgeTypes.TreasuryWithdrawalsAction;
-export type TxInputsBuilder = bridgeTypes.TxInputsBuilder;
-export type URL = bridgeTypes.URL;
-export type UnitInterval = bridgeTypes.UnitInterval;
-export type Update = bridgeTypes.Update;
-export type UpdateCommitteeAction = bridgeTypes.UpdateCommitteeAction;
-export type VRFCert = bridgeTypes.VRFCert;
-export type VRFKeyHash = bridgeTypes.VRFKeyHash;
-export type VRFVKey = bridgeTypes.VRFVKey;
-export type Value = bridgeTypes.Value;
-export type VersionedBlock = bridgeTypes.VersionedBlock;
-export type Vkey = bridgeTypes.Vkey;
-export type Vkeys = bridgeTypes.Vkeys;
-export type Vkeywitness = bridgeTypes.Vkeywitness;
-export type Vkeywitnesses = bridgeTypes.Vkeywitnesses;
-export type VoteDelegation = bridgeTypes.VoteDelegation;
-export type VoteRegistrationAndDelegation = bridgeTypes.VoteRegistrationAndDelegation;
-export type Voter = bridgeTypes.Voter;
-export type Voters = bridgeTypes.Voters;
-export type VotingBuilder = bridgeTypes.VotingBuilder;
-export type VotingProcedure = bridgeTypes.VotingProcedure;
-export type VotingProcedures = bridgeTypes.VotingProcedures;
-export type VotingProposal = bridgeTypes.VotingProposal;
-export type VotingProposalBuilder = bridgeTypes.VotingProposalBuilder;
-export type VotingProposals = bridgeTypes.VotingProposals;
-export type Withdrawals = bridgeTypes.Withdrawals;
-export type WithdrawalsBuilder = bridgeTypes.WithdrawalsBuilder;
+/** Decode the escrow datum using CML; all integer fields are decimal strings. */
+export const escrowDatumInfoJson = (datumCborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    escrow_datum_info_json: (datumCborHex: string) => string;
+  };
+  return cmlBridge.escrow_datum_info_json(datumCborHex);
+};
 
-export const {
-  Address,
-  Anchor,
-  AnchorDataHash,
-  AssetName,
-  AssetNames,
-  Assets,
-  AuxiliaryData,
-  AuxiliaryDataHash,
-  AuxiliaryDataSet,
-  BaseAddress,
-  BigInt,
-  BigNum,
-  Bip32PrivateKey,
-  Bip32PublicKey,
-  Block,
-  BlockHash,
-  BootstrapWitness,
-  BootstrapWitnesses,
-  ByronAddress,
-  Certificate,
-  Certificates,
-  CertificatesBuilder,
-  ChangeConfig,
-  Committee,
-  CommitteeColdResign,
-  CommitteeHotAuth,
-  Constitution,
-  ConstrPlutusData,
-  CostModel,
-  Costmdls,
-  Credential,
-  Credentials,
-  DNSRecordAorAAAA,
-  DNSRecordSRV,
-  DRep,
-  DRepDeregistration,
-  DRepRegistration,
-  DRepUpdate,
-  DRepVotingThresholds,
-  DataCost,
-  DataHash,
-  DatumSource,
-  Ed25519KeyHash,
-  Ed25519KeyHashes,
-  Ed25519Signature,
-  EnterpriseAddress,
-  ExUnitPrices,
-  ExUnits,
-  FixedBlock,
-  FixedTransaction,
-  FixedTransactionBodies,
-  FixedTransactionBody,
-  FixedTxWitnessesSet,
-  FixedVersionedBlock,
-  GeneralTransactionMetadata,
-  GenesisDelegateHash,
-  GenesisHash,
-  GenesisHashes,
-  GenesisKeyDelegation,
-  GovernanceAction,
-  GovernanceActionId,
-  GovernanceActionIds,
-  HardForkInitiationAction,
-  Header,
-  HeaderBody,
-  InfoAction,
-  Int,
-  Ipv4,
-  Ipv6,
-  KESSignature,
-  KESVKey,
-  Language,
-  Languages,
-  LegacyDaedalusPrivateKey,
-  LinearFee,
-  MIRToStakeCredentials,
-  MalformedAddress,
-  MetadataList,
-  MetadataMap,
-  Mint,
-  MintAssets,
-  MintBuilder,
-  MintWitness,
-  MintsAssets,
-  MoveInstantaneousReward,
-  MoveInstantaneousRewardsCert,
-  MultiAsset,
-  MultiHostName,
-  NativeScript,
-  NativeScriptSource,
-  NativeScripts,
-  NetworkId,
-  NetworkInfo,
-  NewConstitutionAction,
-  NoConfidenceAction,
-  Nonce,
-  OperationalCert,
-  OutputDatum,
-  ParameterChangeAction,
-  PlutusData,
-  PlutusList,
-  PlutusMap,
-  PlutusMapValues,
-  PlutusScript,
-  PlutusScriptSource,
-  PlutusScripts,
-  PlutusWitness,
-  PlutusWitnesses,
-  Pointer,
-  PointerAddress,
-  PoolMetadata,
-  PoolMetadataHash,
-  PoolParams,
-  PoolRegistration,
-  PoolRetirement,
-  PoolVotingThresholds,
-  PrivateKey,
-  ProposedProtocolParameterUpdates,
-  ProtocolParamUpdate,
-  ProtocolVersion,
-  PublicKey,
-  PublicKeys,
-  Redeemer,
-  RedeemerTag,
-  Redeemers,
-  Relay,
-  Relays,
-  RewardAddress,
-  RewardAddresses,
-  ScriptAll,
-  ScriptAny,
-  ScriptDataHash,
-  ScriptHash,
-  ScriptHashes,
-  ScriptNOfK,
-  ScriptPubkey,
-  ScriptRef,
-  SingleHostAddr,
-  SingleHostName,
-  StakeAndVoteDelegation,
-  StakeDelegation,
-  StakeDeregistration,
-  StakeRegistration,
-  StakeRegistrationAndDelegation,
-  StakeVoteRegistrationAndDelegation,
-  Strings,
-  TimelockExpiry,
-  TimelockStart,
-  Transaction,
-  TransactionBatch,
-  TransactionBatchList,
-  TransactionBodies,
-  TransactionBody,
-  TransactionBuilder,
-  TransactionBuilderConfig,
-  TransactionBuilderConfigBuilder,
-  TransactionHash,
-  TransactionInput,
-  TransactionInputs,
-  TransactionMetadatum,
-  TransactionMetadatumLabels,
-  TransactionOutput,
-  TransactionOutputAmountBuilder,
-  TransactionOutputBuilder,
-  TransactionOutputs,
-  TransactionUnspentOutput,
-  TransactionUnspentOutputs,
-  TransactionWitnessSet,
-  TransactionWitnessSets,
-  TreasuryWithdrawals,
-  TreasuryWithdrawalsAction,
-  TxInputsBuilder,
-  URL,
-  UnitInterval,
-  Update,
-  UpdateCommitteeAction,
-  VRFCert,
-  VRFKeyHash,
-  VRFVKey,
-  Value,
-  VersionedBlock,
-  Vkey,
-  Vkeys,
-  Vkeywitness,
-  Vkeywitnesses,
-  VoteDelegation,
-  VoteRegistrationAndDelegation,
-  Voter,
-  Voters,
-  VotingBuilder,
-  VotingProcedure,
-  VotingProcedures,
-  VotingProposal,
-  VotingProposalBuilder,
-  VotingProposals,
-  Withdrawals,
-  WithdrawalsBuilder,
-  calculate_ex_units_ceil_cost,
-  create_send_all,
-  decode_arbitrary_bytes_from_metadatum,
-  decode_metadatum_to_json_str,
-  decode_plutus_datum_to_json_str,
-  decrypt_with_password,
-  encode_arbitrary_bytes_as_metadatum,
-  encode_json_str_to_metadatum,
-  encode_json_str_to_native_script,
-  encode_json_str_to_plutus_datum,
-  encrypt_with_password,
-  get_deposit,
-  get_implicit_input,
-  has_transaction_set_tag,
-  hash_auxiliary_data,
-  hash_plutus_data,
-  hash_script_data,
-  make_daedalus_bootstrap_witness,
-  make_icarus_bootstrap_witness,
-  make_vkey_witness,
-  min_ada_for_output,
-  min_fee,
-  min_ref_script_fee,
-  min_script_fee
-} = cslBridge;
+/** Advance an escrow datum's thaw time and decrement its remaining count. */
+export const updatedEscrowDatumCborHex = (datumCborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    updated_escrow_datum_cbor_hex: (datumCborHex: string) => string;
+  };
+  return cmlBridge.updated_escrow_datum_cbor_hex(datumCborHex);
+};
+
+export type EscrowAddressArguments = {
+  eligibleAddress: string;
+  scriptHashHex: string;
+  networkId: number;
+};
+
+/** Derive an escrow script address with CML, retaining base-address staking credentials. */
+export const deriveEscrowAddress = (args: EscrowAddressArguments): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    derive_escrow_address: (argsJson: string) => string;
+  };
+  return cmlBridge.derive_escrow_address(JSON.stringify(args));
+};
+
+/** Normalize a Cardano pool identifier or key hash using CML. */
+export const normalizePoolIdentifier = (
+  poolIdOrHash: string,
+): {id: string; hash: string} => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    normalize_pool_identifier: (poolIdOrHash: string) => string;
+  };
+  const [id, hash] = cmlBridge.normalize_pool_identifier(poolIdOrHash).split('\n');
+  if (!id || !hash) throw new Error('Invalid CML pool identifier response');
+  return {id, hash};
+};
+
+export type CnsAddressRecordResult = {
+  paymentCredentialKind: 'key' | 'script';
+  paymentCredentialHashHex: string;
+  stakingCredentialHashHex: string | null;
+  addressBech32: string;
+};
+
+/** Resolve a CNS Plutus address record into normalized credential data and a CML address. */
+export const resolveCnsAddressRecord = (args: {
+  plutusAddressJson: string;
+  networkId: number;
+}): CnsAddressRecordResult => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    resolve_cns_address_record: (argsJson: string) => string;
+  };
+  return JSON.parse(
+    cmlBridge.resolve_cns_address_record(JSON.stringify(args)),
+  ) as CnsAddressRecordResult;
+};
+
+/** Verify the Ed25519 signature over caller-supplied bytes (CIP-8 Sig_structure for signData). */
+export const verifyEd25519Signature = (args: {
+  publicKeyHex: string;
+  messageHex: string;
+  signatureHex: string;
+}): boolean => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    verify_ed25519_signature: (argsJson: string) => string;
+  };
+  return cmlBridge.verify_ed25519_signature(JSON.stringify(args)) === 'true';
+};
+
+/** Derive the Cardano key hash from a raw Ed25519 public key. */
+export const publicKeyHashHexFromRawHex = (publicKeyHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    public_key_hash_hex_from_raw_hex: (argsJson: string) => string;
+  };
+  return cmlBridge.public_key_hash_hex_from_raw_hex(JSON.stringify({publicKeyHex}));
+};
+
+export const signTransactionHex = (
+  transactionHex: string,
+  privateKeyHex: string,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    sign_transaction_hex: (
+      transactionHex: string,
+      privateKeyHex: string,
+    ) => string;
+  };
+  return cmlBridge.sign_transaction_hex(transactionHex, privateKeyHex);
+};
+
+export type WalletTransactionSigningArguments = {
+  transactionHex: string;
+  masterKeyHex: string;
+  purpose: string;
+  coinType: string;
+  accountIndex: string;
+  stakingRole?: string;
+  stakingIndex?: string;
+};
+
+/** Derive wallet signing keys and sign entirely inside the CML native bridge. */
+export const signWalletTransactionHex = (
+  args: WalletTransactionSigningArguments,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    sign_wallet_transaction_hex: (args: string) => string;
+  };
+  return cmlBridge.sign_wallet_transaction_hex(JSON.stringify(args));
+};
+
+/** Derive a Cardano BIP32 root key from BIP39 entropy inside the native CML bridge. */
+export const walletRootKeyHexFromEntropy = (entropyHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    wallet_root_key_hex_from_entropy: (entropyHex: string) => string;
+  };
+  return cmlBridge.wallet_root_key_hex_from_entropy(entropyHex);
+};
+
+export type AccountPublicKeyDerivationArguments = {
+  masterKeyHex: string;
+  purpose: string;
+  coinType: string;
+  accountIndex: string;
+};
+
+/** Derive an account public key in CML without exporting derived private keys. */
+export const deriveAccountPublicKeyHex = (
+  args: AccountPublicKeyDerivationArguments,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    derive_account_public_key_hex: (args: string) => string;
+  };
+  return cmlBridge.derive_account_public_key_hex(JSON.stringify(args));
+};
+
+/** Derive a raw child public key from an account extended public key and soft path. */
+export const derivePublicKeyFromAccountPathHex = (
+  accountPublicKeyHex: string,
+  path: number[],
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    derive_public_key_from_account_path_hex: (args: string) => string;
+  };
+  return cmlBridge.derive_public_key_from_account_path_hex(
+    JSON.stringify({accountPublicKeyHex, path}),
+  );
+};
+
+export const baseAddressBech32FromPublicKeyHashes = (
+  paymentKeyHashHex: string,
+  stakeKeyHashHex: string,
+  networkId: number,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    base_address_bech32_from_public_key_hashes: (argsJson: string) => string;
+  };
+  return cmlBridge.base_address_bech32_from_public_key_hashes(
+    JSON.stringify({paymentKeyHashHex, stakeKeyHashHex, networkId}),
+  );
+};
+
+export const rewardAddressHexFromPublicKeyHash = (
+  stakeKeyHashHex: string,
+  networkId: number,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    reward_address_hex_from_public_key_hash: (argsJson: string) => string;
+  };
+  return cmlBridge.reward_address_hex_from_public_key_hash(
+    JSON.stringify({stakeKeyHashHex, networkId}),
+  );
+};
+
+export const icarusAddressBase58FromAccountPublicKeyHex = (
+  accountPublicKeyHex: string,
+  role: number,
+  index: number,
+  protocolMagic: number,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    icarus_address_base58_from_account_public_key_hex: (argsJson: string) => string;
+  };
+  return cmlBridge.icarus_address_base58_from_account_public_key_hex(
+    JSON.stringify({accountPublicKeyHex, role, index, protocolMagic}),
+  );
+};
+
+export type WalletPathSigningArguments = {
+  transactionHex: string;
+  masterKeyHex: string;
+  signerPaths: number[][];
+};
+
+/** Derive each wallet signing key and sign a transaction entirely in CML. */
+export const signWalletTransactionPathsHex = (
+  args: WalletPathSigningArguments,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    sign_wallet_transaction_paths_hex: (args: string) => string;
+  };
+  return cmlBridge.sign_wallet_transaction_paths_hex(JSON.stringify(args));
+};
+
+export type WalletDataSigningArguments = {
+  messageHex: string;
+  masterKeyHex: string;
+  signerPath: number[];
+};
+
+export const signWalletData = (
+  args: WalletDataSigningArguments,
+): {signatureHex: string; publicKeyHex: string} => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    sign_wallet_data: (args: string) => string;
+  };
+  return JSON.parse(cmlBridge.sign_wallet_data(JSON.stringify(args)));
+};
+
+export const deriveWalletPublicKeyHex = (
+  args: Pick<WalletDataSigningArguments, 'masterKeyHex' | 'signerPath'>,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    derive_wallet_public_key_hex: (args: string) => string;
+  };
+  return cmlBridge.derive_wallet_public_key_hex(JSON.stringify(args));
+};
+
+/** Compute the Cardano transaction ID from the transaction body's CML hash. */
+export const transactionIdHex = (transactionHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    transaction_id_hex: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_id_hex(transactionHex);
+};
+
+/** Parse transaction fields required by CIP-30 preflight validation. */
+export const transactionValidationInfoJson = (transactionHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    transaction_validation_info_json: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_validation_info_json(transactionHex);
+};
+
+/** Parse a transaction into the CML-backed ReviewTx DTO (all quantities are strings). */
+export const transactionReviewInfoJson = (transactionHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    transaction_review_info_json: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_review_info_json(transactionHex);
+};
+
+/** Parse normalized body/witness fields used to determine required wallet signers. */
+export const transactionSigningRequirementsJson = (transactionHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    transaction_signing_requirements_json: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_signing_requirements_json(transactionHex);
+};
+
+/** Extract the serialized witness set from a signed transaction using CML. */
+export const transactionWitnessSetHex = (transactionHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    transaction_witness_set_hex: (transactionHex: string) => string;
+  };
+  return cmlBridge.transaction_witness_set_hex(transactionHex);
+};
+
+/** Replace witnesses with an empty set while preserving transaction body and auxiliary data. */
+export const emptyWitnessTransactionHex = (transactionHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    empty_witness_transaction_hex: (transactionHex: string) => string;
+  };
+  return cmlBridge.empty_witness_transaction_hex(transactionHex);
+};
+
+export type ValueAmountArguments = {
+  coin: string;
+  assets: CmlAssetQuantity[];
+};
+
+/** Decode CML Value CBOR into lossless decimal-string quantities. */
+export const valueFromHexInfoJson = (valueCborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    value_from_hex_info_json: (valueCborHex: string) => string;
+  };
+  return cmlBridge.value_from_hex_info_json(valueCborHex);
+};
+
+/** Encode decimal-string quantities as CML Value CBOR. */
+export const valueFromAmountsHex = (args: ValueAmountArguments): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    value_from_amounts_hex: (argsJson: string) => string;
+  };
+  return cmlBridge.value_from_amounts_hex(JSON.stringify(args));
+};
+
+/** Return unique key hashes in native-script traversal order. */
+export const nativeScriptKeyHashesJson = (scriptCborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    native_script_key_hashes_json: (scriptCborHex: string) => string;
+  };
+  return cmlBridge.native_script_key_hashes_json(scriptCborHex);
+};
+
+/** Derive a raw Ed25519 public key from a 32-byte raw or 64-byte extended private key. */
+export const publicKeyHexFromPrivateKeyHex = (privateKeyHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    public_key_hex_from_private_key_hex: (privateKeyHex: string) => string;
+  };
+  return cmlBridge.public_key_hex_from_private_key_hex(privateKeyHex);
+};
+
+/** Sign exact message bytes with a 32-byte raw or 64-byte extended Ed25519 private key. */
+export const signEd25519MessageHex = (privateKeyHex: string, messageHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    sign_ed25519_message_hex: (privateKeyHex: string, messageHex: string) => string;
+  };
+  return cmlBridge.sign_ed25519_message_hex(privateKeyHex, messageHex);
+};
+
+export type ScriptHashType = 'native' | 'plutusV1' | 'plutusV2' | 'plutusV3';
+
+/** Calculate a policy/script hash; Plutus language must be explicit for correct namespacing. */
+export const scriptHashHexFromCbor = (
+  scriptType: ScriptHashType,
+  scriptCborHex: string,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    script_hash_hex_from_cbor: (argsJson: string) => string;
+  };
+  return cmlBridge.script_hash_hex_from_cbor(
+    JSON.stringify({scriptType, scriptCborHex}),
+  );
+};
+
+/** Generate the legacy-compatible Catalyst raw private-key bytes from BIP39 entropy/password hex. */
+export const catalystPrivateKeyHexFromEntropy = (entropyHex: string, passwordHex = ''): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    catalyst_private_key_hex_from_entropy: (argsJson: string) => string;
+  };
+  return cmlBridge.catalyst_private_key_hex_from_entropy(
+    JSON.stringify({entropyHex, passwordHex}),
+  );
+};
+
+/** Add verified Ledger signatures to an unsigned transaction without changing its body. */
+export const applyLedgerWitnessesToTransactionHex = (args: {
+  transactionHex: string;
+  accountPublicKeyHex: string;
+  purpose: string;
+  coinType: string;
+  accountIndex: string;
+  witnesses: Array<{path: number[]; signatureHex: string}>;
+  expectedTxIdHex: string;
+  plutusDataHexes?: string[];
+  senderUtxos?: Array<{
+    txHashHex: string;
+    outputIndex: number;
+    address: string;
+    addressHex?: string;
+    path: number[];
+  }>;
+}): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    apply_ledger_witnesses_to_transaction_hex: (argsJson: string) => string;
+  };
+  return cmlBridge.apply_ledger_witnesses_to_transaction_hex(JSON.stringify(args));
+};
+
+/** Return CML-decoded transaction fields, validated source paths, and change output paths for Ledger mapping. */
+export const ledgerSigningRequestInfoJson = (args: {
+  transactionHex: string;
+  networkId: number;
+  protocolMagic: number;
+  senderUtxos: Array<{
+    txHashHex: string;
+    outputIndex: number;
+    address: string;
+    addressHex?: string;
+    path: number[];
+  }>;
+  changeAddresses: Array<{address: string; addressHex?: string; path: number[]}>;
+  stakingPath?: number[];
+}): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    ledger_signing_request_info_json: (argsJson: string) => string;
+  };
+  return cmlBridge.ledger_signing_request_info_json(JSON.stringify(args));
+};
+
+export type SimplePaymentBuilderArguments = {
+  inputs: Array<{
+    transactionHashHex: string;
+    index: string;
+    address: string;
+    addressHex?: string;
+    isBootstrap?: boolean;
+    lovelace: string;
+    assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+    nativeScriptCborHex?: string;
+    nativeScriptWitnessCount?: string;
+  }>;
+  outputs: Array<{
+    address: string;
+    lovelace: string;
+    assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+    datum?: {kind: 'hash' | 'inline'; hex: string};
+  }>;
+  changeAddress: string;
+  ttl?: string;
+  manualFee?: string;
+  manualChangeOutput?: {
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+    datum?: {kind: 'hash' | 'inline'; hex: string};
+  };
+  feeCoefficient: string;
+  feeConstant: string;
+  coinsPerUtxoByte: string;
+  keyDeposit: string;
+  poolDeposit: string;
+  maxValueSize: string;
+  metadata?: Array<{label: string; data: unknown}>;
+  nativeMints?: Array<{
+    policyIdHex: string;
+    scriptCborHex: string;
+    assets: Array<{assetNameHex: string; quantity: string}>;
+  }>;
+  certificates?: Array<{
+    kind: 'StakeRegistration' | 'StakeDeregistration' | 'StakeDelegation' | 'VoteDelegation' | 'StakeAndVoteDelegation' | 'StakeRegistrationAndDelegation' | 'StakeVoteRegistrationAndDelegation' | 'VoteRegistrationAndDelegation';
+    stakeCredentialKeyHashHex: string;
+    poolKeyHash?: string;
+    drep?: 'AlwaysAbstain' | 'AlwaysNoConfidence' | {KeyHash: string} | {ScriptHash: string};
+  }>;
+  withdrawals?: Array<{rewardAddress: string; amount: string}>;
+  validityStart?: string;
+  referenceInputs?: Array<{
+    transactionHashHex: string;
+    index: string;
+    address: string;
+    lovelace: string;
+    assets?: Array<{policyIdHex: string; assetNameHex: string; quantity: string}>;
+  }>;
+};
+
+export type CmlTransactionRecipeUtxo = {
+  txHashHex: string;
+  index: string;
+  address: string;
+  addressHex?: string;
+  isBootstrap?: boolean;
+  lovelace: string;
+  assets: CmlAssetQuantity[];
+  inlineDatumCborHex?: string;
+  datumHashHex?: string;
+  referenceScript?: {hash: string; type?: string; size?: number; bytes?: string};
+  nativeScriptCborHex?: string;
+  nativeScriptWitnessCount?: string;
+};
+
+export type CmlTransactionRecipeOutput = {
+  address: string;
+  lovelace: string;
+  assets: CmlAssetQuantity[];
+  datum?: {kind: 'hash' | 'inline'; hex: string};
+};
+
+export type CmlTransactionRecipeCertificate =
+  | NonNullable<SimplePaymentBuilderArguments['certificates']>[number]
+  | {kind: 'PoolRegistration'; poolParams: Record<string, unknown>}
+  | {kind: 'PoolRetirement'; poolKeyHash: string; epoch: string}
+  | {kind: 'MoveInstantaneousRewardsCert'; pot: 'reserves' | 'treasury'; rewards: Array<{credential: {kind: 'key' | 'script'; hashHex: string}; amount: string}>}
+  | {kind: 'GenesisKeyDelegation'; genesisHashHex: string; genesisDelegateHashHex: string; vrfKeyHashHex: string}
+  | {kind: 'CommitteeHotAuth'; coldCredential: {kind: 'key' | 'script'; hashHex: string}; hotCredential: {kind: 'key' | 'script'; hashHex: string}}
+  | {kind: 'CommitteeColdResign'; coldCredential: {kind: 'key' | 'script'; hashHex: string}; anchor?: {url: string; dataHashHex: string}}
+  | {kind: 'DRepRegistration' | 'DRepDeregistration' | 'DRepUpdate'; credential: {kind: 'key' | 'script'; hashHex: string}; deposit?: string; anchor?: {url: string; dataHashHex: string}};
+
+export type CmlTransactionRecipeArguments = {
+  protocolParams: {
+    linearFee: {coefficient: string; constant: string};
+    coinsPerUtxoByte: string;
+    keyDeposit: string;
+    poolDeposit: string;
+    maxValueSize: string;
+    maxTxSize?: string;
+    collateralPercentage?: string;
+    refScriptCoinsPerByte?: {numerator: string; denominator: string};
+    refScriptTierStepBytes?: string;
+    refScriptMultiplier?: string;
+    exUnitPricesMemory?: {numerator: string; denominator: string};
+    exUnitPricesSteps?: {numerator: string; denominator: string};
+    plutusV1CostModel?: number[];
+    plutusV2CostModel?: number[];
+    plutusV3CostModel?: number[];
+  };
+  inputs: Array<CmlTransactionRecipeUtxo & {kind?: 'paymentKey' | 'nativeScript'}>;
+  outputs: CmlTransactionRecipeOutput[];
+  certificates: CmlTransactionRecipeCertificate[];
+  withdrawals: Array<{rewardAddress: string; amount: string}>;
+  referenceInputs: Array<Omit<CmlTransactionRecipeUtxo, 'inlineDatumCborHex' | 'datumHashHex' | 'nativeScriptCborHex' | 'nativeScriptWitnessCount'>>;
+  scriptInputs: Array<{
+    utxo: CmlTransactionRecipeUtxo;
+    scriptHashHex?: string;
+    plutusVersion: 'V1' | 'V2' | 'V3';
+    inlineScriptCborHex?: string;
+    redeemerCborHex: string;
+    redeemerMem: string;
+    redeemerSteps: string;
+    datumSource: 'inline' | {kind: 'explicit'; cborHex: string};
+    referenceScript?: {utxo: CmlTransactionRecipeUtxo; scriptCborHex: string; size: string};
+  }>;
+  collateralInputs: CmlTransactionRecipeUtxo[];
+  collateralReturn?: CmlTransactionRecipeOutput;
+  totalCollateral?: string;
+  mints: Array<{
+    policyIdHex: string;
+    scriptType: 'native' | 'plutusV1' | 'plutusV2' | 'plutusV3';
+    scriptCborHex: string;
+    assets: Array<{assetNameHex: string; quantity: string}>;
+    redeemerCborHex?: string;
+    redeemerMem?: string;
+    redeemerSteps?: string;
+    referenceInput?: CmlTransactionRecipeUtxo;
+  }>;
+  metadata: Array<{label: string; data: unknown}>;
+  options: {
+    changeAddress?: string;
+    ttl?: string;
+    validityIntervalStart?: string;
+    validityIntervalEnd?: string;
+    manualFee?: string;
+    manualChangeOutput?: CmlTransactionRecipeOutput;
+  };
+};
+
+export type CmlAssetQuantity = {
+  policyIdHex: string;
+  assetNameHex: string;
+  quantity: string;
+};
+
+export type EscrowCmlUtxo = {
+  txHashHex: string;
+  index: string;
+  address: string;
+  lovelace: string;
+  assets: CmlAssetQuantity[];
+  inlineDatumCborHex?: string;
+  datumCborHex?: string;
+};
+
+export type EscrowCmlTransactionArguments = {
+  scriptInput: EscrowCmlUtxo;
+  additionalScriptInputs: Array<{
+    scriptInput: EscrowCmlUtxo;
+    scriptHashHex: string;
+    plutusVersion?: 'V1' | 'V2' | 'V3';
+    referenceScriptInput?: EscrowCmlUtxo;
+    referenceScriptCborHex?: string;
+    referenceScriptSize?: string;
+    redeemerCborHex: string;
+    redeemerMem: string;
+    redeemerSteps: string;
+  }>;
+  referenceScriptInput: EscrowCmlUtxo;
+  referenceInputs: EscrowCmlUtxo[];
+  referenceScriptCborHex: string;
+  referenceScriptSize: string;
+  fundingInputs: EscrowCmlUtxo[];
+  collateralInput: EscrowCmlUtxo;
+  additionalCollateralInputs?: EscrowCmlUtxo[];
+  collateralReturn?: {
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+  };
+  outputs: Array<{
+    address: string;
+    lovelace: string;
+    assets: CmlAssetQuantity[];
+    datumCborHex?: string;
+  }>;
+  changeAddress: string;
+  scriptHashHex: string;
+  redeemerCborHex: string;
+  redeemerMem: string;
+  redeemerSteps: string;
+  validityStart: string;
+  ttl: string;
+  feeCoefficient: string;
+  feeConstant: string;
+  coinsPerUtxoByte: string;
+  keyDeposit: string;
+  poolDeposit: string;
+  maxValueSize: string;
+  maxTxSize?: string;
+  collateralPercentage?: string;
+  refScriptCoinsPerByte: {numerator: string; denominator: string};
+  refScriptTierStepBytes: string;
+  refScriptMultiplier: string;
+  exUnitPricesMemory: {numerator: string; denominator: string};
+  exUnitPricesSteps: {numerator: string; denominator: string};
+  plutusVersion?: 'V1' | 'V2' | 'V3';
+  plutusV1CostModel?: number[];
+  plutusV2CostModel?: number[];
+  plutusV3CostModel: number[];
+};
+
+export const buildEscrowRedeemTransactionCml = (
+  args: EscrowCmlTransactionArguments,
+): {cborHex: string; fee: string} => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    build_escrow_redeem_transaction_hex: (args: string) => string;
+  };
+  const [cborHex, fee] = cmlBridge
+    .build_escrow_redeem_transaction_hex(JSON.stringify(args))
+    .split('|');
+  if (!cborHex || !fee || !/^\d+$/.test(fee)) {
+    throw new Error('CML escrow transaction builder returned an invalid result');
+  }
+  return {cborHex, fee};
+};
+
+const assertSafeMetadataNumbers = (value: unknown): void => {
+  if (typeof value === 'number' && (!Number.isFinite(value) || (Number.isInteger(value) && !Number.isSafeInteger(value)))) {
+    throw new RangeError('Metadata numbers must be finite and integers must be safe');
+  }
+  if (Array.isArray(value)) {
+    value.forEach(assertSafeMetadataNumbers);
+  } else if (value !== null && typeof value === 'object') {
+    Object.values(value).forEach(assertSafeMetadataNumbers);
+  }
+};
+
+export const minimumCoinForAssets = (
+  address: string,
+  assets: CmlAssetQuantity[],
+  coinsPerUtxoByte: string,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    minimum_coin_for_assets: (args: string) => string;
+  };
+  const packedAssets = encodeBridgeAssets(assets) || '-';
+  return cmlBridge.minimum_coin_for_assets(
+    [address, packedAssets, coinsPerUtxoByte].map(encodeBridgeField).join('|'),
+  );
+};
+
+/** Build a transaction with CML using ADA and multiasset value bundles. */
+export const buildSimplePaymentTransaction = (
+  args: SimplePaymentBuilderArguments,
+): {cborHex: string; fee: string} => {
+  args.metadata?.forEach(({data}) => assertSafeMetadataNumbers(data));
+  if (args.nativeMints?.some(({assets}) => assets.length === 0)) {
+    throw new Error('Native mint assets must not be empty');
+  }
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    build_simple_payment_transaction_hex: (args: string) => string;
+  };
+  const result = cmlBridge.build_simple_payment_transaction_hex(
+    [
+      args.inputs
+        .map(({transactionHashHex, index, address, addressHex, isBootstrap, lovelace, assets, nativeScriptCborHex, nativeScriptWitnessCount}) =>
+          [encodeBridgeField(transactionHashHex), encodeBridgeField(index), encodeBridgeField(address), encodeBridgeField(lovelace),
+            encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
+            encodeBridgeField(nativeScriptCborHex ?? '-'),
+            encodeBridgeField(nativeScriptWitnessCount ?? '-'),
+            ...(addressHex !== undefined || isBootstrap !== undefined
+              ? [encodeBridgeField(addressHex ?? '-'), encodeBridgeField(isBootstrap === undefined ? '-' : String(isBootstrap))]
+              : []),
+          ].join(','),
+        )
+        .join(';'),
+      [...args.outputs, ...(args.manualChangeOutput ? [args.manualChangeOutput] : [])]
+        .map(({address, lovelace, assets, datum}) => [
+          encodeBridgeField(address),
+          encodeBridgeField(lovelace),
+          encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
+          encodeBridgeField(datum ? `${datum.kind}~${datum.hex}` : '-'),
+        ].join(','))
+        .join(';'),
+      encodeBridgeField(args.changeAddress),
+      encodeBridgeField(args.ttl ?? '-'),
+      encodeBridgeField(args.feeCoefficient),
+      encodeBridgeField(args.feeConstant),
+      encodeBridgeField(args.coinsPerUtxoByte),
+      encodeBridgeField(args.keyDeposit),
+      encodeBridgeField(args.poolDeposit),
+      encodeBridgeField(args.maxValueSize),
+      args.metadata ? encodeURIComponent(JSON.stringify(args.metadata)) : '-',
+      args.nativeMints?.map(({policyIdHex, scriptCborHex, assets}) => [
+        encodeBridgeField(policyIdHex),
+        'native',
+        encodeBridgeField(scriptCborHex),
+        encodeBridgeField(encodeBridgeAssets(assets, false)),
+      ].join(',')).join(';') || '-',
+      args.certificates?.length ? encodeURIComponent(JSON.stringify(args.certificates)) : '-',
+      args.withdrawals?.length ? encodeURIComponent(JSON.stringify(args.withdrawals)) : '-',
+      encodeBridgeField(args.validityStart ?? '-'),
+      args.referenceInputs?.map(({transactionHashHex, index, address, lovelace, assets}) => [
+        encodeBridgeField(transactionHashHex),
+        encodeBridgeField(index),
+        encodeBridgeField(address),
+        encodeBridgeField(lovelace),
+        encodeBridgeField(encodeBridgeAssets(assets ?? []) || '-'),
+      ].join(',')).join(';') || '-',
+      ...(args.manualFee !== undefined || args.manualChangeOutput !== undefined
+        ? [encodeBridgeField(args.manualFee ?? '-'), encodeBridgeField(String(Boolean(args.manualChangeOutput)))]
+        : []),
+    ].join('|'),
+  );
+  const separator = result.lastIndexOf('|');
+  if (separator < 0) throw new Error('Malformed CML payment transaction result');
+  return {cborHex: result.slice(0, separator), fee: result.slice(separator + 1)};
+};
+
+/** Build a normalized decimal-string transaction recipe through the CML bridge. */
+export const buildTransactionRecipeCml = (
+  args: CmlTransactionRecipeArguments,
+): {cborHex: string; fee: string} => {
+  args.metadata.forEach(({data}) => assertSafeMetadataNumbers(data));
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    build_transaction_recipe_cml_hex: (argsJson: string) => string;
+  };
+  const result = cmlBridge.build_transaction_recipe_cml_hex(JSON.stringify(args));
+  const separator = result.lastIndexOf('|');
+  if (separator < 0) throw new Error('Malformed CML transaction recipe result');
+  return {cborHex: result.slice(0, separator), fee: result.slice(separator + 1)};
+};
+
+/** Parse a bech32 or hex address and return its raw bytes as hex using CML. */
+export const addressToHex = (address: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    address_to_hex: (address: string) => string;
+  };
+  return cmlBridge.address_to_hex(address);
+};
+
+/** Parse an address with CML and return normalized bytes, network ID and bech32 when available. */
+export const addressInfoFromAddress = (
+  address: string,
+): {hex: string; networkId: number; bech32: string | null; isValid: true} => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    address_info_from_address: (address: string) => string;
+  };
+  return JSON.parse(cmlBridge.address_info_from_address(address));
+};
+
+/** Hash serialized Plutus datum CBOR with the CML native bridge. */
+export const hashPlutusDataCborHex = (cborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    hash_plutus_data_cbor_hex: (cborHex: string) => string;
+  };
+  return cmlBridge.hash_plutus_data_cbor_hex(cborHex);
+};
+
+/** Decode serialized Plutus data into the Yoroi display structure with CML. */
+export const decodePlutusDataCborHex = (cborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    decode_plutus_data_cbor_hex: (cborHex: string) => string;
+  };
+  return cmlBridge.decode_plutus_data_cbor_hex(cborHex);
+};
+
+/** Extract inline datum/hash information from transaction-output CBOR. */
+export const datumInfoFromOutputCborHex = (outputCborHex: string): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    datum_info_from_output_cbor_hex: (outputCborHex: string) => string;
+  };
+  return cmlBridge.datum_info_from_output_cbor_hex(outputCborHex);
+};
+
+export type TransactionUnspentOutputArguments = {
+  txHashHex: string;
+  index: string;
+  address: string;
+  lovelace: string;
+  assets: CmlAssetQuantity[];
+};
+
+/** Serialize a CIP-30 TransactionUnspentOutput using CML. */
+export const transactionUnspentOutputHex = (
+  args: TransactionUnspentOutputArguments,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    transaction_unspent_output_hex: (argsJson: string) => string;
+  };
+  return cmlBridge.transaction_unspent_output_hex(JSON.stringify(args));
+};
+
+/** Extract a reward address from a Cardano address using CML. */
+export const rewardAddressFromAddress = (address: string, network: number): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    reward_address_from_address: (address: string, network: number) => string;
+  };
+  return cmlBridge.reward_address_from_address(address, network);
+};
+
+export const rewardAddressHexFromAccountPublicKey = (
+  accountPublicKeyHex: string,
+  network: number,
+  role: number,
+  index: number,
+): string => {
+  const cmlBridge = nativeCmlBridge as typeof bridgeTypes & {
+    reward_address_hex_from_account_public_key: (
+      accountPublicKeyHex: string,
+      network: number,
+      role: number,
+      index: number,
+    ) => string;
+  };
+  return cmlBridge.reward_address_hex_from_account_public_key(
+    accountPublicKeyHex,
+    network,
+    role,
+    index,
+  );
+};

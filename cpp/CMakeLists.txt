@@ -6,12 +6,12 @@ add_compile_options(
         -frtti
         -std=c++17)
 
-file(GLOB native_module_SRC CONFIGURE_DEPENDS *.cpp)
+set(native_module_SRC NativeCmlMobileBridgeModule.cpp)
 add_library(native_module STATIC ${native_module_SRC})
 
 find_package(ReactAndroid REQUIRED CONFIG)
 target_include_directories(native_module PUBLIC .)
-#target_include_directories(react_codegen_RNCslMobileBridgeSpec PUBLIC .)
+#target_include_directories(react_codegen_RNCmlMobileBridgeSpec PUBLIC .)
 
 target_link_libraries(native_module
         ReactAndroid::jsi

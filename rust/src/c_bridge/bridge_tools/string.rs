@@ -3,6 +3,32 @@ use std::os::raw::c_char;
 
 pub type CharPtr = *const c_char;
 
+pub fn set_message(target: &mut CharPtr, message: String) -> bool {
+  match CString::new(message.replace('\0', "\\0")) {
+    Ok(value) => {
+      *target = value.into_raw();
+      true
+    }
+    Err(_) => false,
+  }
+}
+
+pub unsafe fn read_input<'a>(
+  input: CharPtr, error: &mut CharPtr, label: &str,
+) -> Option<&'a str> {
+  if input.is_null() {
+    set_message(error, format!("{label} is null"));
+    return None;
+  }
+  match CStr::from_ptr(input).to_str() {
+    Ok(value) => Some(value),
+    Err(err) => {
+      set_message(error, format!("{label} is not UTF-8: {err}"));
+      None
+    }
+  }
+}
+
 pub trait IntoStr<T> {
   fn into_str(&self) -> T;
 }
@@ -15,7 +41,7 @@ pub trait IntoOptionalCString {
   fn into_opt_cstr(&self) -> Option<CharPtr>;
 }
 
-impl <'a> IntoStr<&'a str> for CharPtr<> {
+impl<'a> IntoStr<&'a str> for CharPtr {
   fn into_str(&self) -> &'a str {
     unsafe { CStr::from_ptr(*self).to_str().unwrap() }
   }
@@ -49,7 +75,27 @@ impl IntoOptionalCString for Option<&str> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn csl_bridge_charptr_free(ptr: &mut CharPtr) {
-  let _ = CString::from_raw(*ptr as *mut c_char);
-  *ptr = std::ptr::null_mut();
+pub unsafe extern "C" fn cml_bridge_charptr_free(ptr: *mut CharPtr) {
+  if ptr.is_null() {
+    return;
+  }
+  if !(*ptr).is_null() {
+    let _ = CString::from_raw(*ptr as *mut c_char);
+    *ptr = std::ptr::null();
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{cml_bridge_charptr_free, CharPtr};
+
+  #[test]
+  fn char_pointer_free_accepts_null_argument_and_value() {
+    let mut value: CharPtr = std::ptr::null();
+    unsafe {
+      cml_bridge_charptr_free(std::ptr::null_mut());
+      cml_bridge_charptr_free(&mut value);
+    }
+    assert!(value.is_null());
+  }
 }

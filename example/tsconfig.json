@@ -5,9 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@yoroi-classic/csl-mobile-bridge": ["../src"],
+      "@yoroi-classic/cml-mobile-bridge": ["../src/cml"],
       // or if you want the built declarations instead of source:
-      // "@yoroi-classic/csl-mobile-bridge": ["../lib/typescript/src"]
+      // "@yoroi-classic/cml-mobile-bridge": ["../lib/typescript/src/cml"]
     }
   },
   "include": [
